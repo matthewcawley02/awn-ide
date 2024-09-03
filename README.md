@@ -1,6 +1,7 @@
-# awn-syntax-highlighter README
+# README
 
-This is the README for your extension "awn-syntax-highlighter". After writing up a brief description, we recommend including the following sections.
+This respository contains a VSCode extension for syntax highlighting of the AWN programming language.
+
 
 ## Features
 
