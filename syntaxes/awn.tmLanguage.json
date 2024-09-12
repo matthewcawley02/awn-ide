@@ -2,26 +2,43 @@
 	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
 	"name": "awn",
 	"scopeName": "source.awn",
-	"patterns": [{ "include": "#strings" }],
+	"patterns": [{ "include": "#main" }],
 	"repository": {
-		"strings": {
-			"patterns": [{ "include": "#keyword"}, {"include": "#infix_string"}, {"include": "#other_string"}, {"include": "name_string"}]
+		"main": {
+			"patterns": [
+				{
+					"begin": "--",
+					"beginCaptures": {
+						"0": { "name": "comment.awn" }
+					},
+					"end": "$",
+					"name": "comment.line.awn"
+				},
+				{
+					"begin": "\\{\\*",
+					"beginCaptures": {
+						"0": { "name": "comment.awn" }
+					},
+					"end": "\\*\\}",
+					"name": "comment.block.awn"
+				},
+				{ 
+					"match": "forall|exists|lambda|\\.|include|proc|INCLUDES|TYPES|VARIABLES|CONSTANTS|FUNCTIONS|PREDICATES|PROCESSES|ALIASES",
+					"name": "keyword.awn"
+				}, 
+				{
+					"match": "[\\*\\+-:<=>!&\\|]+",
+					"name": "infix.string.awn"
+				}, 
+				{
+					"match": "{|\\(|\\)|}|,|;",
+					"name": "other.string.awn"
+				}, 
+				{
+					"match": "[a-zA-Z0-9\\.\\_\"#$%'/?@\\\\^~]+",
+					"name": "name.string.awn"
+				}
+			]
 		}
-	},
-	"keyword": {
-		"match": "forall|exists|lambda|\\.|include|proc|INCLUDES|TYPES|VARIABLES|CONSTANTS|FUNCTIONS|PREDICATES|PROCESSES|ALIASES",
-		"name": "strings.keyword"
-	},
-	"infix_string": {
-		"match": "[*+-:<=>!&|]+",
-		"name": "strings.infix"
-	},
-	"other_string": {
-		"match": "{|\\(|\\)|}|,|;",
-		"name": "strings.other"
-	},
-	"name_string": {
-		"match": "[a-zA-Z0-9\\.\\_\"#$%'/?@\\\\^~]+",
-		"name": "strings.name"
 	}
 }
