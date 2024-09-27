@@ -1,0 +1,235 @@
+module awn.AWN_ASCII;
+
+header {
+  import awn.AWN_ASCIISyntax.*;
+}
+
+body {
+  
+  public Boolean isWord(Result yyResult) {
+    String s = (String) yyResult.semanticValue();
+    return !contains(KEYWORDS, s);
+  }
+  
+  public Boolean typeExclude(Result yyResult) {
+    String s = (String) yyResult.semanticValue();
+    return !s.contains("x");
+  }
+  
+  public Boolean infixExclude(Result yyResult) {
+    String s = (String) yyResult.semanticValue();
+    return !s.contains(":=") & !s.contains("|");
+  }
+  
+public Boolean infixExcludeBindingOps(Result yyResult) {
+  String s = (String) yyResult.semanticValue();
+  return !s.contains("->")
+       & !s.contains("<->")
+       & !s.contains("&")
+       & !s.contains("|")
+       & !s.contains("=")
+       & !s.contains("!=")
+       & !s.contains("<=")
+       & !s.contains("<")
+       & !s.contains(">")
+       & !s.contains(">=");
+}
+
+}
+
+option defaultIndent (2), defaultWidth (0);
+
+
+//========================
+// BNF starts here
+//========================
+AWN_ASCII_BNF = Spacing (\n Blocks)* EOF.
+
+//========================
+// Overall file structure
+//========================
+Blocks =
+    "INCLUDES"':' nestnl(Include*)                      {i_block}
+  | "include" Include                                   {i_single}
+  | "TYPES"':' nestnl(Type*)                            {t_block}
+  | "VARIABLES"':' nestnl(ConVar*)                      {v_block}
+  | "CONSTANTS"':' nestnl(ConVar*)                      {c_block}
+  | "FUNCTIONS"':' nestnl(Func*)                        {f_block}
+  | "PROCESSES"':' nestnl(Proc*)                        {p_block}
+  | "proc" Proc                                         {p_single}
+  | "ALIASES"':' nestnl(Alias*)                         {a_block}
+.
+
+//========================
+//     BLOCK ENTRIES
+//========================
+//includes need to be properly implemented
+Include = Identifier.
+
+Type =
+  TypeName sp ('=' TE)? \n
+.
+
+//constants and variables are handled the same
+ConVar =
+    TE sp Name ++ ',' \n                                {cv_list}
+  | Name ':' TE \n                                      {cv_elem}
+.
+
+Func =
+    Name ':' sp TE \n                                   {fun}
+  | Infix ':' sp BTE \n                                 {infix_fun}
+.
+
+Proc =
+    Name '(' Name ** ',' ')' ':=' nestnl(SPE)           {def_eqn}
+  | Name ':=' nestnl(SPE)                               {def_eqn_noargs}
+.
+
+Alias =
+  Name sp ':=' sp '"' Name ',' Name ** ',' '"' \n       {a_list}
+| Name sp ':=' sp '"' DE '"' \n                         {a_exp}  // DE DE is a problem
+.
+
+
+//========================
+//  SEQUENTIAL PROCESS
+//========================
+SPE =
+    Name '(' DE ** ',' ')'                              {spe_call}
+  | Name                                                {spe_call_noargs}
+  | '[' DE ']' nestnl(SPE)                              {spe_guard}
+  | '[[' Name('['DE']')* ':=' DE ']]' \n SPE            {spe_ass}
+  | SPE \n '+' SPE                                      {spe_choice,left,1}
+  | "unicast"'(' DEbrack ',' DEbrack ')' '.' nestnl(SPE) \n '>' nestnl(SPE)
+                                                        {spe_unicast}
+  | "unicast"'(' DEbrack ',' DEbrack ')' '.' \n SPE     {spe_unicast_1}
+  | "broadcast"'(' DE ')' '.' \n SPE                    {spe_broadcast}
+  | "groupcast"'(' DEbrack ',' DEbrack ')' '.' \n SPE   {spe_roupcast}
+  | "send"'(' DE ')' '.' \n SPE                         {spe_send}
+  | "deliver"'(' DE ')' '.' \n SPE                      {spe_deliver}
+  | "receive"'(' Name('['DE']')* ')' '.' \n SPE         {spe_receive}
+  | '(' SPE ')'
+.
+
+//========================
+//   TYPE EXPRESSIONS
+//========================
+TE =
+    TypeName                                            {te_name}
+  | TE 'x' TE ++ 'x'                                    {te_cross_prod,1}
+  | TE '->' TE                                          {te_fun,right,2}
+  | TE '+->' TE                                         {te_partial,right,2}
+  | 'Pow''('TE ')'                                      {te_power}
+  | '[' TE ']'                                          {te_list}
+  | '(' TE ')'
+.
+
+BTE =
+    BTE_AUX 'x' BTE_AUX '->' TE                         {bte_fun}
+  | BTE_AUX 'x' BTE_AUX '+->' TE                        {bte_partial}
+.
+
+BTE_AUX =
+    TypeName                                            {bte_name}
+  | '('TE')'                                            {bte_brackets}
+  | 'Pow''('TE ')'                                      {bte_pow}
+  | '[' TE ']'                                          {bte_list}
+.
+
+
+//========================
+//   DATA EXPRESSIONS
+//========================
+DE =
+    Name                                                {de_name}
+  | DE sp DE                                            {de_fun,right,2}
+  | DE ',' DE++ ','                                     {de_tuple,7}
+  | '{' DE '}'                                          {de_singelton}
+  | '{' Name '|' DE '}'                                 {de_set}
+  | '{' '(' Name ',' DE ')' '|' DE '}'                  {de_partial}
+  | "lambda" Name '.' sp DEaux                          {de_lambda,1}
+  | "forall" Name '.' sp DEaux                          {de_forall,1}
+  | "exists" Name '.' sp DEaux                          {de_exists,1}
+  | DE '->' DE                                          {de_imp,right,6}
+  | DE '<->' DE                                         {de_iff,right,6}
+  | DE '&' DE                                           {de_and,right,5}
+  | DE '|' DE                                           {de_or,right,5}
+  | DE '=' DE                                           {de_eq,right,4}
+  | DE '!=' DE                                          {de_neq,right,4}
+  | DE '<=' DE                                          {de_leq,right,4}
+  | DE '<' DE                                           {de_le,right,4}
+  | DE '>' DE                                           {de_ge,right,4}
+  | DE '>=' DE                                          {de_geq,right,4}
+  | DE InfixOps DE                                      {de_infix,right,3}
+  | '(' DE ')'
+.
+
+DEaux = DE                                              {de_aux}
+.
+
+//it's probably safe to rename the nodes straight-away deb_ -> de_
+DEbrack =
+    Name                                                {deb_name}
+  | DEbrack sp DEbrack                                  {deb_fun,right,2}
+  | '{' DE '}'                                          {deb_singelton}
+  | '{' Name '|' DE '}'                                 {deb_set}
+  | '{' '(' Name ',' DE ')' '|' DE '}'                  {deb_partial}
+  | "lambda" Name '.' sp DEbrack                        {deb_lambda,1}
+  | "forall" Name '.' sp DEbrack                        {deb_forall,1}
+  | "exists" Name '.' sp DEbrack                        {deb_exists,1}
+  | DEbrack '->' DEbrack                                {deb_imp,right,6}
+  | DEbrack '<->' DEbrack                               {deb_iff,right,6}
+  | DEbrack '&' DEbrack                                 {deb_and,right,5}
+  | DEbrack '|' DEbrack                                 {deb_or,right,5}
+  | DEbrack '=' DEbrack                                 {deb_eq,right,4}
+  | DEbrack '!=' DEbrack                                {deb_neq,right,4}
+  | DEbrack '<=' DEbrack                                {deb_leq,right,4}
+  | DEbrack '<' DEbrack                                 {deb_le,right,4}
+  | DEbrack '>' DEbrack                                 {deb_ge,right,4}
+  | DEbrack '>=' DEbrack                                {deb_geq,right,4}
+  | DEbrack InfixOps DEbrack                            {deb_infix,right,3}
+  | '(' DE ')'                                          {deb_brackets}
+.
+
+
+//========================
+//   COMMENTS
+//========================
+Comment   : Void = SLComment.
+SLComment : Void = "--" (!EOL _)* (EOL / EOF).
+MLComment : Void = "{*" (MLComment / MLCommentChar)* "*}".
+MLCommentChar : Void = !"*}" _.
+
+
+//========================
+//    NAMES
+//========================
+TypeName : String =
+  rats {
+    Name &{ typeExclude(yyResult) }
+}.
+
+Name : Token = BaseName | '!' | '[]'.
+
+BaseName : String =
+  rats {
+    NameString &{ isWord(yyResult) }
+}.
+
+NameString : String = NameChars*'.'NameString / NameChars+.
+
+NameChars : String = [a-zA-Z0-9_#$%\'/?@\\^`~]. //dot excluded
+
+InfixOps : String =
+  rats {
+      Infix &{ infixExcludeBindingOps(yyResult) }
+  }.
+
+Infix : String =
+  rats {
+    BaseInfix &{ infixExclude(yyResult) }
+}.
+
+BaseInfix : Token = [*+\-:<=>!&|]+.
+

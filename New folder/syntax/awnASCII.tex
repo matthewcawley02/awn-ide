@@ -1,0 +1,561 @@
+\documentclass[adraft]{eptcs}
+\usepackage{latexsym,breakurl,amsmath,amssymb}
+\usepackage[shortlabels]{enumitem}
+\usepackage{xcolor}
+\setlist[enumerate]{nosep}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%				Characters			          %%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newfont{\bbb}{bbm10 scaled 1100}                       % blackboard bold
+\newcommand{\IN}{\mbox{\bbb N}}                         % natural numbers
+\DeclareSymbolFont{frenchscript}{OMS}{ztmcm}{m}{n}
+\DeclareMathSymbol{\pow}{\mathord}{frenchscript}{80}    % powerset
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newcommand{\sect}[1]{Section~\ref{sec:#1}}
+\newcommand{\aac}[1]{{\tt #1}}    % official ASCII AWN code
+\newcommand{\A}{{\mathcal{A}}}     % algebra
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\newcommand{\chP}[1]{\textcolor{red}{#1}}
+\newcommand{\chR}[1]{\textcolor{magenta}{#1}}
+
+\def\titlerunning{A Machine Readable Syntax for AWN Specifications}
+\title{\titlerunning}
+\author{Rob van Glabbeek
+\institute{Data61, CSIRO, Sydney, Australia}
+\institute{School of Computer Science and Engineering,
+University of New South Wales, Sydney, Australia}
+\email{rvg@cs.stanford.edu}
+}
+\def\authorrunning{R.J. van Glabbeek}
+\begin{document}
+\maketitle
+
+\begin{abstract}
+An AWN specification is a mathematical object defined in
+[arxiv:\href{http://arxiv.org/abs/1312.7645}{1312.7645}].
+This document proposes a formal definition of a machine readable ASCII AWN specification.
+It unambiguously determines what does and what does not count as an ASCII AWN specification, and
+maps each of them to an AWN specification. % as in [arxiv:\href{http://arxiv.org/abs/1312.7645}{1312.7645}].
+\end{abstract}
+
+\section{ASCII AWN Files}\label{sec:1}
+
+An \emph{ASCII AWN file} must contains a finite string of \emph{text characters}.
+There are 95 text characters, namely those ASCII characters numbered 32 to 126, i.e., all ASCII
+characters except the 33 control characters.
+
+A \emph{raw} ASCII AWN file may additionally contain tabs and linebreaks.
+A \emph{multi-line comment} in a raw ASCII AWN file is any substring starting with ``{\tt \{*}'' and
+ending with the first occurrence of ``{\tt *\}}'' following this ``{\tt \{*}''; a correct raw
+ASCII AWN file may not have multi-line comments containing further occurrences of ``{\tt \{*}'',
+nor occurrences of  ``{\tt \{*}'' that are not followed by  ``{\tt *\}}''.
+A \emph{1-line comment} in a raw ASCII AWN file is any substring starting with ``{\tt --}'' and ending at the
+first linebreak following the ``{\tt --}''. \emph{Purging} a raw ASCII AWN file consist of first
+deleting all multi-line comments, and then deleting all single-line comments, including the opening ``{\tt --}'', and excluding the linebreak.
+Each raw ASCII AWN file gives rise to an ASCII AWN file, obtained by first purging the comments, and
+then replacing each tab and linebreak by a space.
+
+\paragraph{Words and Spaces}
+We define a \emph{word} as one of the following nonempty strings of text characters:
+\begin{itemize}
+\item a \emph{name string}: a string of the 62 alphanumeric characters
+      and the following 14 characters:
+\begin{center}\tt
+ . \_ \;  " \; \#  \; \$  \; \%  \; '  \; /  \; ?  @  \; \textbackslash  \; \textasciicircum  \; ` \; \textasciitilde
+\end{center}
+\item an \emph{infix string}: a string of the following 10 characters:\; {\tt * \;  +  \; - \; : < \; =  \; > \; ! \& \; |}
+\item a string of square opening and closing brackets \; {\tt [} \; {\tt ]}
+\item one of the following 6 single-character strings: {\tt \; \{ \; ( \; ) \; \} \; , \; ;}
+\end{itemize}
+Moreover, in a name string of length $>1$ ending on a period, the ending period is seen as a single-character
+  word, not part of the rest of the name string.
+An ASCII AWN file can be been seen as a sequence of words.  Spaces are used only to separate words. They are always
+optional, except when separating two words of the same kind that are not single-character strings.  The meaning of an
+ASCII AWN file remains invariant under contraction of any nonempty sequence of spaces into a single space.
+
+\paragraph{Names}
+We define a \emph{name} as a name string that does not occur in the following list of \emph{keywords}.
+\begin{center}\tt
+forall \; exists \; lambda \; . include \; proc \; INCLUDES \\ TYPES \; VARIABLES \; CONSTANTS \;
+FUNCTIONS \; PREDICATES \; PROCESSES \; ALIASES
+\end{center}
+The strings  {\tt !} and {\tt []} are also allowed as a names.
+%% W could also exclude Pow, but it is not needed.
+An \emph{infix expression} is an infix string,  but excluding the strings {\tt :=} and {\tt !}.
+% {\tt ->} and {\tt <->}.
+
+\paragraph{Type Expressions}
+The \emph{type expressions} are defined by the following context-free grammar in BNF form.\vspace{-2ex}
+\begin{center}
+\textit{TE} ::= \textit{Name} $|$ (\textit{TE} {\tt x} \textit{TE} {\tt x} $\cdots$ {\tt x}  \textit{TE}) $|$
+                (\textit{TE} {\tt ->} \textit{TE}) $|$
+                (\textit{TE} {\tt +->} \textit{TE}) $|$ \aac{Pow}(\textit{TE}) $|$ [\textit{TE}]
+\end{center}
+Here \textit{TE} is a type expression, and \textit{Name} a name, as defined above, but excluding the
+names {\tt x}, {\tt !} and {\tt []}.
+Brackets may be deleted iff they are determined by context, taking into account that {\tt x} binds
+stronger than {\tt ->} and {\tt +->}.
+% A type expression is \emph{functional} if it has the form (\textit{TE}$_1$ {\tt ->} \textit{TE}$_2$) or
+% (\textit{TE}$_1$ {\tt +->} \textit{TE}$_2$).
+A type expression is \emph{binary} if it has the form
+% \textit{TE}$_1$ or
+(\textit{TE}$_1$ {\tt ->} \textit{TE}$_2$) or
+(\textit{TE}$_1$ {\tt +->} \textit{TE}$_2$), where \textit{TE}$_1$ has the form  (\textit{TE}$_3$ {\tt x} \textit{TE}$_4$).
+
+An \emph{interpreted type expression} is a type expression seen as a parse tree. The brackets do not
+occur in this parse tree, but are used to parse unambiguously. Two type expressions are
+\emph{equivalent} if they give rise to the same interpreted type expression. In this case
+they differ only in optional spaces and brackets.
+
+\paragraph{Data Expressions}
+The \emph{data expressions} are defined by the following context-free grammar.
+\begin{center}
+\textit{DE} ::= \textit{Name} $|$ (\textit{DE} \textit{Infix} \textit{DE}) $|$
+                (\textit{DE}, \textit{DE}, $\cdots$ ,\textit{DE}) $|$ \textit{DE}(\textit{DE}) $|$
+               $\{\textit{DE}\}$ $|$
+               $\{\textit{Name}\mid \textit{DE}\}$ $|$
+               $\{(\textit{Name},\textit{DE})\mid \textit{DE}\}$ $|$
+                \aac{lambda} \textit{Name} . \textit{DE} $|$
+                \aac{forall} \textit{Name} . \textit{DE} $|$ \aac{exists} \textit{Name} . \textit{DE} $|$
+%                !\textit{DE} $|$  (\textit{DE} \& \textit{DE}) $|$   (\textit{DE} $|$ \textit{DE}) $|$
+%                  (\textit{DE} {\tt ->} \textit{DE}) $|$   (\textit{DE} {\tt <->} \textit{DE})
+\end{center}
+Here \textit{DE} is a data expression, and \textit{Name} a name. \textit{Infix} is an infix expression.
+All brackets, except the ones in $\{(\textit{Name},\textit{DE})\mid \textit{DE}\}$, may be
+deleted iff they are determined by context, taking into account that juxtaposition (interpreted as
+function application) \textit{DE} \textit{DE} binds strongest of all,
+followed by \textit{DE} \textit{Infix} \textit{DE}
+and then \textit{DE}, \textit{DE}. The last three constructs bind weakest of all.
+An \emph{interpreted data expression} is a type expression seen as a parse tree. 
+
+\paragraph{Variable Expressions}
+The \emph{variable expressions} are defined by the following context-free grammar.
+\begin{center}
+\textit{VE} ::= \textit{Name} $|$ \textit{VE} [\textit{DE}]
+\end{center}
+Here \textit{VE} is a data expression, \textit{Name} a name, and \textit{DE} a data expression.
+
+\paragraph{Process Expressions}
+The \emph{sequential process expressions} are defined by the following grammar.
+\begin{center}
+\textit{SPE} ::= \textit{Name} (\textit{EL}) $|$ [\textit{DE}] \textit{SPE} $|$ [[\textit{VE} := \textit{DE}]] \textit{SPE} $|$
+(\textit{SPE} + \textit{SPE}) $|$ \\
+\aac{unicast}(\textit{DE}, \textit{DE}) . \textit{SPE} {\tt >} \textit{SPE} $|$
+\aac{unicast}(\textit{DE}) . \textit{SPE} $|$
+\aac{broadcast}(\textit{DE}) . \textit{SPE} $|$ \\
+\aac{groupcast}(\textit{DE}, \textit{DE}) . \textit{SPE} $|$
+\aac{send}(\textit{DE}) . \textit{SPE} $|$
+\aac{deliver}(\textit{DE}) . \textit{SPE} $|$
+\aac{receive}(\textit{VE}) . \textit{SPE}
+\end{center}
+Here \textit{SPE} is a sequential process expression, \textit{Name} a name, \textit{VE} a variable expression,
+\textit{DE} a data expression,
+and \textit{EL} a comma-separated list of data expressions. In case \textit{EL} is the empty list,
+its surrounding brackets may be omitted.
+Brackets may be added to facilitate unique parsing, or deleted iff they are determined by context,
+taking into account that in a \emph{sum}
+\textit{SPE}$_1$ {\tt +} \textit{SPE}$_2$ {\tt +} \dots {\tt +} \textit{SPE}$_n$
+brackets associate to the right.
+An \emph{interpreted sequential process expression} is a sequential process expression seen as a parse tree. 
+
+\paragraph{Blocks}
+A file is a correct ASCII AWN file iff it is a sequence of \emph{ASCII AWN blocks}, defined below.
+% The blocks are sequences of words, meaning that consecutive blocks are separated by spaces.
+% as defined in Sections~\ref{sec:A}--\ref{sec:B}. The definition of an ASCII AWN block is crafted in such a way
+% that any file can be read in at most one way as a sequence of ASCII AWN blocks.
+There are seven kinds of blocks:
+\emph{inclusion blocks},
+\emph{type blocks},
+\emph{variable blocks},
+\emph{constant blocks},
+\emph{function blocks},
+%\emph{predicate blocks},
+\emph{process blocks} and
+\emph{alias blocks}.
+% These are defined in Sections~\ref{sec:inclusion}--\ref{sec:process}, respectively.
+
+An include block consists of the keyword {\tt INCLUDES:} followed by a sequence of URLs or relative
+path names from the current file or directory to another file or directory.
+If there is only one URL or relative path name in the block, the keyword may also be {\tt include}.
+
+A type block consists of the keyword {\tt TYPES:} followed by a sequence of type declarations.
+Each type declaration has the shape \textit{Name} or \textit{Name} = \textit{TE}, where \textit{Name}
+is a name, but not {\tt x}, and \textit{TE} a type expression.
+
+A variable block consists of the keyword {\tt VARIABLES:} followed by a sequence of variable declarations.
+Each variable declaration has the shape  \textit{Name}: \textit{TE}.
+Alternatively, a variable block may consist of the keyword {\tt VARIABLES:} followed by a sequence of declarations of the
+form  \textit{TE} \textit{list}, where \textit{TE} is a type expression and \textit{list} a comma-separated list of names.
+A single declaration \textit{TE} \textit{list} is equivalent to the list of declarations
+\textit{Name}: \textit{TE}, containing one element for each \textit{Name} occurring in \textit{list}.
+
+A constant block consists of the keyword {\tt CONSTANTS:} followed by a sequence of constant declarations.
+A constant declaration has the shape \textit{Name}: \textit{TE}.
+Alternatively, a constant block may consist of the keyword {\tt CONSTANTS:} followed by a sequence of declarations of the
+form  \textit{TE} \textit{list},\pagebreak[3] where \textit{TE} is a type expression and \textit{list} a comma-separated list of names.
+The semantics of this alternative form is as for variables.
+
+A function block consists of the keyword {\tt FUNCTIONS:} followed by a sequence of function declarations.
+A function declaration has the shape \textit{Name}: \textit{TE}, where \textit{Name} is a name
+and \textit{TE} a type expression. It may also have the form \textit{Infix}: \textit{BTE},
+where \textit{Infix} is an infix expression and \textit{BTE} a binary type expression.
+
+% A predicate block consists of the keyword {\tt PREDICATES:} followed by a sequence of predicate declarations.
+% A predicate declaration has the shape \textit{Name}: \textit{TE}. It may also have the form \textit{Infix}: \textit{BPE},
+% where \textit{Infix} is an infix expression and \textit{BPE} a type expression of the form
+% \textit{TE}$_3$ {\tt x} \textit{TE}$_4$.
+
+A process block consists of the keyword {\tt PROCESSES:} followed by a sequence of process declarations.
+If there is only one process declaration in the block, the keyword may also be {\tt proc}.
+Each process declaration has the shape \textit{Name}(\textit{list}) := \textit{SPE}, where
+\textit{Name} is a name, \textit{list} is a comma-separated list of names, and \textit{SPE} a sequential process expression.
+In case the list is empty, the brackets may be omitted.
+
+An alias block consists of the keyword {\tt ALIASES:} followed by a sequence of alias declarations.
+An alias declaration has the shape \textit{Name} := {\tt "}\textit{DE}{\tt "}, with \textit{Name} a
+name and \textit{DE} a data expression.
+It may also have the shape \textit{Name} := {\tt "}\textit{list}{\tt "}, with \textit{list} a
+comma-separated nonempty list of names.
+
+Each AWN file can be read in only one way as a sequence of blocks.
+Moreover there is only one way to split a block into declarations.
+For all declarations, \textit{Name} or \textit{Infix} is called the \emph{declared name}.
+
+\section{The Interpretation of ASCII AWN Files and Directories}
+
+The \emph{interpretation} of a type declaration, called an \emph{interpreted} type declaration,
+is either a name, or a pair of a name and an interpreted type expression.
+Likewise, the interpretation of a variable, constant, function or alias declaration is a pair of a name and a
+interpreted type expression. The meaning of a process declaration is a triple of a name, a list of
+names, and an interpreted process expression.
+
+An \emph{AWN ASCII} directory is a directory, such that all files in it with the file-extension
+``.awn'' are valid raw AWN-ASCII files as defined above. Such a directory can equivalently be seen as
+an AWN ASCII file containing only include blocks, namely one for each ``.awn'' file in it.
+
+Now define a partial order ``prior'' on files and directories, namely the least one such
+that file $A$ is prior to file $B$ if $B$ is a (raw) AWN ASCII file with an include block in it pointing to $A$.
+A raw AWN-ASCII file $A_0$ is \emph{well-founded} if there is no infinite sequence $A_1$, $A_2$, \dots
+such that $A_{i+1}$ is prior to $A_i$; moreover all files prior to $A_0$ should be correct (raw) AWN
+ASCII files as well.
+
+The interpretation of a well-founded (raw) AWN ASCII file or directory $B$ is defined with induction on
+the prior relation.  It is a 6-tuple $(T,V,C,F,S,A)$ of sets of interpreted type-, variable-,
+constant-, function-, sequential process and alias declarations. By induction assume that for
+each include block occurring in $B$ such a 6-tuple has been generated for the AWN ASCII file or
+directory pointed to by the include block. Now take the componentwise union of these tuples and add
+all the interpreted declarations contributed in the present file.  Note that this union need not be
+disjoint.
+
+Our use of \emph{interpreted} declarations allows regarding two declarations to be the same, in taking
+this union, even when as strings they differ slightly in spaces and brackets.
+
+\section{ASCII AWN Specifications}
+
+A (raw) ASCII AWN file or directory constitutes an ASCII AWN Specification iff it is well-founded
+and its interpretation has no overloading, or only
+innocent overloading, and it type checks, as defined in \sect{type checking}.
+\emph{Overloading} occurs if the file's interpretation as a 6-tuple of declarations
+contains two declarations with the same declared name.
+A type declaration with and without an associated type expression does not count as overloading, and
+is equivalent to just the one with the associated type expression.
+A pair of declarations with the same declared name is considered an \emph{innocent} case of
+overloading if one is a function declaration with a type
+ \textit{TE}$_1$ -$>$ \textit{TE}$_2$ or \mbox{\textit{TE}$_1$ +-$>$ \textit{TE}$_2$},
+and the other a variable, constant or function declaration with a type not of the form
+ \textit{TE}$_1$ -$>$ \textit{TE}$_3$ or \mbox{\textit{TE}$_1$ +-$>$ \textit{TE}$_3$}.
+% Overloading is \emph{innocent} if in spite of it each expression in the language can be type checked in
+% only one way, meaning that to each name occurring in the expression a unique declaration can be associated.
+
+\section{Default Types and Functions}
+
+The following types, variable, constants and functions are by default part of any ASCII AWN
+specification, even if not explicitly declared. It is as if they are always included through an
+implicit include block. The type {\tt TIME} and variable {\tt now} only occur if the AWN
+specification is in fact a T-AWN specification.
+\vspace{1ex}
+\begin{verbatim}
+TYPES:
+  Bool            -- The Booleans
+  DATA            -- Application layer data
+  MSG             -- Messages
+  IP              -- IP addresses, or any other node identifiers
+  TIME            -- Time values, typically the integerts with infinity
+
+VARIABLES:
+  now:            TIME
+
+CONSTANTS:
+  true:           Bool
+  false:          Bool
+
+FUNCTIONS:
+  !   :           Bool -> Bool                -- negation
+  &   :           Bool x Bool -> Bool         -- conjunction
+  |   :           Bool x Bool -> Bool         -- disjunction
+  ->  :           Bool x Bool -> Bool         -- implication
+  <-> :           Bool x Bool -> Bool         -- bi-implication
+  newpkt:         Data x IP -> MSG            -- message from application layer
+\end{verbatim}
+\vspace{9pt}
+Additionally, for each type {\tt \textit{Type}} there are functions\\
+\mbox{}\hspace{12pt} {\tt  = \hspace{4pt}  :  \hspace{38pt} \textit{Type} x \textit{Type} -> Bool \hspace{38pt} -- equality}\\
+\mbox{}\hspace{11pt} {\tt != \hspace{0pt}  :  \hspace{38pt} \textit{Type} x \textit{Type} -> Bool \hspace{38pt} -- inequality}\\
+\mbox{}\hspace{11pt} {\tt  isElem:  \hspace{26pt} \textit{Type} x \aac{Pow}(\textit{Type}) -> Bool \hspace{10pt} -- is an element of}
+
+\noindent
+The infix operators {\tt ->} and {\tt <->} bind weakest of all, then {\tt \&} and {\tt |}, then
+{\tt =} and {\tt !=}, and then all others.
+
+\section{Type Checking}\label{sec:type checking}
+
+  We interpret the ASCII AWN file as a 6-tuple $(T,V,C,F,S,A)$, as described in Section 6.
+  $T$ can be seen as a set of declared type names (the \emph{declared types}), together with a
+  partial function of some of these types to type expressions. 
+  Likewise $V$ can be seen as a total function from a set of declared variable names (the \emph{variables})
+  to type expressions. Similarly, $C$ is a total functions from a set of declared constant names
+  (the \emph{constants}) to type expressions, $A$ is a total function from a set of declared alias names
+  (the \emph{aliases}) to the union of the set of data expressions and the set of lists of names,
+  and $S$ is a total function from a set of declared process names (the \emph{processes}) to pairs
+  of lists of names and process expressions. Let a \emph{data alias} be an alias that maps to a data
+  expression, and a \emph{list alias} one that maps to a list of names.
+
+  The requirement regarding overloading implies that the
+  sets of declared types, variables, constants, processes and aliases are disjoint.
+  The set $F$ can be seen as a total function from the function declarations (the \emph{functions})
+  to the type expressions. There can be multiple functions with the same declared name, and this
+  name can also be used as a constant or a variable.
+
+An ASCII AWN file \emph{type checks} iff the following conditions are met.
+% algorithm terminates successfully.
+\begin{enumerate}
+\item Type expressions are associated to some declared types, and to all variables, constants and functions.
+  We require that all names that occur in these type expressions are themselves declared types.
+  In this case, the type expression constitutes the \emph{type} of the variable, constant, function
+  or type expression.
+\item
+  Call a type declaration \textit{type}$_1$ to be \emph{prior} to a type declaration
+  \textit{type}$_2$, if \textit{type}$_1$ occurs in the type of \textit{type}$_2$.
+  We rule out circular type declarations of \textit{type}$_1$ being prior to
+  \textit{type}$_2$ being prior to \dots \textit{type}$_n$ being prior to \textit{type}$_1$.
+
+  A declared type name with an associated type can be seen as an abbreviation.
+  It can always be interpreted by substituting for it its associated type.
+\item Data expressions occur in process expressions and are associated to aliases.
+  All names occurring in a data expression must be variables, constants, function names or data aliases.
+  Moreover, functions of a type  \textit{type}$_2$ {\tt ->} \textit{type}$_3$ or
+  \textit{type}$_2$ {\tt +->} \textit{type}$_3$ may only occur in the role of \textit{DE}$_1$ in a
+  subexpression \textit{DE}$_1$(\textit{DE}$_2$).
+  All infix expressions occurring in a data expression must be functions names.
+\item
+  Call a data alias \textit{alias}$_1$ to be \emph{prior} to a data alias
+  \textit{alias}$_2$, if \textit{alias}$_1$ occurs in the data expression associated to \textit{alias}$_2$.
+  We rule out circular type declarations of \textit{alias}$_1$ being prior to
+  \textit{alias}$_2$ being prior to \dots \textit{alias}$_n$ being prior to \textit{alias}$_1$.
+\item List aliases  must map to repetition-free lists of variables.
+\item The list of names associated to a process expression must be a list of variables and list aliases.
+  After substituting the associated list of variables for each data alias, the resulting list of
+  variables must be repetition-free.
+\item The following algorithm tells when type checking fails for a data expression or data alias,
+  and associates a type to every data expression and data alias that type checks correctly.
+  It operates by induction on the prior relation, and by structural induction on data expressions.
+  If type checking fails on a subexpression of a data expression, then it also fails on the whole data expression.
+  \begin{itemize}
+  \item The type of a variable or constant is given by the components
+    $V$ and $C$ of the interpreted AWN ASCII file.
+  \item
+    A function name occurrence that is not \textit{DE}$_1$ in a subexpression \textit{DE}$_1$(\textit{DE}$_2$),
+    denotes, by the rules on overloading and Clause 3 above, a unique function. Its type is given by the component $F$ of the interpreted AWN ASCII file.
+  \item The type of a data alias is the type of the associated data expression, provided the latter
+    type checks correctly. Otherwise type checking fails for this data alias.
+  \item An expression  (\textit{DE}$_1$ \textit{Infix} \textit{DE}$_2$) where \textit{type}$_1$ is
+    the type of \textit{DE}$_1$ and \textit{type}$_2$ is the type of \textit{DE}$_2$, type checks
+    correctly iff the function \textit{Infix} has a type
+    (\textit{type}$_1$ x \textit{type}$_2$) {\tt ->} \textit{type}$_3$ or
+    (\textit{type}$_1$ x \textit{type}$_2$) {\tt +->} \textit{type}$_3$.
+    In that case the type of the expression is \textit{type}$_3$.
+  \item An expression  (\textit{DE}$_1$, \textit{DE}$_2$, $\cdots $, \textit{DE}$_n$) where \textit{type}$_i$ is
+    the type of \textit{DE}$_i$ for $i=1,\dots,n$, has type
+    (\textit{type}$_1$ x \textit{type}$_2$ x $\cdots$ x \textit{type}$_n$).
+  \item An expression  \textit{DE}$_1$(\textit{DE}$_2$) where \textit{type}$_1$ is
+    the type of \textit{DE}$_1$ and \textit{type}$_2$ is the type of \textit{DE}$_2$, type checks
+    correctly iff \textit{type}$_1$ has the shape \textit{type}$_2$ {\tt ->} \textit{type}$_3$ or
+    \textit{type}$_2$ {\tt +->} \textit{type}$_3$.
+    In that case the type of the expression is \textit{type}$_3$.
+    In the special case that \textit{DE}$_1$ is a function name, there is at most one function with
+    that name that has a type for the form \textit{type}$_2$ {\tt ->} \textit{type}$_3$ or \textit{type}$_2$ {\tt +->} \textit{type}$_3$;
+    this is the function denoted by that name.
+  \item An expression  {\tt \{}\textit{DE}{\tt \}} where \textit{type} is
+    the type of \textit{DE}, has type \aac{Pow}(\textit{type}).
+    In the special case that \textit{DE} has the shape $\textit{Name}\mid \textit{DE}$ it is always
+    seen as an expression of the form below.
+  \item An expression $\{\textit{Name}\mid \textit{DE}\}$ type checks if \textit{Name} is a variable
+    name, say of type \textit{type}, and \textit{DE} has type {\tt Bool}.
+    In that case the type of the expression is \aac{Pow}(\textit{type}).
+  \item An expression $\{(\textit{Name}, \textit{DE}_1) \mid \textit{DE}_2\}$, where \textit{type}$_1$ is
+    the type of \textit{DE}$_1$, type checks if \textit{Name} is a variable name, say of type
+    \textit{type}$_0$, and \textit{DE}$_2$ has type {\tt Bool}. 
+    In that case the type of the expression is \textit{type}$_0$ {\tt +->} \textit{type}$_1$.
+  \item An expression \aac{lambda} \textit{Name} . \textit{DE}, where \textit{type}$_1$ is
+    the type of \textit{DE}, type checks if \textit{Name} is a variable name, say of type
+    \textit{type}$_0$. 
+    In that case the type of the expression is \textit{type}$_0$ {\tt ->} \textit{type}$_1$.
+  \item An expression \aac{forall} \textit{Name} . \textit{DE} or \aac{exists} \textit{Name} . \textit{DE}
+    type checks if \textit{Name} is a variable name and  \textit{DE} has type {\tt Bool}.
+    In that case the type of the expression is \aac{Bool}.
+%   \item An expression !\textit{DE} type checks if \textit{DE} has type {\tt Bool}.
+%     In that case the type of the expression is \aac{Bool}.
+%   \item An expression  (\textit{DE}$_1$ \& \textit{DE}$_2$) or (\textit{DE}$_1$ $|$ \textit{DE}$_2$) or
+%     (\textit{DE}$_1$ {\tt ->} \textit{DE}$_2$) or (\textit{DE}$_1$ {\tt <->} \textit{DE}$_2$)
+%     type checks if both \textit{DE}$_1$ and \textit{DE}$_2$ have type {\tt Bool}.
+%     In that case the type of the expression is \aac{Bool}.
+  \end{itemize}
+\item A variable expression type checks correctly iff all data expression occurring in it type check
+  correctly, and the following requirements are met.
+  \begin{itemize}
+  \item In an expression \textit{Name},  \textit{Name} is a variable. The type of the expression is
+    the type of \textit{Name}.
+  \item In a subexpession \textit{VE}[\textit{DE}],
+    \textit{DE} a data expression, say of type \textit{type}$_1$. The expression type checks iff
+    \textit{VE} is a variable expression of type
+     (\textit{DE}$_1$ {\tt ->} \textit{DE}$_2$) or (\textit{DE}$_1$ {\tt +->} \textit{DE}$_2$).
+    The type of the expression is \textit{type}$_2$.
+  \end{itemize}
+\item A process expression type checks correctly iff all data expression occurring in it type check
+  correctly, and the following requirements are met.
+  \begin{itemize}
+  \item In each subexpession [\textit{DE}] \textit{SPE}, the data expression \textit{DE} is of type \aac{Bool}.
+  \item In each subexpession [[\textit{VE} := \textit{DE}]] \textit{SPE}, \textit{VE} is a
+    variable expression, of the same type as \textit{DE}.
+  \item In each subexpession \aac{unicast}(\textit{DE}$_1$, \textit{DE}$_2$) . \textit{SPE}$_1$ {\tt >} \textit{SPE}$_2$
+    or  \aac{unicast}(\textit{DE}$_1$, \textit{DE}$_2$) . \textit{SPE},
+    the data expression \textit{DE}$_1$ is of type {\tt IP}, and \textit{DE}$_2$ is of type {\tt MSG}.
+  \item In each subexpession \aac{groupcast}(\textit{DE}$_1$, \textit{DE}$_2$) . \textit{SPE}, the data expression
+    \textit{DE}$_1$ is of type {\tt Pow(IP)}, and \textit{DE}$_2$ is of type {\tt MSG}.
+  \item In each subexpession \aac{broadcast}(\textit{DE}). \textit{SPE} or \aac{send}(\textit{DE}) . \textit{SPE},
+    the data expression \textit{DE} is of type {\tt MSG}.
+  \item In each subexpession \aac{deliver}(\textit{DE}) . \textit{SPE},  the data expression \textit{DE} is of type {\tt DATA}.
+  \item In each subexpession \aac{receive}(\textit{VE}) . \textit{SPE}, \textit{VE} is a  variable
+    expression of type {\tt MSG}.
+  \end{itemize}
+\item When a process name maps to a list \textit{LE} of variables and a process expression
+  \textit{SPE}, all variable occurrences in \textit{SPE} must be bound.
+  An occurrence of a data variable in \textit{SPE} is \emph{bound} if it occurs in \textit{LE}, or is
+  a variable \textit{Name} occurring in a subexpression
+  \aac{receive}(\textit{Name}).\textit{SPE}$'$, a variable \textit{Name} occurring in a subexpression
+  [[\textit{Name} := \textit{DE}]] \textit{SPE}$'$, or an occurrence in a
+  subexpression [\textit{DE}] \textit{SPE}$'$ of a variable occurring free in \textit{DE}.
+  Here an occurrence  of a data variable \textit{Name} in a data expression is \emph{free} if it
+  lays not in subexpression of one of the five forms  $\{\textit{Name}\mid \textit{DE}\}$,
+  $\{(\textit{Name},\textit{DE})\mid \textit{DE}\}$,
+                \aac{lambda} \textit{Name} . \textit{DE},
+                \aac{forall} \textit{Name} . \textit{DE} or \aac{exists} \textit{Name} . \textit{DE}.
+\end{enumerate}
+
+
+\section{The Data Structures of AWN}
+
+The process algebra AWN was introduced in \cite{ESOP12,TR13}, which states:
+\begin{quote}
+  The internal state of a process is determined, in part, by the values
+  of certain data variables that are maintained by that process.  To
+  this end, we assume a data structure with several types, variables
+  ranging over these types, operators and predicates. First order
+  predicate logic yields terms (or \emph{data expressions}) and formulas
+  to denote data values and statements about them.\label{pg:undefvalues}\footnote{As
+      operators we also allow \emph{partial} functions with the
+      convention that any atomic formula containing an undefined subterm
+      evaluates to {\tt false}---footnote added in \cite{TR13}.} Our data structure
+  always contains the types \aac{DATA}, \aac{MSG}, \aac{IP} and $\pow(\aac{IP})$ of
+  \emph{application layer data}, \emph{messages}, \emph{IP addresses}---or any
+  other node identifiers---and \emph{sets of IP addresses}.
+  % We further assume that 
+  % there is a function $\aac{newpkt}:\aac{DATA} \times \aac{IP} \rightarrow \aac{MSG}$
+  % that generates a message with new application layer data for a particular destination. 
+\end{quote}
+Here a ``data structure'' refers to a pair $(\Sigma,\A)$ of a signature $\Sigma$ and 
+a $\Sigma$-algebra $\A$. Such a data structure figures as a parameter in the definition of AWN\@.
+Here a \emph{signature} is a list of types and a list of variable declarations, constant
+declarations, function declarations and predicate declarations, each consisting of a name and a type.
+The  $\Sigma$-algebra $\A$ describes the \emph{semantics} of the declared constants, functions and
+predicates. This semantics is not addressed in the present paper.
+
+In the present paper we use a common encoding of predicates as functions in the Booleans.
+This makes it unnecessary to treat predicates separately. Consequently, a formula becomes a data
+expression of type {\tt Bool}.
+
+Originally, $\Sigma$ and $\A$ were meant to be a first-order signatures and algebras;
+however, all of \cite{ESOP12,TR13} is consistent with taking $\Sigma$ and
+$\A$ to be higher-order signatures and algebras---in which
+case ``First order predicate logic'' should be read as ``Higher order predicate logic''.
+In first-order logic, variables and constants
+must have a basic type, rather than a complex type build using the type constructors {\tt x},
+{\tt ->}, {\tt +->}, \aac{Pow} and [  ]. Moreover functions must have a type
+\textit{type}$_1$ {\tt x} \textit{type}$_2$ {\tt x} \dots {\tt x} \textit{type}$_n$ {\tt ->} \textit{type}$_0$
+where the \textit{type}$_i$ are basic types. Finally, first-order logic lacks the constructs  $\{\textit{Name}\mid \textit{DE}\}$,
+$\{(\textit{Name},\textit{DE})\mid \textit{DE}\}$ and  \aac{lambda} \textit{Name} . \textit{DE} for
+building data expressions.
+
+The current paper formalises higher-order signatures. 
+These are the components $T$, $V$, $C$ and $F$ of an ASCII AWN specification  $(T,V,C,F,S,A)$.
+The aliases $A$ are merely a simply abbreviation mechanism.
+
+The data structures that are allowed as parameter of AWN are required to
+contain the types \aac{DATA}, \aac{MSG}, \aac{IP} and $\pow(\aac{IP})$. In case a higher-order
+data structure is meant, the requirement on $\pow(\aac{IP})$ is redundant, as such a type comes for free
+with the type \aac{IP}.
+
+In \cite{ESOP12,TR13} AWN is applied to model the Ad hoc On-Demand Distance Vector (AODV) protocol \cite{rfc3561}.
+For this purpose, a specific data structure $(\Sigma,\A)$ is chosen as parameter. It features types
+\aac{IP},  \aac{SQN},  \aac{K},  \aac{F},  \aac{\IN},  \aac{R},  \aac{RT},  \aac{RREQID},
+\aac{P}, \aac{DATA},  \aac{STORE}, \aac{MSG},  \aac{[MSG]},  $\pow(\aac{IP})$,
+$\aac{IP}\rightharpoonup \aac{SQN}$ and  $\pow(\aac{IP}\times\aac{RREQID})$.
+In \cite{TR13} this list of types is partitioned into twelve basic types and four
+higher-order types, obtained by the constructions $[\aac{TYPE}]$, $\pow(\aac{TYPE})$,
+$\aac{TYPE}_1\rightharpoonup\aac{TYPE}_2$ and product $\times$. This matches the type constructors
+of \sect{1}. Variables are declared for the above-mentioned types only;
+additionally there are (partial) functions $f:T_1\times \dots \times T_n\rightarrow T$
+and $f:T_1\times \dots \times T_n\rightharpoonup T$, with $T_1,\dots,T_n,T$ chosen from the types above.
+The type \aac{R}, although introduced as a basic type, could equally well have been cast as
+$\aac{IP} \times \aac{SQN} \times\aac{K} \times\aac{F} \times \IN \times \aac{IP} \times \pow(\aac{IP})$;
+this would eliminate the need to declare the function $(\_,\_,\_,\_,\_,\_,\_)\!:
+\aac{IP} \times \aac{SQN} \times\aac{K} \times\aac{F} \times \IN \times \aac{IP} \times \pow(\aac{IP})
+\rightarrow \aac{R}$.
+
+Higher-order terms and formulae do occur in \cite{ESOP12,TR13}; in case first-order
+predicate logic is meant, these terms require an encoding into first-order form, which is not explicitly
+given in \cite{ESOP12,TR13}.
+Higher-order terms occur for instance in \cite[Process 1, Line 18]{ESOP12}, which is \cite[Process 5, Line 16]{TR13}:
+\[\aac{dests}:=\{(\aac{rip},\aac{inc}(\aac{sqn}(\aac{rt},\aac{rip}))) \mid
+  \aac{rip}\in\aac{vD}(\aac{rt}) \wedge \aac{nhop}(\aac{rt},\aac{rip}) =\aac{nhop}(\aac{rt},\aac{oip})\}.\]
+Here \aac{dests} is a variable of type $\aac{IP}\rightharpoonup \aac{SQN}$, so the right-hand
+side must be a term of this type. In fact, it is constructed by the seventh clause for data expressions in
+\sect{1}. There appears to be no direct way to translate this higher-order term into
+a first-order term.
+
+The eighth clause for data expressions in \sect{1}---$\lambda$-abstraction---is not used in \cite{ESOP12,TR13},
+but set comprehension, partial function application and quantification occur
+in \cite[Process 1, Line 20]{ESOP12}, which is \cite[Process 5, Line 19]{TR13}:
+\[\aac{pre}:=\bigcup\{\aac{precs}(\aac{rt},\aac{rip}) \mid (\aac{rip},*)\in\aac{dests}\}\]
+which is a shorthand for
+\[\aac{pre}:=\bigcup\{\aac{y} \mid \exists\,\aac{rip}\left(y=\aac{precs}(\aac{rt},\aac{rip})
+  \wedge \exists\,\aac{rsn}\big((\aac{rip},\aac{rsn})\in\aac{dests}\big)\right)\}\]
+and, by the syntax of \sect{1}, formally written as
+\[\aac{pre}:=\aac{UNION}\left(\{\aac{y} \mid {\tt exists}~\aac{rip} . \left(\aac{y}=\aac{precs}(\aac{rt},\aac{rip})
+  \wedge {\tt exists}~\aac{rsn} . \big(\aac{dests}(\aac{rip})=\aac{rsn}\big)\right)\}\right)\]
+using that \aac{dests} is of type partial function, rather than set.
+Here \aac{rt} is a variable of type \aac{RT}, \aac{rip} of type \aac{IP} and \aac{rsn} of type
+\aac{SQN}; \aac{precs} is a function symbol of type $\aac{RT} \times \aac{IP} \rightarrow \pow(\aac{IP})$
+and \aac{pre} and \aac{y} variables of type $\pow(\aac{IP})$. The function \aac{UNION} used here is
+of type $\pow(\pow(\aac{IP})) \rightarrow \pow(\aac{IP})$.
+
+\section{AWN Specifications}
+
+Besides the choice of a data structure, described above, an application of AWN, as described in
+\cite{ESOP12,TR13} is parametrised by the choice of a collection of process names with defining
+equations. This is formalised exactly by component $S$ of an ASCII AWN specification  $(T,V,C,F,S,A)$.
+
+\bibliographystyle{eptcs}
+\bibliography{uta}
+\end{document}

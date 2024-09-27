@@ -1,0 +1,26 @@
+proc ACK_M(suc,mt,data,no,abort,H) :=
+  [!(no = 0)]
+  (
+    [suc = true]
+    (
+      [no = fragments(mt)]
+        deliver(success).
+        FRAG(mt,eps,0,false,H)
+      + [!(no = fragments(mt)) & abort = false]
+         unicast(M(H),can(canid(mt,no+1),head8(data))).
+           FRAG(mt,tail8(data),no+1,false,H)
+      + [!(no = fragments(mt)) & abort = true]
+        deliver(failure).
+        FRAG(mt,eps,0,false,H)
+    )
+    + [suc = false]
+      deliver(failure).
+      FRAG(mt,eps,0,false,H)
+  )
+  + [no = 0]
+  (
+    [suc = true]
+      ERROR()
+    + [suc = false]
+      FRAG(mt,data,no,abort,H)
+  )

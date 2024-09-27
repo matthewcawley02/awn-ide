@@ -1,0 +1,10 @@
+proc CAN_RECEIVE(msgs,H) :=
+  receive(msg).
+    CAN_RECEIVE(append(msg,msgs),H)
+  + [!(msgs = emptyList)]
+    (
+      unicast(R(H),head(msgs)).
+        CAN_RECEIVE(tail(msgs),H)
+      + receive(msg).
+        CAN_RECEIVE(append(msg,msgs),H)
+    )

@@ -1,0 +1,9 @@
+proc QSND() :=
+  receive(msg).
+  [ msg = sndmsg(realmsg,dips) ]
+  (
+    [ realmsg = hello(ips,sip) ]
+      broadcast(realmsg).QSND()
+    + [ forall ips . forall sip. realmsg != hello(ips,sip) ]
+      groupcast(dips,realmsg).QSND()
+  )

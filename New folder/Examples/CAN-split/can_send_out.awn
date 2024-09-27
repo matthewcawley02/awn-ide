@@ -1,0 +1,10 @@
+proc CAN_SEND_OUT(buffer,H) :=
+  CAN_SEND_IN(buffer,H)
+  + [tid = best(buffer) & buffer(tid) = can(cid,data)]
+    (
+      CAN_SEND_IN(buffer,H)
+    + groupcast(rec(cid),can(cid,data)).
+      [[buffer[tid] := bot_msg]]
+      unicast(M(H),msgd(tid,ack(true))).
+      CAN_SEND_OUT(buffer,H)
+    )

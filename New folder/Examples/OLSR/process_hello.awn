@@ -1,0 +1,14 @@
+proc PROCESS_HELLO(sigma, Gamma, msg) :=
+  [ in_metric != infinity ]
+  [[ ls := addLinkTuple(ls, oip(msg), vtime(msg), in_metric, now) ]]
+  [[ ls := updateLinkOutMetrics(ip, ls, oip(msg), inMetrics(msg)) ]]
+  [[ ls := updateSymmetricTime(ip, ls, oip(msg), vtime(msg), statuses(msg), l_hold_time, now) ]]
+  [[ ls := updateHeardTime(ls, oip(msg), vtime(msg), now) ]]
+  [[ ls := updateValidityTime(ls, oip(msg), l_hold_time, now) ]]
+  [[ ls := updateFMPRSelectors(ip, ls, oip(msg), statuses(msg), mprs(msg), now) ]]
+  [[ ls := updateRMPRSelectors(ip, ls, oip(msg), statuses(msg), mprs(msg), now) ]]
+  [[ 2hs := add2HopTuples(ip, ls, 2hs, oip(msg), statuses(msg), now) ]]
+  [[ 2hs := update2HopInMetrics(ls, 2hs, oip(msg), inMetrics(msg), now) ]]
+  [[ 2hs := update2HopOutMetrics(ls, 2hs, oip(msg), outMetrics(msg), now) ]]
+  [[ 2hs := update2HopTime(ip, ls, 2hs, oip(msg), vtime(msg), statuses(msg), now) ]]
+  OLSR(sigma, Gamma)

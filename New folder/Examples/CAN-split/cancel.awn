@@ -1,0 +1,6 @@
+proc CANCEL(mt,data,no,abort,H) :=
+  [!(no = 0)]
+    unicast(M(H),cancel(canid(mt,no))).
+      FRAG(mt,data,no,true,H)
+  + [no = 0]
+    FRAG(mt,data,no,abort,H)
