@@ -4,7 +4,7 @@
 
 **awn-ide-nascent**: what is hopefully the beginning of the final project. I started a new 'bare minimum' theia project in here, not fully set up though. Will not come back to for a while I think.  
 **awn-language-server**: language server/client for AWN, VSCode extension.
-**awn-specification**: the material Peter gave me on AWN.  
+**awn-documentation**: the material Peter gave me on AWN.  
 **awn-syntax-highlighter**: AWN syntax highlighting VSCode extension, using a textmate grammar.  
 
 ## On Local Repository:
