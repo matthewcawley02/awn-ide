@@ -1,5 +1,0 @@
-proc REQ(lsahdr,sip,ip,nbrs,lsdb,hello_t) :=
-  [ !nbrExist(nbrs,sip) | getNS(nbrs,sip) < Exchange | !lsaExist(lsdb,lsahdr) ]
-    OSPF(ip,nbrs,lsdb,hello_t)
-  + [ nbrExist(nbrs,sip) & getNS(nbrs,sip) >= Exchange & lsaExist(lsdb,lsahdr) ]
-    send(sndmsg(upd({getLSA(lsdb,lsahdr)},ip),{sip})).OSPF(ip,nbrss,lsdb,hello_t)

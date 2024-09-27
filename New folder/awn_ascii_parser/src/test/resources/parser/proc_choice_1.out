@@ -1,1 +1,0 @@
-AWN_ASCII_BNF(List(p_single(def_eqn(A,List(),spe_choice(spe_call(P,List()),spe_call(Q,List()))))))

@@ -1,6 +1,0 @@
-proc ACK(lsa_hdrs,sip,ip,nbrs,lsdb,hello_t) :=
-  [ !nbrExist(nbrs,sip) ]
-    OSPF(ip,nbrs,lsdb,hello_t)
-  + [ nbrExist(nbrs,sip) ]
-    [[ nbrs := cleanRXMTS(nbrs,sip,lsa_hdrs) ]]
-    OSPF(ip,nbrs,lsdb,hello_t)

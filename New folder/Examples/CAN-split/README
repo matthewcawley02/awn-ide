@@ -1,8 +1,0 @@
--- This is an AWN specification of a fragmentation and a reassembly protocol 
--- running on top of the standardised CAN bus. It also presents a formal 
--- model of a multiplexer, a protocol that avoids the problem of priority 
--- inversion. The details are described in
---       "Split, Send, Reassemble: A Formal Specification of a CAN Bus Protocol Stack Protocol"
---         (https://arxiv.org/pdf/1703.06569.pdf)
--- 
--- authors: Rob van Glabbeek, Peter Hoefner
