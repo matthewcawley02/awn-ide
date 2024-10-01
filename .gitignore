@@ -2,3 +2,4 @@ node_modules
 *.vsix
 theia-example
 vscode-extension-examples
+awn-ide-nascent

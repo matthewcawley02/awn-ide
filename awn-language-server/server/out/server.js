@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const node_1 = require("vscode-languageserver/node");
 const vscode_languageserver_textdocument_1 = require("vscode-languageserver-textdocument");
+const parser_1 = require("./parser");
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
 const connection = (0, node_1.createConnection)(node_1.ProposedFeatures.all);
@@ -32,12 +33,19 @@ connection.onInitialize((params) => {
             diagnosticProvider: {
                 interFileDependencies: false,
                 workspaceDiagnostics: false
+            },
+            workspace: {
+                workspaceFolders: {
+                    supported: true
+                }
+            },
+            semanticTokensProvider: {
+                legend: {
+                    tokenTypes: ['type', 'function', 'const', 'variable', 'process', 'keyword', 'comment'],
+                    tokenModifiers: []
+                },
+                full: true
             }
-        }
-    };
-    result.capabilities.workspace = {
-        workspaceFolders: {
-            supported: true
         }
     };
     return result;
@@ -94,18 +102,53 @@ connection.languages.diagnostics.on(async (params) => {
         };
     }
 });
+connection.onRequest("textDocument/semanticTokens/full", (params) => {
+    const document = documents.get(params.textDocument.uri);
+    if (document === undefined) {
+        console.log("document undefined idk");
+        return {
+            data: [0]
+        };
+    }
+    else {
+        const parseResult = document.getText();
+    }
+    //	if (parseResult.ast === null){
+    //		return{ //obviously to change later
+    //			data: [0]
+    //		}
+    //	}
+    const result = [1, 1, 4, 0, 0];
+    return {
+        data: result
+    };
+});
 async function validateTextDocument(textDocument) {
-    //currently just an example, "warns" about uppercase words
     const settings = await getDocumentSettings(textDocument.uri);
     const text = textDocument.getText();
-    const pattern = /\b[A-Z]{2,}\b/g;
-    let m;
+    const parseResult = (0, parser_1.parse)(text);
     let problems = 0;
     const diagnostics = [];
-    while ((m = pattern.exec(text)) && problems < settings.maxNumberOfProblems) {
+    if (parseResult.errs !== null) {
+        console.log(`${parseResult.errs.length} errors detected`);
+        while (problems < settings.maxNumberOfProblems && problems < parseResult.errs.length) {
+            const problem = parseResult.errs[problems];
+            const diagnostic = {
+                severity: node_1.DiagnosticSeverity.Error,
+                range: {
+                    start: { line: problem.pos.line, character: problem.pos.offset },
+                    end: { line: problem.pos.line, character: problem.pos.offset + 1 }
+                },
+                message: problem.toString()
+            };
+            diagnostics.push(diagnostic);
+            problems++;
+        }
+    }
+    /*while ((m = pattern.exec(text)) && problems < settings.maxNumberOfProblems) {
         problems++;
-        const diagnostic = {
-            severity: node_1.DiagnosticSeverity.Warning,
+        const diagnostic: Diagnostic = {
+            severity: DiagnosticSeverity.Warning,
             range: {
                 start: textDocument.positionAt(m.index),
                 end: textDocument.positionAt(m.index + m[0].length)
@@ -123,7 +166,7 @@ async function validateTextDocument(textDocument) {
             },
         ];
         diagnostics.push(diagnostic);
-    }
+    } */
     return diagnostics;
 }
 connection.onDidChangeWatchedFiles(_change => {

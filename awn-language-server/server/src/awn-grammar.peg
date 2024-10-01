@@ -1,0 +1,120 @@
+AWN := _ {Block}* $
+
+Block :=
+	  'INCLUDES:' {Include '\n'}+
+	| 'include' Include
+	| 'TYPES:' {Type '\n'}+
+	| 'VARIABLES:' {ConVar '\n'}+
+	| 'CONSTANTS:' {ConVar '\n'}+
+	| 'FUNCTIONS:' {Function '\n'}+
+	| 'PROCESSES:' {Process '\n'}+
+	| 'proc' Process
+
+Include := Name '\n' // could change this later to specifically be a filepath
+
+Type := TypeName _ {'=' TE}? '\n'
+
+ConVar :=
+	  TE _ Name {',' Name}* '\n'
+	| Name ':' TE '\n'
+
+Function :=
+	  Name ':' _ TE '\n'
+	| Infix ':' _ BTE '\n'
+
+Process :=
+	  Name '\(' Name? {',' Name}+ '\)' ':=' SPE
+	| Name ':=' SPE
+
+//============
+// TYPE EXPRESSIONS
+//============
+
+TE :=
+	  TypeName
+	| TE {'x' TE}*
+	| TE '->' TE
+	| TE '\+->' TE
+	| 'Pow' '\(' TE '\)'
+	| '\[' TE '\]'
+	| '\(' TE '\)'
+
+BTE :=
+	  BTE_AUX 'x' BTE_AUX '->' TE
+	| BTE_AUX 'x' BTE_AUX '\+->' TE
+
+BTE_AUX :=
+	  TypeName
+	| '\(' TE '\)'
+	| 'Pow' '\(' TE '\)'
+	| '\[' TE '\]'
+
+//==================
+// SP EXPRESSIONS
+//==================
+
+SPE :=
+	  Name '\(' DE? {',' DE}+ '\)'
+	| Name
+	| '\[' DE '\]' SPE
+	| '\[\[' Name {'\[' DE '\]' }* ':=' DE '\]\]' '\n' SPE
+	| SPE '\n' '\+' SPE
+	| 'unicast' '\(' DE ',' DE '\)' '.' SPE '\n' '>' SPE
+	| 'broadcast' '\(' DE '\)' '.' '\n' SPE
+	| 'groupcast' '\(' DE ',' DE '\)' '.' '\n' SPE
+	| 'send' '\(' DE '\)' '.' '\n' SPE
+	| 'deliver' '\(' DE '\)' '.' '\n' SPE
+	| 'receive' '\(' Name { '\[' DE '\]' }* '\)' '.' '\n' SPE
+	| '\(' SPE '\)'
+
+//===============
+// DATA EXPRESSIONS
+//===============
+
+//currently have not implemented the "DB brack" ones
+
+DE :=
+	  Name
+	| DE _ DE
+	| DE {',' DE}+
+	| '{' DE '}'
+	| '{' Name '|' DE '}'
+	| '{' '\(' Name ',' DE '\)' '|' DE '}'
+	| 'lambda' Name '.' _ DE
+	| 'forall' Name '.' _ DE
+	| 'exists' Name '.' _ DE
+	| DE '->' DE
+	| DE '<->' DE
+	| DE '&' DE
+	| DE '|' DE
+	| DE '=' DE
+	| DE '!=' DE
+	| DE '>=' DE
+	| DE '<=' DE
+	| DE '>' DE
+	| DE '<' DE
+	| DE Infix DE
+	| '\(' DE '\)'
+
+
+//=============
+//  BASIC
+//=============
+
+// In the original grammar, some checking (through RATS functions) is done to differentiate
+// between different kinds of Infix, and different kinds of Name. Currently, I have all infixes
+// as 'Infix', and for Names have 'Name' and 'TypeName', which are currenlty identical. The
+// grammar uses them for different things, so I'll keep them separate to make things easier later
+// when I am hopefully able to split them up.
+
+TypeName := Name
+
+Name := NameString | '!' | '[]'
+
+NameString := NameChar* '.' {NameString | NameChar+}
+
+NameChar := '[a-zA-Z0-9_#$%\'/?@\\^`~]'
+
+Infix := '[*+\-:<=>!&|]'+ //Currently "InfixOps"
+
+_ := '\s*'
