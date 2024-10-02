@@ -1,29 +1,33 @@
-AWN := _ {Block}* $
+//series of blocks, any whitespace is allowed between blocks
+AWN := ws {Block ws}* $
+
+//for each entry in a block, optional spacing before, and each entry must be separated by a linebreak
+//the block must also end in a linebreak (meaning you need an extra line at the end of the document currently)
 
 Block :=
-	  'INCLUDES:' {Include '\n'}+
-	| 'include' Include
-	| 'TYPES:' {Type '\n'}+
-	| 'VARIABLES:' {ConVar '\n'}+
-	| 'CONSTANTS:' {ConVar '\n'}+
-	| 'FUNCTIONS:' {Function '\n'}+
-	| 'PROCESSES:' {Process '\n'}+
-	| 'proc' Process
+	  'INCLUDES:' sp? Include {lb sp? Include}* lb
+	| 'include' sp? Include lb
+	| 'TYPES:' sp? Type {lb sp? Type}* lb
+	| 'VARIABLES:' sp? ConVar {lb sp? ConVar}* lb
+	| 'CONSTANTS:' sp? ConVar {lb sp? ConVar}* lb
+	| 'FUNCTIONS:' sp? Function {lb sp? Function}* lb
+	| 'PROCESSES:' sp? Process {lb sp? Process}* lb
+	| 'proc' sp? Process lb
 
-Include := Name '\n' // could change this later to specifically be a filepath
+Include := Name // could change this later to specifically be a filepath
 
-Type := TypeName _ {'=' TE}? '\n'
+Type := TypeName {sp '\=' sp TE}?
 
 ConVar :=
-	  TE _ Name {',' Name}* '\n'
-	| Name ':' TE '\n'
+	  TE sp Name {',' Name}*
+	| Name ':' TE
 
 Function :=
-	  Name ':' _ TE '\n'
-	| Infix ':' _ BTE '\n'
+	  Name ':' sp TE
+	| Infix ':' sp BTE
 
 Process :=
-	  Name '\(' Name? {',' Name}+ '\)' ':=' SPE
+	  Name '\(' Name? {',' Name}* '\)' ':=' lb sp? SPE
 	| Name ':=' SPE
 
 //============
@@ -33,7 +37,7 @@ Process :=
 TE :=
 	  TypeName
 	| TE {'x' TE}*
-	| TE '->' TE
+	| TE '-\>' TE
 	| TE '\+->' TE
 	| 'Pow' '\(' TE '\)'
 	| '\[' TE '\]'
@@ -57,14 +61,14 @@ SPE :=
 	  Name '\(' DE? {',' DE}+ '\)'
 	| Name
 	| '\[' DE '\]' SPE
-	| '\[\[' Name {'\[' DE '\]' }* ':=' DE '\]\]' '\n' SPE
-	| SPE '\n' '\+' SPE
-	| 'unicast' '\(' DE ',' DE '\)' '.' SPE '\n' '>' SPE
-	| 'broadcast' '\(' DE '\)' '.' '\n' SPE
-	| 'groupcast' '\(' DE ',' DE '\)' '.' '\n' SPE
-	| 'send' '\(' DE '\)' '.' '\n' SPE
-	| 'deliver' '\(' DE '\)' '.' '\n' SPE
-	| 'receive' '\(' Name { '\[' DE '\]' }* '\)' '.' '\n' SPE
+	| '\[\[' Name {'\[' DE '\]' }* ':=' DE '\]\]' lb SPE
+	| SPE lb '\+' SPE
+	| 'unicast' '\(' DE ',' DE '\)' '.' SPE lb '>' SPE
+	| 'broadcast' '\(' DE '\)' '.' lb SPE
+	| 'groupcast' '\(' DE ',' DE '\)' '.' lb SPE
+	| 'send' '\(' DE '\)' '.' lb SPE
+	| 'deliver' '\(' DE '\)' '.' lb SPE
+	| 'receive' '\(' Name { '\[' DE '\]' }* '\)' '.' lb SPE
 	| '\(' SPE '\)'
 
 //===============
@@ -75,14 +79,14 @@ SPE :=
 
 DE :=
 	  Name
-	| DE _ DE
+	| DE sp DE
 	| DE {',' DE}+
 	| '{' DE '}'
 	| '{' Name '|' DE '}'
 	| '{' '\(' Name ',' DE '\)' '|' DE '}'
-	| 'lambda' Name '.' _ DE
-	| 'forall' Name '.' _ DE
-	| 'exists' Name '.' _ DE
+	| 'lambda' Name '.' sp DE
+	| 'forall' Name '.' sp DE
+	| 'exists' Name '.' sp DE
 	| DE '->' DE
 	| DE '<->' DE
 	| DE '&' DE
@@ -109,12 +113,16 @@ DE :=
 
 TypeName := Name
 
-Name := NameString | '!' | '[]'
+Name := NameString | '\!' | '\[\]'
 
-NameString := NameChar* '.' {NameString | NameChar+}
+NameString := {NameChar* '.' NameString} | NameChar+
 
-NameChar := '[a-zA-Z0-9_#$%\'/?@\\^`~]'
+NameChar := '[a-zA-Z0-9]' //simplified for now
 
-Infix := '[*+\-:<=>!&|]'+ //Currently "InfixOps"
+Infix := '[\*\+-\:<\=>\!\&|\\]+' //Currently "InfixOps"
 
-_ := '\s*'
+ws := {sp | lb}* 						//any whitespace
+
+sp := '\s+'								//spacing on a line
+
+lb := {'\n' | '\r\n'}+					//linebreak

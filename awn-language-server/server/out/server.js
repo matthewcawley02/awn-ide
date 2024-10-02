@@ -82,7 +82,7 @@ documents.onDidClose(e => {
     documentSettings.delete(e.document.uri);
 });
 documents.onDidChangeContent(change => {
-    console.log("Content of document changed");
+    //console.log("Content of document changed");
     validateTextDocument(change.document);
 });
 //Handler for the "document diagnostic" request from the client
@@ -110,14 +110,12 @@ connection.onRequest("textDocument/semanticTokens/full", (params) => {
             data: [0]
         };
     }
-    else {
-        const parseResult = document.getText();
+    const parseResult = (0, parser_1.parse)(document.getText());
+    if (parseResult.ast === null) {
+        return {
+            data: [0]
+        };
     }
-    //	if (parseResult.ast === null){
-    //		return{ //obviously to change later
-    //			data: [0]
-    //		}
-    //	}
     const result = [1, 1, 4, 0, 0];
     return {
         data: result
@@ -136,8 +134,8 @@ async function validateTextDocument(textDocument) {
             const diagnostic = {
                 severity: node_1.DiagnosticSeverity.Error,
                 range: {
-                    start: { line: problem.pos.line, character: problem.pos.offset },
-                    end: { line: problem.pos.line, character: problem.pos.offset + 1 }
+                    start: { line: problem.pos.line - 1, character: problem.pos.offset },
+                    end: { line: problem.pos.line - 1, character: problem.pos.offset + 1 }
                 },
                 message: problem.toString()
             };
@@ -145,28 +143,6 @@ async function validateTextDocument(textDocument) {
             problems++;
         }
     }
-    /*while ((m = pattern.exec(text)) && problems < settings.maxNumberOfProblems) {
-        problems++;
-        const diagnostic: Diagnostic = {
-            severity: DiagnosticSeverity.Warning,
-            range: {
-                start: textDocument.positionAt(m.index),
-                end: textDocument.positionAt(m.index + m[0].length)
-            },
-            message: `${m[0]} is all uppercase.`,
-            source: 'ex'
-        };
-        diagnostic.relatedInformation = [
-            {
-                location: {
-                    uri: textDocument.uri,
-                    range: Object.assign({}, diagnostic.range)
-                },
-                message: 'Example warning: this is all uppercase'
-            },
-        ];
-        diagnostics.push(diagnostic);
-    } */
     return diagnostics;
 }
 connection.onDidChangeWatchedFiles(_change => {

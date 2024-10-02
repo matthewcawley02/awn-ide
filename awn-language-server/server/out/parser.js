@@ -85,12 +85,18 @@ var ASTKinds;
     ASTKinds["Name_1"] = "Name_1";
     ASTKinds["Name_2"] = "Name_2";
     ASTKinds["Name_3"] = "Name_3";
-    ASTKinds["NameString"] = "NameString";
-    ASTKinds["NameString_$0_1"] = "NameString_$0_1";
-    ASTKinds["NameString_$0_2"] = "NameString_$0_2";
+    ASTKinds["NameString_1"] = "NameString_1";
+    ASTKinds["NameString_2"] = "NameString_2";
+    ASTKinds["NameString_$0"] = "NameString_$0";
     ASTKinds["NameChar"] = "NameChar";
     ASTKinds["Infix"] = "Infix";
-    ASTKinds["_"] = "_";
+    ASTKinds["ws"] = "ws";
+    ASTKinds["ws_$0_1"] = "ws_$0_1";
+    ASTKinds["ws_$0_2"] = "ws_$0_2";
+    ASTKinds["sp"] = "sp";
+    ASTKinds["lb"] = "lb";
+    ASTKinds["lb_$0_1"] = "lb_$0_1";
+    ASTKinds["lb_$0_2"] = "lb_$0_2";
     ASTKinds["$EOF"] = "$EOF";
 })(ASTKinds || (exports.ASTKinds = ASTKinds = {}));
 class Parser {
@@ -118,7 +124,7 @@ class Parser {
         return this.run($$dpth, () => {
             let $$res = null;
             if (true
-                && this.match_($$dpth + 1, $$cr) !== null
+                && this.matchws($$dpth + 1, $$cr) !== null
                 && this.loop(() => this.matchAWN_$0($$dpth + 1, $$cr), 0, -1) !== null
                 && this.match$EOF($$cr) !== null) {
                 $$res = { kind: ASTKinds.AWN, };
@@ -127,7 +133,15 @@ class Parser {
         });
     }
     matchAWN_$0($$dpth, $$cr) {
-        return this.matchBlock($$dpth + 1, $$cr);
+        return this.run($$dpth, () => {
+            let $$res = null;
+            if (true
+                && this.matchBlock($$dpth + 1, $$cr) !== null
+                && this.matchws($$dpth + 1, $$cr) !== null) {
+                $$res = { kind: ASTKinds.AWN_$0, };
+            }
+            return $$res;
+        });
     }
     matchBlock($$dpth, $$cr) {
         return this.choice([
@@ -146,7 +160,10 @@ class Parser {
             let $$res = null;
             if (true
                 && this.regexAccept(String.raw `(?:INCLUDES:)`, "", $$dpth + 1, $$cr) !== null
-                && this.loopPlus(() => this.matchBlock_$0($$dpth + 1, $$cr)) !== null) {
+                && ((this.matchsp($$dpth + 1, $$cr)) || true)
+                && this.matchInclude($$dpth + 1, $$cr) !== null
+                && this.loop(() => this.matchBlock_$0($$dpth + 1, $$cr), 0, -1) !== null
+                && this.matchlb($$dpth + 1, $$cr) !== null) {
                 $$res = { kind: ASTKinds.Block_1, };
             }
             return $$res;
@@ -157,7 +174,9 @@ class Parser {
             let $$res = null;
             if (true
                 && this.regexAccept(String.raw `(?:include)`, "", $$dpth + 1, $$cr) !== null
-                && this.matchInclude($$dpth + 1, $$cr) !== null) {
+                && ((this.matchsp($$dpth + 1, $$cr)) || true)
+                && this.matchInclude($$dpth + 1, $$cr) !== null
+                && this.matchlb($$dpth + 1, $$cr) !== null) {
                 $$res = { kind: ASTKinds.Block_2, };
             }
             return $$res;
@@ -168,7 +187,10 @@ class Parser {
             let $$res = null;
             if (true
                 && this.regexAccept(String.raw `(?:TYPES:)`, "", $$dpth + 1, $$cr) !== null
-                && this.loopPlus(() => this.matchBlock_$1($$dpth + 1, $$cr)) !== null) {
+                && ((this.matchsp($$dpth + 1, $$cr)) || true)
+                && this.matchType($$dpth + 1, $$cr) !== null
+                && this.loop(() => this.matchBlock_$1($$dpth + 1, $$cr), 0, -1) !== null
+                && this.matchlb($$dpth + 1, $$cr) !== null) {
                 $$res = { kind: ASTKinds.Block_3, };
             }
             return $$res;
@@ -179,7 +201,10 @@ class Parser {
             let $$res = null;
             if (true
                 && this.regexAccept(String.raw `(?:VARIABLES:)`, "", $$dpth + 1, $$cr) !== null
-                && this.loopPlus(() => this.matchBlock_$2($$dpth + 1, $$cr)) !== null) {
+                && ((this.matchsp($$dpth + 1, $$cr)) || true)
+                && this.matchConVar($$dpth + 1, $$cr) !== null
+                && this.loop(() => this.matchBlock_$2($$dpth + 1, $$cr), 0, -1) !== null
+                && this.matchlb($$dpth + 1, $$cr) !== null) {
                 $$res = { kind: ASTKinds.Block_4, };
             }
             return $$res;
@@ -190,7 +215,10 @@ class Parser {
             let $$res = null;
             if (true
                 && this.regexAccept(String.raw `(?:CONSTANTS:)`, "", $$dpth + 1, $$cr) !== null
-                && this.loopPlus(() => this.matchBlock_$3($$dpth + 1, $$cr)) !== null) {
+                && ((this.matchsp($$dpth + 1, $$cr)) || true)
+                && this.matchConVar($$dpth + 1, $$cr) !== null
+                && this.loop(() => this.matchBlock_$3($$dpth + 1, $$cr), 0, -1) !== null
+                && this.matchlb($$dpth + 1, $$cr) !== null) {
                 $$res = { kind: ASTKinds.Block_5, };
             }
             return $$res;
@@ -201,7 +229,10 @@ class Parser {
             let $$res = null;
             if (true
                 && this.regexAccept(String.raw `(?:FUNCTIONS:)`, "", $$dpth + 1, $$cr) !== null
-                && this.loopPlus(() => this.matchBlock_$4($$dpth + 1, $$cr)) !== null) {
+                && ((this.matchsp($$dpth + 1, $$cr)) || true)
+                && this.matchFunction($$dpth + 1, $$cr) !== null
+                && this.loop(() => this.matchBlock_$4($$dpth + 1, $$cr), 0, -1) !== null
+                && this.matchlb($$dpth + 1, $$cr) !== null) {
                 $$res = { kind: ASTKinds.Block_6, };
             }
             return $$res;
@@ -212,7 +243,10 @@ class Parser {
             let $$res = null;
             if (true
                 && this.regexAccept(String.raw `(?:PROCESSES:)`, "", $$dpth + 1, $$cr) !== null
-                && this.loopPlus(() => this.matchBlock_$5($$dpth + 1, $$cr)) !== null) {
+                && ((this.matchsp($$dpth + 1, $$cr)) || true)
+                && this.matchProcess($$dpth + 1, $$cr) !== null
+                && this.loop(() => this.matchBlock_$5($$dpth + 1, $$cr), 0, -1) !== null
+                && this.matchlb($$dpth + 1, $$cr) !== null) {
                 $$res = { kind: ASTKinds.Block_7, };
             }
             return $$res;
@@ -223,7 +257,9 @@ class Parser {
             let $$res = null;
             if (true
                 && this.regexAccept(String.raw `(?:proc)`, "", $$dpth + 1, $$cr) !== null
-                && this.matchProcess($$dpth + 1, $$cr) !== null) {
+                && ((this.matchsp($$dpth + 1, $$cr)) || true)
+                && this.matchProcess($$dpth + 1, $$cr) !== null
+                && this.matchlb($$dpth + 1, $$cr) !== null) {
                 $$res = { kind: ASTKinds.Block_8, };
             }
             return $$res;
@@ -233,8 +269,9 @@ class Parser {
         return this.run($$dpth, () => {
             let $$res = null;
             if (true
-                && this.matchInclude($$dpth + 1, $$cr) !== null
-                && this.regexAccept(String.raw `(?:\n)`, "", $$dpth + 1, $$cr) !== null) {
+                && this.matchlb($$dpth + 1, $$cr) !== null
+                && ((this.matchsp($$dpth + 1, $$cr)) || true)
+                && this.matchInclude($$dpth + 1, $$cr) !== null) {
                 $$res = { kind: ASTKinds.Block_$0, };
             }
             return $$res;
@@ -244,8 +281,9 @@ class Parser {
         return this.run($$dpth, () => {
             let $$res = null;
             if (true
-                && this.matchType($$dpth + 1, $$cr) !== null
-                && this.regexAccept(String.raw `(?:\n)`, "", $$dpth + 1, $$cr) !== null) {
+                && this.matchlb($$dpth + 1, $$cr) !== null
+                && ((this.matchsp($$dpth + 1, $$cr)) || true)
+                && this.matchType($$dpth + 1, $$cr) !== null) {
                 $$res = { kind: ASTKinds.Block_$1, };
             }
             return $$res;
@@ -255,8 +293,9 @@ class Parser {
         return this.run($$dpth, () => {
             let $$res = null;
             if (true
-                && this.matchConVar($$dpth + 1, $$cr) !== null
-                && this.regexAccept(String.raw `(?:\n)`, "", $$dpth + 1, $$cr) !== null) {
+                && this.matchlb($$dpth + 1, $$cr) !== null
+                && ((this.matchsp($$dpth + 1, $$cr)) || true)
+                && this.matchConVar($$dpth + 1, $$cr) !== null) {
                 $$res = { kind: ASTKinds.Block_$2, };
             }
             return $$res;
@@ -266,8 +305,9 @@ class Parser {
         return this.run($$dpth, () => {
             let $$res = null;
             if (true
-                && this.matchConVar($$dpth + 1, $$cr) !== null
-                && this.regexAccept(String.raw `(?:\n)`, "", $$dpth + 1, $$cr) !== null) {
+                && this.matchlb($$dpth + 1, $$cr) !== null
+                && ((this.matchsp($$dpth + 1, $$cr)) || true)
+                && this.matchConVar($$dpth + 1, $$cr) !== null) {
                 $$res = { kind: ASTKinds.Block_$3, };
             }
             return $$res;
@@ -277,8 +317,9 @@ class Parser {
         return this.run($$dpth, () => {
             let $$res = null;
             if (true
-                && this.matchFunction($$dpth + 1, $$cr) !== null
-                && this.regexAccept(String.raw `(?:\n)`, "", $$dpth + 1, $$cr) !== null) {
+                && this.matchlb($$dpth + 1, $$cr) !== null
+                && ((this.matchsp($$dpth + 1, $$cr)) || true)
+                && this.matchFunction($$dpth + 1, $$cr) !== null) {
                 $$res = { kind: ASTKinds.Block_$4, };
             }
             return $$res;
@@ -288,32 +329,23 @@ class Parser {
         return this.run($$dpth, () => {
             let $$res = null;
             if (true
-                && this.matchProcess($$dpth + 1, $$cr) !== null
-                && this.regexAccept(String.raw `(?:\n)`, "", $$dpth + 1, $$cr) !== null) {
+                && this.matchlb($$dpth + 1, $$cr) !== null
+                && ((this.matchsp($$dpth + 1, $$cr)) || true)
+                && this.matchProcess($$dpth + 1, $$cr) !== null) {
                 $$res = { kind: ASTKinds.Block_$5, };
             }
             return $$res;
         });
     }
     matchInclude($$dpth, $$cr) {
-        return this.run($$dpth, () => {
-            let $$res = null;
-            if (true
-                && this.matchName($$dpth + 1, $$cr) !== null
-                && this.regexAccept(String.raw `(?:\n)`, "", $$dpth + 1, $$cr) !== null) {
-                $$res = { kind: ASTKinds.Include, };
-            }
-            return $$res;
-        });
+        return this.matchName($$dpth + 1, $$cr);
     }
     matchType($$dpth, $$cr) {
         return this.run($$dpth, () => {
             let $$res = null;
             if (true
                 && this.matchTypeName($$dpth + 1, $$cr) !== null
-                && this.match_($$dpth + 1, $$cr) !== null
-                && ((this.matchType_$0($$dpth + 1, $$cr)) || true)
-                && this.regexAccept(String.raw `(?:\n)`, "", $$dpth + 1, $$cr) !== null) {
+                && ((this.matchType_$0($$dpth + 1, $$cr)) || true)) {
                 $$res = { kind: ASTKinds.Type, };
             }
             return $$res;
@@ -323,7 +355,9 @@ class Parser {
         return this.run($$dpth, () => {
             let $$res = null;
             if (true
-                && this.regexAccept(String.raw `(?:=)`, "", $$dpth + 1, $$cr) !== null
+                && this.matchsp($$dpth + 1, $$cr) !== null
+                && this.regexAccept(String.raw `(?:\=)`, "", $$dpth + 1, $$cr) !== null
+                && this.matchsp($$dpth + 1, $$cr) !== null
                 && this.matchTE($$dpth + 1, $$cr) !== null) {
                 $$res = { kind: ASTKinds.Type_$0, };
             }
@@ -341,10 +375,9 @@ class Parser {
             let $$res = null;
             if (true
                 && this.matchTE($$dpth + 1, $$cr) !== null
-                && this.match_($$dpth + 1, $$cr) !== null
+                && this.matchsp($$dpth + 1, $$cr) !== null
                 && this.matchName($$dpth + 1, $$cr) !== null
-                && this.loop(() => this.matchConVar_$0($$dpth + 1, $$cr), 0, -1) !== null
-                && this.regexAccept(String.raw `(?:\n)`, "", $$dpth + 1, $$cr) !== null) {
+                && this.loop(() => this.matchConVar_$0($$dpth + 1, $$cr), 0, -1) !== null) {
                 $$res = { kind: ASTKinds.ConVar_1, };
             }
             return $$res;
@@ -356,8 +389,7 @@ class Parser {
             if (true
                 && this.matchName($$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?::)`, "", $$dpth + 1, $$cr) !== null
-                && this.matchTE($$dpth + 1, $$cr) !== null
-                && this.regexAccept(String.raw `(?:\n)`, "", $$dpth + 1, $$cr) !== null) {
+                && this.matchTE($$dpth + 1, $$cr) !== null) {
                 $$res = { kind: ASTKinds.ConVar_2, };
             }
             return $$res;
@@ -386,9 +418,9 @@ class Parser {
             if (true
                 && this.matchName($$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?::)`, "", $$dpth + 1, $$cr) !== null
-                && this.match_($$dpth + 1, $$cr) !== null
+                && this.matchsp($$dpth + 1, $$cr) !== null
                 && this.matchTE($$dpth + 1, $$cr) !== null
-                && this.regexAccept(String.raw `(?:\n)`, "", $$dpth + 1, $$cr) !== null) {
+                && this.matchlb($$dpth + 1, $$cr) !== null) {
                 $$res = { kind: ASTKinds.Function_1, };
             }
             return $$res;
@@ -400,9 +432,9 @@ class Parser {
             if (true
                 && this.matchInfix($$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?::)`, "", $$dpth + 1, $$cr) !== null
-                && this.match_($$dpth + 1, $$cr) !== null
+                && this.matchsp($$dpth + 1, $$cr) !== null
                 && this.matchBTE($$dpth + 1, $$cr) !== null
-                && this.regexAccept(String.raw `(?:\n)`, "", $$dpth + 1, $$cr) !== null) {
+                && this.matchlb($$dpth + 1, $$cr) !== null) {
                 $$res = { kind: ASTKinds.Function_2, };
             }
             return $$res;
@@ -421,9 +453,11 @@ class Parser {
                 && this.matchName($$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?:\()`, "", $$dpth + 1, $$cr) !== null
                 && ((this.matchName($$dpth + 1, $$cr)) || true)
-                && this.loopPlus(() => this.matchProcess_$0($$dpth + 1, $$cr)) !== null
+                && this.loop(() => this.matchProcess_$0($$dpth + 1, $$cr), 0, -1) !== null
                 && this.regexAccept(String.raw `(?:\))`, "", $$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?::=)`, "", $$dpth + 1, $$cr) !== null
+                && this.matchlb($$dpth + 1, $$cr) !== null
+                && ((this.matchsp($$dpth + 1, $$cr)) || true)
                 && this.matchSPE($$dpth + 1, $$cr) !== null) {
                 $$res = { kind: ASTKinds.Process_1, };
             }
@@ -509,7 +543,7 @@ class Parser {
             let $$res = null;
             if (true
                 && this.matchTE($$dpth + 1, $$cr) !== null
-                && this.regexAccept(String.raw `(?:->)`, "", $$dpth + 1, $$cr) !== null
+                && this.regexAccept(String.raw `(?:-\>)`, "", $$dpth + 1, $$cr) !== null
                 && this.matchTE($$dpth + 1, $$cr) !== null) {
                 $$res = { kind: ASTKinds.TE_3, };
             }
@@ -740,7 +774,7 @@ class Parser {
                 && this.regexAccept(String.raw `(?::=)`, "", $$dpth + 1, $$cr) !== null
                 && this.matchDE($$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?:\]\])`, "", $$dpth + 1, $$cr) !== null
-                && this.regexAccept(String.raw `(?:\n)`, "", $$dpth + 1, $$cr) !== null
+                && this.matchlb($$dpth + 1, $$cr) !== null
                 && this.matchSPE($$dpth + 1, $$cr) !== null) {
                 $$res = { kind: ASTKinds.SPE_4, };
             }
@@ -752,7 +786,7 @@ class Parser {
             let $$res = null;
             if (true
                 && this.matchSPE($$dpth + 1, $$cr) !== null
-                && this.regexAccept(String.raw `(?:\n)`, "", $$dpth + 1, $$cr) !== null
+                && this.matchlb($$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?:\+)`, "", $$dpth + 1, $$cr) !== null
                 && this.matchSPE($$dpth + 1, $$cr) !== null) {
                 $$res = { kind: ASTKinds.SPE_5, };
@@ -772,7 +806,7 @@ class Parser {
                 && this.regexAccept(String.raw `(?:\))`, "", $$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?:.)`, "", $$dpth + 1, $$cr) !== null
                 && this.matchSPE($$dpth + 1, $$cr) !== null
-                && this.regexAccept(String.raw `(?:\n)`, "", $$dpth + 1, $$cr) !== null
+                && this.matchlb($$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?:>)`, "", $$dpth + 1, $$cr) !== null
                 && this.matchSPE($$dpth + 1, $$cr) !== null) {
                 $$res = { kind: ASTKinds.SPE_6, };
@@ -789,7 +823,7 @@ class Parser {
                 && this.matchDE($$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?:\))`, "", $$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?:.)`, "", $$dpth + 1, $$cr) !== null
-                && this.regexAccept(String.raw `(?:\n)`, "", $$dpth + 1, $$cr) !== null
+                && this.matchlb($$dpth + 1, $$cr) !== null
                 && this.matchSPE($$dpth + 1, $$cr) !== null) {
                 $$res = { kind: ASTKinds.SPE_7, };
             }
@@ -807,7 +841,7 @@ class Parser {
                 && this.matchDE($$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?:\))`, "", $$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?:.)`, "", $$dpth + 1, $$cr) !== null
-                && this.regexAccept(String.raw `(?:\n)`, "", $$dpth + 1, $$cr) !== null
+                && this.matchlb($$dpth + 1, $$cr) !== null
                 && this.matchSPE($$dpth + 1, $$cr) !== null) {
                 $$res = { kind: ASTKinds.SPE_8, };
             }
@@ -823,7 +857,7 @@ class Parser {
                 && this.matchDE($$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?:\))`, "", $$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?:.)`, "", $$dpth + 1, $$cr) !== null
-                && this.regexAccept(String.raw `(?:\n)`, "", $$dpth + 1, $$cr) !== null
+                && this.matchlb($$dpth + 1, $$cr) !== null
                 && this.matchSPE($$dpth + 1, $$cr) !== null) {
                 $$res = { kind: ASTKinds.SPE_9, };
             }
@@ -839,7 +873,7 @@ class Parser {
                 && this.matchDE($$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?:\))`, "", $$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?:.)`, "", $$dpth + 1, $$cr) !== null
-                && this.regexAccept(String.raw `(?:\n)`, "", $$dpth + 1, $$cr) !== null
+                && this.matchlb($$dpth + 1, $$cr) !== null
                 && this.matchSPE($$dpth + 1, $$cr) !== null) {
                 $$res = { kind: ASTKinds.SPE_10, };
             }
@@ -856,7 +890,7 @@ class Parser {
                 && this.loop(() => this.matchSPE_$2($$dpth + 1, $$cr), 0, -1) !== null
                 && this.regexAccept(String.raw `(?:\))`, "", $$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?:.)`, "", $$dpth + 1, $$cr) !== null
-                && this.regexAccept(String.raw `(?:\n)`, "", $$dpth + 1, $$cr) !== null
+                && this.matchlb($$dpth + 1, $$cr) !== null
                 && this.matchSPE($$dpth + 1, $$cr) !== null) {
                 $$res = { kind: ASTKinds.SPE_11, };
             }
@@ -969,7 +1003,7 @@ class Parser {
             let $$res = null;
             if (true
                 && this.matchDE($$dpth + 1, $$cr) !== null
-                && this.match_($$dpth + 1, $$cr) !== null
+                && this.matchsp($$dpth + 1, $$cr) !== null
                 && this.matchDE($$dpth + 1, $$cr) !== null) {
                 $$res = { kind: ASTKinds.DE_2, };
             }
@@ -1038,7 +1072,7 @@ class Parser {
                 && this.regexAccept(String.raw `(?:lambda)`, "", $$dpth + 1, $$cr) !== null
                 && this.matchName($$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?:.)`, "", $$dpth + 1, $$cr) !== null
-                && this.match_($$dpth + 1, $$cr) !== null
+                && this.matchsp($$dpth + 1, $$cr) !== null
                 && this.matchDE($$dpth + 1, $$cr) !== null) {
                 $$res = { kind: ASTKinds.DE_7, };
             }
@@ -1052,7 +1086,7 @@ class Parser {
                 && this.regexAccept(String.raw `(?:forall)`, "", $$dpth + 1, $$cr) !== null
                 && this.matchName($$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?:.)`, "", $$dpth + 1, $$cr) !== null
-                && this.match_($$dpth + 1, $$cr) !== null
+                && this.matchsp($$dpth + 1, $$cr) !== null
                 && this.matchDE($$dpth + 1, $$cr) !== null) {
                 $$res = { kind: ASTKinds.DE_8, };
             }
@@ -1066,7 +1100,7 @@ class Parser {
                 && this.regexAccept(String.raw `(?:exists)`, "", $$dpth + 1, $$cr) !== null
                 && this.matchName($$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?:.)`, "", $$dpth + 1, $$cr) !== null
-                && this.match_($$dpth + 1, $$cr) !== null
+                && this.matchsp($$dpth + 1, $$cr) !== null
                 && this.matchDE($$dpth + 1, $$cr) !== null) {
                 $$res = { kind: ASTKinds.DE_9, };
             }
@@ -1242,43 +1276,73 @@ class Parser {
         return this.matchNameString($$dpth + 1, $$cr);
     }
     matchName_2($$dpth, $$cr) {
-        return this.regexAccept(String.raw `(?:!)`, "", $$dpth + 1, $$cr);
+        return this.regexAccept(String.raw `(?:\!)`, "", $$dpth + 1, $$cr);
     }
     matchName_3($$dpth, $$cr) {
-        return this.regexAccept(String.raw `(?:[])`, "", $$dpth + 1, $$cr);
+        return this.regexAccept(String.raw `(?:\[\])`, "", $$dpth + 1, $$cr);
     }
     matchNameString($$dpth, $$cr) {
+        return this.choice([
+            () => this.matchNameString_1($$dpth + 1, $$cr),
+            () => this.matchNameString_2($$dpth + 1, $$cr),
+        ]);
+    }
+    matchNameString_1($$dpth, $$cr) {
+        return this.matchNameString_$0($$dpth + 1, $$cr);
+    }
+    matchNameString_2($$dpth, $$cr) {
+        return this.loopPlus(() => this.matchNameChar($$dpth + 1, $$cr));
+    }
+    matchNameString_$0($$dpth, $$cr) {
         return this.run($$dpth, () => {
             let $$res = null;
             if (true
                 && this.loop(() => this.matchNameChar($$dpth + 1, $$cr), 0, -1) !== null
                 && this.regexAccept(String.raw `(?:.)`, "", $$dpth + 1, $$cr) !== null
-                && this.matchNameString_$0($$dpth + 1, $$cr) !== null) {
-                $$res = { kind: ASTKinds.NameString, };
+                && this.matchNameString($$dpth + 1, $$cr) !== null) {
+                $$res = { kind: ASTKinds.NameString_$0, };
             }
             return $$res;
         });
     }
-    matchNameString_$0($$dpth, $$cr) {
-        return this.choice([
-            () => this.matchNameString_$0_1($$dpth + 1, $$cr),
-            () => this.matchNameString_$0_2($$dpth + 1, $$cr),
-        ]);
-    }
-    matchNameString_$0_1($$dpth, $$cr) {
-        return this.matchNameString($$dpth + 1, $$cr);
-    }
-    matchNameString_$0_2($$dpth, $$cr) {
-        return this.loopPlus(() => this.matchNameChar($$dpth + 1, $$cr));
-    }
     matchNameChar($$dpth, $$cr) {
-        return this.regexAccept(String.raw `(?:[a-zA-Z0-9_#$%\'/?@\\^\`~])`, "", $$dpth + 1, $$cr);
+        return this.regexAccept(String.raw `(?:[a-zA-Z0-9])`, "", $$dpth + 1, $$cr);
     }
     matchInfix($$dpth, $$cr) {
-        return this.loopPlus(() => this.regexAccept(String.raw `(?:[*+\-:<=>!&|])`, "", $$dpth + 1, $$cr));
+        return this.regexAccept(String.raw `(?:[\*\+-\:<\=>\!\&|\\]+)`, "", $$dpth + 1, $$cr);
     }
-    match_($$dpth, $$cr) {
-        return this.regexAccept(String.raw `(?:\s*)`, "", $$dpth + 1, $$cr);
+    matchws($$dpth, $$cr) {
+        return this.loop(() => this.matchws_$0($$dpth + 1, $$cr), 0, -1);
+    }
+    matchws_$0($$dpth, $$cr) {
+        return this.choice([
+            () => this.matchws_$0_1($$dpth + 1, $$cr),
+            () => this.matchws_$0_2($$dpth + 1, $$cr),
+        ]);
+    }
+    matchws_$0_1($$dpth, $$cr) {
+        return this.matchsp($$dpth + 1, $$cr);
+    }
+    matchws_$0_2($$dpth, $$cr) {
+        return this.matchlb($$dpth + 1, $$cr);
+    }
+    matchsp($$dpth, $$cr) {
+        return this.regexAccept(String.raw `(?:\s+)`, "", $$dpth + 1, $$cr);
+    }
+    matchlb($$dpth, $$cr) {
+        return this.loopPlus(() => this.matchlb_$0($$dpth + 1, $$cr));
+    }
+    matchlb_$0($$dpth, $$cr) {
+        return this.choice([
+            () => this.matchlb_$0_1($$dpth + 1, $$cr),
+            () => this.matchlb_$0_2($$dpth + 1, $$cr),
+        ]);
+    }
+    matchlb_$0_1($$dpth, $$cr) {
+        return this.regexAccept(String.raw `(?:\n)`, "", $$dpth + 1, $$cr);
+    }
+    matchlb_$0_2($$dpth, $$cr) {
+        return this.regexAccept(String.raw `(?:\r\n)`, "", $$dpth + 1, $$cr);
     }
     test() {
         const mrk = this.mark();
