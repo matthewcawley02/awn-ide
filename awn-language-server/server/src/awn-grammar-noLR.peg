@@ -1,0 +1,131 @@
+//This version of the AWN grammar contains no left recursion but doesn't have AST creation code inserts
+
+AWNRoot := ws Block* $
+
+Block :=
+	  'INCLUDES:' Include+
+	| 'include' Include
+	| 'TYPES:' Type+
+	| 'VARIABLES:' ConVar+
+	| 'CONSTANTS:' ConVar+
+	| 'FUNCTIONS:' Function+
+	| 'PROCESSES:' Process+
+	| 'proc' Process
+
+Include := sp Name lb
+
+Type := sp TypeName { '\=' TE }? lb
+
+ConVar :=
+	  sp TE sp Name {',' Name}* lb
+	| sp Name '\:' TE lb
+
+Function :=
+	  sp Name '\:' sp TE lb
+	| sp Infix '\:' sp BTE lb
+
+Process :=
+	  sp Name '\(' Name? {',' Name}* '\)' '\:\=' lb sp SPE lb
+	| sp Name '\:\=' SPE lb
+
+//============
+// TYPE EXPRESSIONS
+//============
+
+TE := 'Pow' '\(' TE '\)' TE1?
+	| '\[' TE '\]' TE1?
+	| '\(' TE '\)' TE1?
+	| TypeName TE1?
+
+TE1 := '\-\>' TE TE1?
+	| '\+->' TE TE1?
+	| {' x ' TE}* TE1?
+
+BTE :=
+	  BTE_AUX ' x ' BTE_AUX '->' TE
+	| BTE_AUX ' x ' BTE_AUX '\+->' TE
+
+BTE_AUX :=
+	  TypeName
+	| '\(' TE '\)'
+	| 'Pow' '\(' TE '\)'
+	| '\[' TE '\]'
+
+//==================
+// SP EXPRESSIONS
+//==================
+
+SPE :=
+	  '\[' DE '\]' SPE SPE1?
+	| '\[\[' Name {'\[' DE '\]' }* ':=' DE '\]\]' lb sp SPE SPE1?
+	| 'unicast' '\(' DE ',' DE '\)' '.' SPE lb sp '>' SPE SPE1?
+	| 'broadcast' '\(' DE '\)' '.' lb sp SPE SPE1?
+	| 'groupcast' '\(' DE ',' DE '\)' '.' lb sp SPE SPE1?
+	| 'send' '\(' DE '\)' '.' lb sp SPE SPE1?
+	| 'deliver' '\(' DE '\)' '.' lb sp SPE SPE1?
+	| 'receive' '\(' Name { '\[' DE '\]' }* '\)' '.' lb sp SPE SPE1?
+	| '\(' SPE '\)' SPE1?
+	| Name '\(' DE? {',' DE}+ '\)' SPE1?
+	| Name SPE1?
+
+SPE1 := lb sp '\+' SPE SPE1?
+	  
+
+//===============
+// DATA EXPRESSIONS
+//===============
+
+//currently have not implemented the "DB brack" ones
+//removed spacing after the dot in lambda, forall, exists
+
+DE :=
+	  '{' DE '}' DE1?
+	| '{' '\(' Name ',' DE '\)' '|' DE '}' DE1?
+	| '{' Name '|' DE '}' DE1?
+	| 'lambda ' Name '.' DE DE1?
+	| 'forall ' Name '.' DE DE1?
+	| 'exists ' Name '.' DE DE1?
+	| '\(' DE '\)' DE1?
+	| Name DE1?
+
+DE1 := 
+	  sp DE DE1?
+	| {',' DE}+ DE1?
+	| '->' DE DE1?
+	| '<->' DE DE1?
+	| '&' DE DE1?
+	| '|' DE DE1?
+	| '=' DE DE1?
+	| '!=' DE DE1?
+	| '>=' DE DE1?
+	| '<=' DE DE1?
+	| '>' DE DE1?
+	| '<' DE DE1?
+	| Infix DE DE1?
+
+
+//=============
+//  BASIC
+//=============
+
+// In the original grammar, some checking (through RATS functions) is done to differentiate
+// between different kinds of Infix, and different kinds of Name. Currently, I have all infixes
+// as 'Infix', and for Names have 'Name' and 'TypeName', which are currenlty identical. The
+// grammar uses them for different things, so I'll keep them separate to make things easier later
+// when I am hopefully able to split them up.
+
+TypeName := Name
+
+Name := NameString | '\!'| '\[\]'
+
+NameString := {NameChar* '\.' NameString} | NameChar+
+
+NameChar := '[a-zA-Z0-9]' //simplified for now
+
+Infix := '[\*\+-<\=>\!\&|\\]+' //Currently "InfixOps". Also removed ":" for now (because of the "Infix :") rule, but probably possible to find a workaround for this
+
+ws := {sp | lb}* 						//any whitespace
+
+sp := {' ' | '\t' | '\v'}+				//1 or more spaces/tabs
+
+lb := {'\n' | '\r\n'}+					//1 or more linebreaks 	

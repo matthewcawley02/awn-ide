@@ -24,7 +24,8 @@ import {
 import{
 	parse,
 	ParseResult,
-	SyntaxErr
+	AWNRoot,
+	SyntaxErr,
 } from './parser'
 
 // Create a connection for the server, using Node's IPC as a transport.
@@ -155,7 +156,10 @@ connection.onRequest("textDocument/semanticTokens/full", (params) => {
 		return{ //obviously to change later
 			data: [0]
 		}
+	}else{
+		console.log(parseResult)
 	}
+
 	const result = [1,1,4,0,0]
 	return{
 		data: result
@@ -172,7 +176,7 @@ async function validateTextDocument(textDocument: TextDocument): Promise<Diagnos
 	const diagnostics: Diagnostic[] = [];
 
 	if(parseResult.errs !== null){
-		console.log(`${parseResult.errs.length} errors detected`)
+		//console.log(`${parseResult.errs.length} errors detected`)
 		while(problems < settings.maxNumberOfProblems && problems < parseResult.errs.length){
 			const problem = parseResult.errs[problems];
 			const diagnostic: Diagnostic = {

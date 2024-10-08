@@ -1,1 +1,15 @@
-TYPES: jacob =
+include https
+
+TYPES:  test1
+        test2=jacob
+        test3=Pow(2)->3
+
+CONSTANTS: Pow(2)->3 foo,bar
+
+FUNCTIONS: t: foo x (bar+->example)
+
+proc qwerty(asdfgh,zxcvbnm):=
+        broadcast({qwe&rty}).
+        [[foo:=x->y]]
+        bar
+

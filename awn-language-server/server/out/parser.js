@@ -1,10 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.SyntaxErr = exports.parse = exports.Parser = exports.ASTKinds = void 0;
+exports.NameChar = exports.NameString_2 = exports.NameString_1 = exports.Name = exports.TypeName = exports.DE1_13 = exports.DE1_12 = exports.DE1_11 = exports.DE1_10 = exports.DE1_9 = exports.DE1_8 = exports.DE1_7 = exports.DE1_6 = exports.DE1_5 = exports.DE1_4 = exports.DE1_3 = exports.DE1_2 = exports.DE1_1 = exports.DE_8 = exports.DE_7 = exports.DE_6 = exports.DE_5 = exports.DE_4 = exports.DE_3 = exports.DE_2 = exports.DE_1 = exports.SPE1 = exports.SPE_11 = exports.SPE_10 = exports.SPE_9 = exports.SPE_8 = exports.SPE_7 = exports.SPE_6 = exports.SPE_5 = exports.SPE_4 = exports.SPE_3 = exports.SPE_2 = exports.SPE_1 = exports.BTE_AUX_4 = exports.BTE_AUX_3 = exports.BTE_AUX_2 = exports.BTE_AUX_1 = exports.TE1_3 = exports.TE1_2 = exports.TE1_1 = exports.TE_4 = exports.TE_3 = exports.TE_2 = exports.TE_1 = exports.ASTKinds = void 0;
+exports.SyntaxErr = exports.parse = exports.Parser = exports.Infix = void 0;
 var ASTKinds;
 (function (ASTKinds) {
-    ASTKinds["AWN"] = "AWN";
-    ASTKinds["AWN_$0"] = "AWN_$0";
+    ASTKinds["AWNRoot"] = "AWNRoot";
     ASTKinds["Block_1"] = "Block_1";
     ASTKinds["Block_2"] = "Block_2";
     ASTKinds["Block_3"] = "Block_3";
@@ -13,12 +13,6 @@ var ASTKinds;
     ASTKinds["Block_6"] = "Block_6";
     ASTKinds["Block_7"] = "Block_7";
     ASTKinds["Block_8"] = "Block_8";
-    ASTKinds["Block_$0"] = "Block_$0";
-    ASTKinds["Block_$1"] = "Block_$1";
-    ASTKinds["Block_$2"] = "Block_$2";
-    ASTKinds["Block_$3"] = "Block_$3";
-    ASTKinds["Block_$4"] = "Block_$4";
-    ASTKinds["Block_$5"] = "Block_$5";
     ASTKinds["Include"] = "Include";
     ASTKinds["Type"] = "Type";
     ASTKinds["Type_$0"] = "Type_$0";
@@ -34,10 +28,10 @@ var ASTKinds;
     ASTKinds["TE_2"] = "TE_2";
     ASTKinds["TE_3"] = "TE_3";
     ASTKinds["TE_4"] = "TE_4";
-    ASTKinds["TE_5"] = "TE_5";
-    ASTKinds["TE_6"] = "TE_6";
-    ASTKinds["TE_7"] = "TE_7";
-    ASTKinds["TE_$0"] = "TE_$0";
+    ASTKinds["TE1_1"] = "TE1_1";
+    ASTKinds["TE1_2"] = "TE1_2";
+    ASTKinds["TE1_3"] = "TE1_3";
+    ASTKinds["TE1_$0"] = "TE1_$0";
     ASTKinds["BTE_1"] = "BTE_1";
     ASTKinds["BTE_2"] = "BTE_2";
     ASTKinds["BTE_AUX_1"] = "BTE_AUX_1";
@@ -55,10 +49,10 @@ var ASTKinds;
     ASTKinds["SPE_9"] = "SPE_9";
     ASTKinds["SPE_10"] = "SPE_10";
     ASTKinds["SPE_11"] = "SPE_11";
-    ASTKinds["SPE_12"] = "SPE_12";
     ASTKinds["SPE_$0"] = "SPE_$0";
     ASTKinds["SPE_$1"] = "SPE_$1";
     ASTKinds["SPE_$2"] = "SPE_$2";
+    ASTKinds["SPE1"] = "SPE1";
     ASTKinds["DE_1"] = "DE_1";
     ASTKinds["DE_2"] = "DE_2";
     ASTKinds["DE_3"] = "DE_3";
@@ -67,24 +61,22 @@ var ASTKinds;
     ASTKinds["DE_6"] = "DE_6";
     ASTKinds["DE_7"] = "DE_7";
     ASTKinds["DE_8"] = "DE_8";
-    ASTKinds["DE_9"] = "DE_9";
-    ASTKinds["DE_10"] = "DE_10";
-    ASTKinds["DE_11"] = "DE_11";
-    ASTKinds["DE_12"] = "DE_12";
-    ASTKinds["DE_13"] = "DE_13";
-    ASTKinds["DE_14"] = "DE_14";
-    ASTKinds["DE_15"] = "DE_15";
-    ASTKinds["DE_16"] = "DE_16";
-    ASTKinds["DE_17"] = "DE_17";
-    ASTKinds["DE_18"] = "DE_18";
-    ASTKinds["DE_19"] = "DE_19";
-    ASTKinds["DE_20"] = "DE_20";
-    ASTKinds["DE_21"] = "DE_21";
-    ASTKinds["DE_$0"] = "DE_$0";
+    ASTKinds["DE1_1"] = "DE1_1";
+    ASTKinds["DE1_2"] = "DE1_2";
+    ASTKinds["DE1_3"] = "DE1_3";
+    ASTKinds["DE1_4"] = "DE1_4";
+    ASTKinds["DE1_5"] = "DE1_5";
+    ASTKinds["DE1_6"] = "DE1_6";
+    ASTKinds["DE1_7"] = "DE1_7";
+    ASTKinds["DE1_8"] = "DE1_8";
+    ASTKinds["DE1_9"] = "DE1_9";
+    ASTKinds["DE1_10"] = "DE1_10";
+    ASTKinds["DE1_11"] = "DE1_11";
+    ASTKinds["DE1_12"] = "DE1_12";
+    ASTKinds["DE1_13"] = "DE1_13";
+    ASTKinds["DE1_$0"] = "DE1_$0";
     ASTKinds["TypeName"] = "TypeName";
-    ASTKinds["Name_1"] = "Name_1";
-    ASTKinds["Name_2"] = "Name_2";
-    ASTKinds["Name_3"] = "Name_3";
+    ASTKinds["Name"] = "Name";
     ASTKinds["NameString_1"] = "NameString_1";
     ASTKinds["NameString_2"] = "NameString_2";
     ASTKinds["NameString_$0"] = "NameString_$0";
@@ -94,18 +86,581 @@ var ASTKinds;
     ASTKinds["ws_$0_1"] = "ws_$0_1";
     ASTKinds["ws_$0_2"] = "ws_$0_2";
     ASTKinds["sp"] = "sp";
+    ASTKinds["sp_$0_1"] = "sp_$0_1";
+    ASTKinds["sp_$0_2"] = "sp_$0_2";
+    ASTKinds["sp_$0_3"] = "sp_$0_3";
     ASTKinds["lb"] = "lb";
     ASTKinds["lb_$0_1"] = "lb_$0_1";
     ASTKinds["lb_$0_2"] = "lb_$0_2";
     ASTKinds["$EOF"] = "$EOF";
 })(ASTKinds || (exports.ASTKinds = ASTKinds = {}));
+class TE_1 {
+    constructor(typeExpr, typeExprMore) {
+        this.kind = ASTKinds.TE_1;
+        this.typeExpr = typeExpr;
+        this.typeExprMore = typeExprMore;
+        this.typetype = (() => {
+            return "brackets";
+        })();
+    }
+}
+exports.TE_1 = TE_1;
+class TE_2 {
+    constructor(typeExpr, typeExprMore) {
+        this.kind = ASTKinds.TE_2;
+        this.typeExpr = typeExpr;
+        this.typeExprMore = typeExprMore;
+        this.typetype = (() => {
+            return "pow";
+        })();
+    }
+}
+exports.TE_2 = TE_2;
+class TE_3 {
+    constructor(typeExpr, typeExprMore) {
+        this.kind = ASTKinds.TE_3;
+        this.typeExpr = typeExpr;
+        this.typeExprMore = typeExprMore;
+        this.typetype = (() => {
+            return "list";
+        })();
+    }
+}
+exports.TE_3 = TE_3;
+class TE_4 {
+    constructor(typename, typeExprMore) {
+        this.kind = ASTKinds.TE_4;
+        this.typename = typename;
+        this.typeExprMore = typeExprMore;
+        this.typetype = (() => {
+            return "name";
+        })();
+    }
+}
+exports.TE_4 = TE_4;
+class TE1_1 {
+    constructor(typeExpr, typeExprMore) {
+        this.kind = ASTKinds.TE1_1;
+        this.typeExpr = typeExpr;
+        this.typeExprMore = typeExprMore;
+        this.typetype = (() => {
+            return "function";
+        })();
+    }
+}
+exports.TE1_1 = TE1_1;
+class TE1_2 {
+    constructor(typeExpr, typeExprMore) {
+        this.kind = ASTKinds.TE1_2;
+        this.typeExpr = typeExpr;
+        this.typeExprMore = typeExprMore;
+        this.typetype = (() => {
+            return "part_function";
+        })();
+    }
+}
+exports.TE1_2 = TE1_2;
+class TE1_3 {
+    constructor(typeExprMore) {
+        this.kind = ASTKinds.TE1_3;
+        this.typeExprMore = typeExprMore;
+        this.typetype = (() => {
+            return "product";
+        })();
+    }
+}
+exports.TE1_3 = TE1_3;
+class BTE_AUX_1 {
+    constructor(name) {
+        this.kind = ASTKinds.BTE_AUX_1;
+        this.name = name;
+        this.typetype = (() => {
+            return "name";
+        })();
+    }
+}
+exports.BTE_AUX_1 = BTE_AUX_1;
+class BTE_AUX_2 {
+    constructor(typeExpr) {
+        this.kind = ASTKinds.BTE_AUX_2;
+        this.typeExpr = typeExpr;
+        this.typetype = (() => {
+            return "brackets";
+        })();
+    }
+}
+exports.BTE_AUX_2 = BTE_AUX_2;
+class BTE_AUX_3 {
+    constructor(typeExpr) {
+        this.kind = ASTKinds.BTE_AUX_3;
+        this.typeExpr = typeExpr;
+        this.typetype = (() => {
+            return "pow";
+        })();
+    }
+}
+exports.BTE_AUX_3 = BTE_AUX_3;
+class BTE_AUX_4 {
+    constructor(typeExpr) {
+        this.kind = ASTKinds.BTE_AUX_4;
+        this.typeExpr = typeExpr;
+        this.typetype = (() => {
+            return "list";
+        })();
+    }
+}
+exports.BTE_AUX_4 = BTE_AUX_4;
+class SPE_1 {
+    constructor(dataExp, proc, procMore) {
+        this.kind = ASTKinds.SPE_1;
+        this.dataExp = dataExp;
+        this.proc = proc;
+        this.procMore = procMore;
+        this.procType = (() => {
+            return "guard";
+        })();
+    }
+}
+exports.SPE_1 = SPE_1;
+class SPE_2 {
+    constructor(name, dataExpList, dataExpAssignment, proc, procMore) {
+        this.kind = ASTKinds.SPE_2;
+        this.name = name;
+        this.dataExpList = dataExpList;
+        this.dataExpAssignment = dataExpAssignment;
+        this.proc = proc;
+        this.procMore = procMore;
+        this.procType = (() => {
+            return "assignment";
+        })();
+    }
+}
+exports.SPE_2 = SPE_2;
+class SPE_3 {
+    constructor(dataExpL, dataExpR, procL, procR, procMore) {
+        this.kind = ASTKinds.SPE_3;
+        this.dataExpL = dataExpL;
+        this.dataExpR = dataExpR;
+        this.procL = procL;
+        this.procR = procR;
+        this.procMore = procMore;
+        this.procType = (() => {
+            return "unicast";
+        })();
+    }
+}
+exports.SPE_3 = SPE_3;
+class SPE_4 {
+    constructor(dataExp, proc, procMore) {
+        this.kind = ASTKinds.SPE_4;
+        this.dataExp = dataExp;
+        this.proc = proc;
+        this.procMore = procMore;
+        this.procType = (() => {
+            return "broadcast";
+        })();
+    }
+}
+exports.SPE_4 = SPE_4;
+class SPE_5 {
+    constructor(dataExpL, dataExpR, proc, procMore) {
+        this.kind = ASTKinds.SPE_5;
+        this.dataExpL = dataExpL;
+        this.dataExpR = dataExpR;
+        this.proc = proc;
+        this.procMore = procMore;
+        this.procType = (() => {
+            return "groupcast";
+        })();
+    }
+}
+exports.SPE_5 = SPE_5;
+class SPE_6 {
+    constructor(dataExp, proc, procMore) {
+        this.kind = ASTKinds.SPE_6;
+        this.dataExp = dataExp;
+        this.proc = proc;
+        this.procMore = procMore;
+        this.procType = (() => {
+            return "send";
+        })();
+    }
+}
+exports.SPE_6 = SPE_6;
+class SPE_7 {
+    constructor(dataExp, proc, procMore) {
+        this.kind = ASTKinds.SPE_7;
+        this.dataExp = dataExp;
+        this.proc = proc;
+        this.procMore = procMore;
+        this.procType = (() => {
+            return "deliver";
+        })();
+    }
+}
+exports.SPE_7 = SPE_7;
+class SPE_8 {
+    constructor(name, dataExpList, proc, procMore) {
+        this.kind = ASTKinds.SPE_8;
+        this.name = name;
+        this.dataExpList = dataExpList;
+        this.proc = proc;
+        this.procMore = procMore;
+        this.procType = (() => {
+            return "receive";
+        })();
+    }
+}
+exports.SPE_8 = SPE_8;
+class SPE_9 {
+    constructor(proc, procMore) {
+        this.kind = ASTKinds.SPE_9;
+        this.proc = proc;
+        this.procMore = procMore;
+        this.procType = (() => {
+            return "brackets";
+        })();
+    }
+}
+exports.SPE_9 = SPE_9;
+class SPE_10 {
+    constructor(name, dataExpFirst, dataExpW, procMore) {
+        this.kind = ASTKinds.SPE_10;
+        this.name = name;
+        this.dataExpFirst = dataExpFirst;
+        this.dataExpW = dataExpW;
+        this.procMore = procMore;
+        this.procType = (() => {
+            return "call";
+        })();
+    }
+}
+exports.SPE_10 = SPE_10;
+class SPE_11 {
+    constructor(name, procMore) {
+        this.kind = ASTKinds.SPE_11;
+        this.name = name;
+        this.procMore = procMore;
+        this.procType = (() => {
+            return "name";
+        })();
+    }
+}
+exports.SPE_11 = SPE_11;
+class SPE1 {
+    constructor(proc, procMore) {
+        this.kind = ASTKinds.SPE1;
+        this.proc = proc;
+        this.procMore = procMore;
+        this.procType = (() => {
+            return "choice";
+        })();
+    }
+}
+exports.SPE1 = SPE1;
+class DE_1 {
+    constructor(dataExp, dataExpMore) {
+        this.kind = ASTKinds.DE_1;
+        this.dataExp = dataExp;
+        this.dataExpMore = dataExpMore;
+        this.dataExpType = (() => {
+            return "singleton";
+        })();
+    }
+}
+exports.DE_1 = DE_1;
+class DE_2 {
+    constructor(name, dataExpLeft, dataExpRight, dataExpMore) {
+        this.kind = ASTKinds.DE_2;
+        this.name = name;
+        this.dataExpLeft = dataExpLeft;
+        this.dataExpRight = dataExpRight;
+        this.dataExpMore = dataExpMore;
+        this.dataExpType = (() => {
+            return "partial";
+        })();
+    }
+}
+exports.DE_2 = DE_2;
+class DE_3 {
+    constructor(name, dataExpRight, dataExpMore) {
+        this.kind = ASTKinds.DE_3;
+        this.name = name;
+        this.dataExpRight = dataExpRight;
+        this.dataExpMore = dataExpMore;
+        this.dataExpType = (() => {
+            return "set";
+        })();
+    }
+}
+exports.DE_3 = DE_3;
+class DE_4 {
+    constructor(name, dataExp, dataExpMore) {
+        this.kind = ASTKinds.DE_4;
+        this.name = name;
+        this.dataExp = dataExp;
+        this.dataExpMore = dataExpMore;
+        this.dataExpType = (() => {
+            return "lambda";
+        })();
+    }
+}
+exports.DE_4 = DE_4;
+class DE_5 {
+    constructor(name, dataExp, dataExpMore) {
+        this.kind = ASTKinds.DE_5;
+        this.name = name;
+        this.dataExp = dataExp;
+        this.dataExpMore = dataExpMore;
+        this.dataExpType = (() => {
+            return "forall";
+        })();
+    }
+}
+exports.DE_5 = DE_5;
+class DE_6 {
+    constructor(name, dataExp, dataExpMore) {
+        this.kind = ASTKinds.DE_6;
+        this.name = name;
+        this.dataExp = dataExp;
+        this.dataExpMore = dataExpMore;
+        this.dataExpType = (() => {
+            return "exists";
+        })();
+    }
+}
+exports.DE_6 = DE_6;
+class DE_7 {
+    constructor(dataExp, dataExpMore) {
+        this.kind = ASTKinds.DE_7;
+        this.dataExp = dataExp;
+        this.dataExpMore = dataExpMore;
+        this.dataExpType = (() => {
+            return "brackets";
+        })();
+    }
+}
+exports.DE_7 = DE_7;
+class DE_8 {
+    constructor(name, dataExpMore) {
+        this.kind = ASTKinds.DE_8;
+        this.name = name;
+        this.dataExpMore = dataExpMore;
+        this.dataExpType = (() => {
+            return "name";
+        })();
+    }
+}
+exports.DE_8 = DE_8;
+class DE1_1 {
+    constructor(dataExp, dataExpMore) {
+        this.kind = ASTKinds.DE1_1;
+        this.dataExp = dataExp;
+        this.dataExpMore = dataExpMore;
+        this.dataExpType = (() => {
+            return "function";
+        })();
+    }
+}
+exports.DE1_1 = DE1_1;
+class DE1_2 {
+    constructor(dataExpW, dataExpMore) {
+        this.kind = ASTKinds.DE1_2;
+        this.dataExpW = dataExpW;
+        this.dataExpMore = dataExpMore;
+        this.dataExpType = (() => {
+            return "tuple";
+        })();
+    }
+}
+exports.DE1_2 = DE1_2;
+class DE1_3 {
+    constructor(dataExp, dataExpMore) {
+        this.kind = ASTKinds.DE1_3;
+        this.dataExp = dataExp;
+        this.dataExpMore = dataExpMore;
+        this.dataExpType = (() => {
+            return "implicates";
+        })();
+    }
+}
+exports.DE1_3 = DE1_3;
+class DE1_4 {
+    constructor(dataExp, dataExpMore) {
+        this.kind = ASTKinds.DE1_4;
+        this.dataExp = dataExp;
+        this.dataExpMore = dataExpMore;
+        this.dataExpType = (() => {
+            return "iff";
+        })();
+    }
+}
+exports.DE1_4 = DE1_4;
+class DE1_5 {
+    constructor(dataExp, dataExpMore) {
+        this.kind = ASTKinds.DE1_5;
+        this.dataExp = dataExp;
+        this.dataExpMore = dataExpMore;
+        this.dataExpType = (() => {
+            return "and";
+        })();
+    }
+}
+exports.DE1_5 = DE1_5;
+class DE1_6 {
+    constructor(dataExp, dataExpMore) {
+        this.kind = ASTKinds.DE1_6;
+        this.dataExp = dataExp;
+        this.dataExpMore = dataExpMore;
+        this.dataExpType = (() => {
+            return "or";
+        })();
+    }
+}
+exports.DE1_6 = DE1_6;
+class DE1_7 {
+    constructor(dataExp, dataExpMore) {
+        this.kind = ASTKinds.DE1_7;
+        this.dataExp = dataExp;
+        this.dataExpMore = dataExpMore;
+        this.dataExpType = (() => {
+            return "eq";
+        })();
+    }
+}
+exports.DE1_7 = DE1_7;
+class DE1_8 {
+    constructor(dataExp, dataExpMore) {
+        this.kind = ASTKinds.DE1_8;
+        this.dataExp = dataExp;
+        this.dataExpMore = dataExpMore;
+        this.dataExpType = (() => {
+            return "neq";
+        })();
+    }
+}
+exports.DE1_8 = DE1_8;
+class DE1_9 {
+    constructor(dataExp, dataExpMore) {
+        this.kind = ASTKinds.DE1_9;
+        this.dataExp = dataExp;
+        this.dataExpMore = dataExpMore;
+        this.dataExpType = (() => {
+            return "gtreq";
+        })();
+    }
+}
+exports.DE1_9 = DE1_9;
+class DE1_10 {
+    constructor(dataExp, dataExpMore) {
+        this.kind = ASTKinds.DE1_10;
+        this.dataExp = dataExp;
+        this.dataExpMore = dataExpMore;
+        this.dataExpType = (() => {
+            return "leseq";
+        })();
+    }
+}
+exports.DE1_10 = DE1_10;
+class DE1_11 {
+    constructor(dataExp, dataExpMore) {
+        this.kind = ASTKinds.DE1_11;
+        this.dataExp = dataExp;
+        this.dataExpMore = dataExpMore;
+        this.dataExpType = (() => {
+            return "gtr";
+        })();
+    }
+}
+exports.DE1_11 = DE1_11;
+class DE1_12 {
+    constructor(dataExp, dataExpMore) {
+        this.kind = ASTKinds.DE1_12;
+        this.dataExp = dataExp;
+        this.dataExpMore = dataExpMore;
+        this.dataExpType = (() => {
+            return "les";
+        })();
+    }
+}
+exports.DE1_12 = DE1_12;
+class DE1_13 {
+    constructor(func, dataExp, dataExpMore) {
+        this.kind = ASTKinds.DE1_13;
+        this.func = func;
+        this.dataExp = dataExp;
+        this.dataExpMore = dataExpMore;
+        this.dataExpType = (() => {
+            return "infix";
+        })();
+    }
+}
+exports.DE1_13 = DE1_13;
+class TypeName {
+    constructor(name) {
+        this.kind = ASTKinds.TypeName;
+        this.name = name;
+        this.value = (() => {
+            return name.value;
+        })();
+    }
+}
+exports.TypeName = TypeName;
+class Name {
+    constructor(nameString) {
+        this.kind = ASTKinds.Name;
+        this.nameString = nameString;
+        this.value = (() => {
+            return nameString.value;
+        })();
+    }
+}
+exports.Name = Name;
+class NameString_1 {
+    constructor(prefix) {
+        this.kind = ASTKinds.NameString_1;
+        this.prefix = prefix;
+        this.value = (() => {
+            return prefix.pre.map(NameChar => NameChar.value).join('') + '.' + prefix.post.value;
+        })();
+    }
+}
+exports.NameString_1 = NameString_1;
+class NameString_2 {
+    constructor(final) {
+        this.kind = ASTKinds.NameString_2;
+        this.final = final;
+        this.value = (() => {
+            return final.map(NameChar => NameChar.value).join('');
+        })();
+    }
+}
+exports.NameString_2 = NameString_2;
+class NameChar {
+    constructor(char) {
+        this.kind = ASTKinds.NameChar;
+        this.char = char;
+        this.value = (() => {
+            return char;
+        })();
+    }
+}
+exports.NameChar = NameChar;
+class Infix {
+    constructor(char) {
+        this.kind = ASTKinds.Infix;
+        this.char = char;
+        this.value = (() => {
+            return char;
+        })();
+    }
+}
+exports.Infix = Infix;
 class Parser {
     constructor(input) {
         this.negating = false;
         this.memoSafe = true;
-        this.$scope$TE$memo = new Map();
-        this.$scope$SPE$memo = new Map();
-        this.$scope$DE$memo = new Map();
+        this.$scope$TE1$memo = new Map();
         this.pos = { overallPos: 0, line: 1, offset: 0 };
         this.input = input;
     }
@@ -116,29 +671,17 @@ class Parser {
         return this.pos.overallPos === this.input.length;
     }
     clearMemos() {
-        this.$scope$TE$memo.clear();
-        this.$scope$SPE$memo.clear();
-        this.$scope$DE$memo.clear();
+        this.$scope$TE1$memo.clear();
     }
-    matchAWN($$dpth, $$cr) {
+    matchAWNRoot($$dpth, $$cr) {
         return this.run($$dpth, () => {
+            let $scope$block;
             let $$res = null;
             if (true
                 && this.matchws($$dpth + 1, $$cr) !== null
-                && this.loop(() => this.matchAWN_$0($$dpth + 1, $$cr), 0, -1) !== null
+                && ($scope$block = this.loop(() => this.matchBlock($$dpth + 1, $$cr), 0, -1)) !== null
                 && this.match$EOF($$cr) !== null) {
-                $$res = { kind: ASTKinds.AWN, };
-            }
-            return $$res;
-        });
-    }
-    matchAWN_$0($$dpth, $$cr) {
-        return this.run($$dpth, () => {
-            let $$res = null;
-            if (true
-                && this.matchBlock($$dpth + 1, $$cr) !== null
-                && this.matchws($$dpth + 1, $$cr) !== null) {
-                $$res = { kind: ASTKinds.AWN_$0, };
+                $$res = { kind: ASTKinds.AWNRoot, block: $scope$block };
             }
             return $$res;
         });
@@ -157,209 +700,136 @@ class Parser {
     }
     matchBlock_1($$dpth, $$cr) {
         return this.run($$dpth, () => {
+            let $scope$include;
             let $$res = null;
             if (true
                 && this.regexAccept(String.raw `(?:INCLUDES:)`, "", $$dpth + 1, $$cr) !== null
-                && ((this.matchsp($$dpth + 1, $$cr)) || true)
-                && this.matchInclude($$dpth + 1, $$cr) !== null
-                && this.loop(() => this.matchBlock_$0($$dpth + 1, $$cr), 0, -1) !== null
-                && this.matchlb($$dpth + 1, $$cr) !== null) {
-                $$res = { kind: ASTKinds.Block_1, };
+                && ($scope$include = this.loopPlus(() => this.matchInclude($$dpth + 1, $$cr))) !== null) {
+                $$res = { kind: ASTKinds.Block_1, include: $scope$include };
             }
             return $$res;
         });
     }
     matchBlock_2($$dpth, $$cr) {
         return this.run($$dpth, () => {
+            let $scope$include;
             let $$res = null;
             if (true
                 && this.regexAccept(String.raw `(?:include)`, "", $$dpth + 1, $$cr) !== null
-                && ((this.matchsp($$dpth + 1, $$cr)) || true)
-                && this.matchInclude($$dpth + 1, $$cr) !== null
-                && this.matchlb($$dpth + 1, $$cr) !== null) {
-                $$res = { kind: ASTKinds.Block_2, };
+                && ($scope$include = this.matchInclude($$dpth + 1, $$cr)) !== null) {
+                $$res = { kind: ASTKinds.Block_2, include: $scope$include };
             }
             return $$res;
         });
     }
     matchBlock_3($$dpth, $$cr) {
         return this.run($$dpth, () => {
+            let $scope$type;
             let $$res = null;
             if (true
                 && this.regexAccept(String.raw `(?:TYPES:)`, "", $$dpth + 1, $$cr) !== null
-                && ((this.matchsp($$dpth + 1, $$cr)) || true)
-                && this.matchType($$dpth + 1, $$cr) !== null
-                && this.loop(() => this.matchBlock_$1($$dpth + 1, $$cr), 0, -1) !== null
-                && this.matchlb($$dpth + 1, $$cr) !== null) {
-                $$res = { kind: ASTKinds.Block_3, };
+                && ($scope$type = this.loopPlus(() => this.matchType($$dpth + 1, $$cr))) !== null) {
+                $$res = { kind: ASTKinds.Block_3, type: $scope$type };
             }
             return $$res;
         });
     }
     matchBlock_4($$dpth, $$cr) {
         return this.run($$dpth, () => {
+            let $scope$var;
             let $$res = null;
             if (true
                 && this.regexAccept(String.raw `(?:VARIABLES:)`, "", $$dpth + 1, $$cr) !== null
-                && ((this.matchsp($$dpth + 1, $$cr)) || true)
-                && this.matchConVar($$dpth + 1, $$cr) !== null
-                && this.loop(() => this.matchBlock_$2($$dpth + 1, $$cr), 0, -1) !== null
-                && this.matchlb($$dpth + 1, $$cr) !== null) {
-                $$res = { kind: ASTKinds.Block_4, };
+                && ($scope$var = this.loopPlus(() => this.matchConVar($$dpth + 1, $$cr))) !== null) {
+                $$res = { kind: ASTKinds.Block_4, var: $scope$var };
             }
             return $$res;
         });
     }
     matchBlock_5($$dpth, $$cr) {
         return this.run($$dpth, () => {
+            let $scope$const;
             let $$res = null;
             if (true
                 && this.regexAccept(String.raw `(?:CONSTANTS:)`, "", $$dpth + 1, $$cr) !== null
-                && ((this.matchsp($$dpth + 1, $$cr)) || true)
-                && this.matchConVar($$dpth + 1, $$cr) !== null
-                && this.loop(() => this.matchBlock_$3($$dpth + 1, $$cr), 0, -1) !== null
-                && this.matchlb($$dpth + 1, $$cr) !== null) {
-                $$res = { kind: ASTKinds.Block_5, };
+                && ($scope$const = this.loopPlus(() => this.matchConVar($$dpth + 1, $$cr))) !== null) {
+                $$res = { kind: ASTKinds.Block_5, const: $scope$const };
             }
             return $$res;
         });
     }
     matchBlock_6($$dpth, $$cr) {
         return this.run($$dpth, () => {
+            let $scope$func;
             let $$res = null;
             if (true
                 && this.regexAccept(String.raw `(?:FUNCTIONS:)`, "", $$dpth + 1, $$cr) !== null
-                && ((this.matchsp($$dpth + 1, $$cr)) || true)
-                && this.matchFunction($$dpth + 1, $$cr) !== null
-                && this.loop(() => this.matchBlock_$4($$dpth + 1, $$cr), 0, -1) !== null
-                && this.matchlb($$dpth + 1, $$cr) !== null) {
-                $$res = { kind: ASTKinds.Block_6, };
+                && ($scope$func = this.loopPlus(() => this.matchFunction($$dpth + 1, $$cr))) !== null) {
+                $$res = { kind: ASTKinds.Block_6, func: $scope$func };
             }
             return $$res;
         });
     }
     matchBlock_7($$dpth, $$cr) {
         return this.run($$dpth, () => {
+            let $scope$proc;
             let $$res = null;
             if (true
                 && this.regexAccept(String.raw `(?:PROCESSES:)`, "", $$dpth + 1, $$cr) !== null
-                && ((this.matchsp($$dpth + 1, $$cr)) || true)
-                && this.matchProcess($$dpth + 1, $$cr) !== null
-                && this.loop(() => this.matchBlock_$5($$dpth + 1, $$cr), 0, -1) !== null
-                && this.matchlb($$dpth + 1, $$cr) !== null) {
-                $$res = { kind: ASTKinds.Block_7, };
+                && ($scope$proc = this.loopPlus(() => this.matchProcess($$dpth + 1, $$cr))) !== null) {
+                $$res = { kind: ASTKinds.Block_7, proc: $scope$proc };
             }
             return $$res;
         });
     }
     matchBlock_8($$dpth, $$cr) {
         return this.run($$dpth, () => {
+            let $scope$proc;
             let $$res = null;
             if (true
                 && this.regexAccept(String.raw `(?:proc)`, "", $$dpth + 1, $$cr) !== null
-                && ((this.matchsp($$dpth + 1, $$cr)) || true)
-                && this.matchProcess($$dpth + 1, $$cr) !== null
-                && this.matchlb($$dpth + 1, $$cr) !== null) {
-                $$res = { kind: ASTKinds.Block_8, };
-            }
-            return $$res;
-        });
-    }
-    matchBlock_$0($$dpth, $$cr) {
-        return this.run($$dpth, () => {
-            let $$res = null;
-            if (true
-                && this.matchlb($$dpth + 1, $$cr) !== null
-                && ((this.matchsp($$dpth + 1, $$cr)) || true)
-                && this.matchInclude($$dpth + 1, $$cr) !== null) {
-                $$res = { kind: ASTKinds.Block_$0, };
-            }
-            return $$res;
-        });
-    }
-    matchBlock_$1($$dpth, $$cr) {
-        return this.run($$dpth, () => {
-            let $$res = null;
-            if (true
-                && this.matchlb($$dpth + 1, $$cr) !== null
-                && ((this.matchsp($$dpth + 1, $$cr)) || true)
-                && this.matchType($$dpth + 1, $$cr) !== null) {
-                $$res = { kind: ASTKinds.Block_$1, };
-            }
-            return $$res;
-        });
-    }
-    matchBlock_$2($$dpth, $$cr) {
-        return this.run($$dpth, () => {
-            let $$res = null;
-            if (true
-                && this.matchlb($$dpth + 1, $$cr) !== null
-                && ((this.matchsp($$dpth + 1, $$cr)) || true)
-                && this.matchConVar($$dpth + 1, $$cr) !== null) {
-                $$res = { kind: ASTKinds.Block_$2, };
-            }
-            return $$res;
-        });
-    }
-    matchBlock_$3($$dpth, $$cr) {
-        return this.run($$dpth, () => {
-            let $$res = null;
-            if (true
-                && this.matchlb($$dpth + 1, $$cr) !== null
-                && ((this.matchsp($$dpth + 1, $$cr)) || true)
-                && this.matchConVar($$dpth + 1, $$cr) !== null) {
-                $$res = { kind: ASTKinds.Block_$3, };
-            }
-            return $$res;
-        });
-    }
-    matchBlock_$4($$dpth, $$cr) {
-        return this.run($$dpth, () => {
-            let $$res = null;
-            if (true
-                && this.matchlb($$dpth + 1, $$cr) !== null
-                && ((this.matchsp($$dpth + 1, $$cr)) || true)
-                && this.matchFunction($$dpth + 1, $$cr) !== null) {
-                $$res = { kind: ASTKinds.Block_$4, };
-            }
-            return $$res;
-        });
-    }
-    matchBlock_$5($$dpth, $$cr) {
-        return this.run($$dpth, () => {
-            let $$res = null;
-            if (true
-                && this.matchlb($$dpth + 1, $$cr) !== null
-                && ((this.matchsp($$dpth + 1, $$cr)) || true)
-                && this.matchProcess($$dpth + 1, $$cr) !== null) {
-                $$res = { kind: ASTKinds.Block_$5, };
+                && ($scope$proc = this.matchProcess($$dpth + 1, $$cr)) !== null) {
+                $$res = { kind: ASTKinds.Block_8, proc: $scope$proc };
             }
             return $$res;
         });
     }
     matchInclude($$dpth, $$cr) {
-        return this.matchName($$dpth + 1, $$cr);
+        return this.run($$dpth, () => {
+            let $scope$name;
+            let $$res = null;
+            if (true
+                && this.matchsp($$dpth + 1, $$cr) !== null
+                && ($scope$name = this.matchName($$dpth + 1, $$cr)) !== null
+                && this.matchlb($$dpth + 1, $$cr) !== null) {
+                $$res = { kind: ASTKinds.Include, name: $scope$name };
+            }
+            return $$res;
+        });
     }
     matchType($$dpth, $$cr) {
         return this.run($$dpth, () => {
+            let $scope$typeName;
+            let $scope$typeExprW;
             let $$res = null;
             if (true
-                && this.matchTypeName($$dpth + 1, $$cr) !== null
-                && ((this.matchType_$0($$dpth + 1, $$cr)) || true)) {
-                $$res = { kind: ASTKinds.Type, };
+                && this.matchsp($$dpth + 1, $$cr) !== null
+                && ($scope$typeName = this.matchTypeName($$dpth + 1, $$cr)) !== null
+                && (($scope$typeExprW = this.matchType_$0($$dpth + 1, $$cr)) || true)
+                && this.matchlb($$dpth + 1, $$cr) !== null) {
+                $$res = { kind: ASTKinds.Type, typeName: $scope$typeName, typeExprW: $scope$typeExprW };
             }
             return $$res;
         });
     }
     matchType_$0($$dpth, $$cr) {
         return this.run($$dpth, () => {
+            let $scope$typeExpr;
             let $$res = null;
             if (true
-                && this.matchsp($$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?:\=)`, "", $$dpth + 1, $$cr) !== null
-                && this.matchsp($$dpth + 1, $$cr) !== null
-                && this.matchTE($$dpth + 1, $$cr) !== null) {
-                $$res = { kind: ASTKinds.Type_$0, };
+                && ($scope$typeExpr = this.matchTE($$dpth + 1, $$cr)) !== null) {
+                $$res = { kind: ASTKinds.Type_$0, typeExpr: $scope$typeExpr };
             }
             return $$res;
         });
@@ -372,36 +842,46 @@ class Parser {
     }
     matchConVar_1($$dpth, $$cr) {
         return this.run($$dpth, () => {
+            let $scope$typeExpr;
+            let $scope$nameFirst;
+            let $scope$namesMore;
             let $$res = null;
             if (true
-                && this.matchTE($$dpth + 1, $$cr) !== null
                 && this.matchsp($$dpth + 1, $$cr) !== null
-                && this.matchName($$dpth + 1, $$cr) !== null
-                && this.loop(() => this.matchConVar_$0($$dpth + 1, $$cr), 0, -1) !== null) {
-                $$res = { kind: ASTKinds.ConVar_1, };
+                && ($scope$typeExpr = this.matchTE($$dpth + 1, $$cr)) !== null
+                && this.matchsp($$dpth + 1, $$cr) !== null
+                && ($scope$nameFirst = this.matchName($$dpth + 1, $$cr)) !== null
+                && ($scope$namesMore = this.loop(() => this.matchConVar_$0($$dpth + 1, $$cr), 0, -1)) !== null
+                && this.matchlb($$dpth + 1, $$cr) !== null) {
+                $$res = { kind: ASTKinds.ConVar_1, typeExpr: $scope$typeExpr, nameFirst: $scope$nameFirst, namesMore: $scope$namesMore };
             }
             return $$res;
         });
     }
     matchConVar_2($$dpth, $$cr) {
         return this.run($$dpth, () => {
+            let $scope$name;
+            let $scope$typeExpr;
             let $$res = null;
             if (true
-                && this.matchName($$dpth + 1, $$cr) !== null
-                && this.regexAccept(String.raw `(?::)`, "", $$dpth + 1, $$cr) !== null
-                && this.matchTE($$dpth + 1, $$cr) !== null) {
-                $$res = { kind: ASTKinds.ConVar_2, };
+                && this.matchsp($$dpth + 1, $$cr) !== null
+                && ($scope$name = this.matchName($$dpth + 1, $$cr)) !== null
+                && this.regexAccept(String.raw `(?:\:)`, "", $$dpth + 1, $$cr) !== null
+                && ($scope$typeExpr = this.matchTE($$dpth + 1, $$cr)) !== null
+                && this.matchlb($$dpth + 1, $$cr) !== null) {
+                $$res = { kind: ASTKinds.ConVar_2, name: $scope$name, typeExpr: $scope$typeExpr };
             }
             return $$res;
         });
     }
     matchConVar_$0($$dpth, $$cr) {
         return this.run($$dpth, () => {
+            let $scope$name;
             let $$res = null;
             if (true
                 && this.regexAccept(String.raw `(?:,)`, "", $$dpth + 1, $$cr) !== null
-                && this.matchName($$dpth + 1, $$cr) !== null) {
-                $$res = { kind: ASTKinds.ConVar_$0, };
+                && ($scope$name = this.matchName($$dpth + 1, $$cr)) !== null) {
+                $$res = { kind: ASTKinds.ConVar_$0, name: $scope$name };
             }
             return $$res;
         });
@@ -414,28 +894,34 @@ class Parser {
     }
     matchFunction_1($$dpth, $$cr) {
         return this.run($$dpth, () => {
+            let $scope$name;
+            let $scope$typeExpr;
             let $$res = null;
             if (true
-                && this.matchName($$dpth + 1, $$cr) !== null
-                && this.regexAccept(String.raw `(?::)`, "", $$dpth + 1, $$cr) !== null
                 && this.matchsp($$dpth + 1, $$cr) !== null
-                && this.matchTE($$dpth + 1, $$cr) !== null
+                && ($scope$name = this.matchName($$dpth + 1, $$cr)) !== null
+                && this.regexAccept(String.raw `(?:\:)`, "", $$dpth + 1, $$cr) !== null
+                && this.matchsp($$dpth + 1, $$cr) !== null
+                && ($scope$typeExpr = this.matchTE($$dpth + 1, $$cr)) !== null
                 && this.matchlb($$dpth + 1, $$cr) !== null) {
-                $$res = { kind: ASTKinds.Function_1, };
+                $$res = { kind: ASTKinds.Function_1, name: $scope$name, typeExpr: $scope$typeExpr };
             }
             return $$res;
         });
     }
     matchFunction_2($$dpth, $$cr) {
         return this.run($$dpth, () => {
+            let $scope$name;
+            let $scope$binTypeExpr;
             let $$res = null;
             if (true
-                && this.matchInfix($$dpth + 1, $$cr) !== null
-                && this.regexAccept(String.raw `(?::)`, "", $$dpth + 1, $$cr) !== null
                 && this.matchsp($$dpth + 1, $$cr) !== null
-                && this.matchBTE($$dpth + 1, $$cr) !== null
+                && ($scope$name = this.matchInfix($$dpth + 1, $$cr)) !== null
+                && this.regexAccept(String.raw `(?:\:)`, "", $$dpth + 1, $$cr) !== null
+                && this.matchsp($$dpth + 1, $$cr) !== null
+                && ($scope$binTypeExpr = this.matchBTE($$dpth + 1, $$cr)) !== null
                 && this.matchlb($$dpth + 1, $$cr) !== null) {
-                $$res = { kind: ASTKinds.Function_2, };
+                $$res = { kind: ASTKinds.Function_2, name: $scope$name, binTypeExpr: $scope$binTypeExpr };
             }
             return $$res;
         });
@@ -448,66 +934,140 @@ class Parser {
     }
     matchProcess_1($$dpth, $$cr) {
         return this.run($$dpth, () => {
+            let $scope$name;
+            let $scope$nameFirst;
+            let $scope$namesMore;
+            let $scope$proc;
             let $$res = null;
             if (true
-                && this.matchName($$dpth + 1, $$cr) !== null
+                && this.matchsp($$dpth + 1, $$cr) !== null
+                && ($scope$name = this.matchName($$dpth + 1, $$cr)) !== null
                 && this.regexAccept(String.raw `(?:\()`, "", $$dpth + 1, $$cr) !== null
-                && ((this.matchName($$dpth + 1, $$cr)) || true)
-                && this.loop(() => this.matchProcess_$0($$dpth + 1, $$cr), 0, -1) !== null
+                && (($scope$nameFirst = this.matchName($$dpth + 1, $$cr)) || true)
+                && ($scope$namesMore = this.loop(() => this.matchProcess_$0($$dpth + 1, $$cr), 0, -1)) !== null
                 && this.regexAccept(String.raw `(?:\))`, "", $$dpth + 1, $$cr) !== null
-                && this.regexAccept(String.raw `(?::=)`, "", $$dpth + 1, $$cr) !== null
+                && this.regexAccept(String.raw `(?:\:\=)`, "", $$dpth + 1, $$cr) !== null
                 && this.matchlb($$dpth + 1, $$cr) !== null
-                && ((this.matchsp($$dpth + 1, $$cr)) || true)
-                && this.matchSPE($$dpth + 1, $$cr) !== null) {
-                $$res = { kind: ASTKinds.Process_1, };
+                && this.matchsp($$dpth + 1, $$cr) !== null
+                && ($scope$proc = this.matchSPE($$dpth + 1, $$cr)) !== null
+                && this.matchlb($$dpth + 1, $$cr) !== null) {
+                $$res = { kind: ASTKinds.Process_1, name: $scope$name, nameFirst: $scope$nameFirst, namesMore: $scope$namesMore, proc: $scope$proc };
             }
             return $$res;
         });
     }
     matchProcess_2($$dpth, $$cr) {
         return this.run($$dpth, () => {
+            let $scope$name;
+            let $scope$proc;
             let $$res = null;
             if (true
-                && this.matchName($$dpth + 1, $$cr) !== null
-                && this.regexAccept(String.raw `(?::=)`, "", $$dpth + 1, $$cr) !== null
-                && this.matchSPE($$dpth + 1, $$cr) !== null) {
-                $$res = { kind: ASTKinds.Process_2, };
+                && this.matchsp($$dpth + 1, $$cr) !== null
+                && ($scope$name = this.matchName($$dpth + 1, $$cr)) !== null
+                && this.regexAccept(String.raw `(?:\:\=)`, "", $$dpth + 1, $$cr) !== null
+                && ($scope$proc = this.matchSPE($$dpth + 1, $$cr)) !== null
+                && this.matchlb($$dpth + 1, $$cr) !== null) {
+                $$res = { kind: ASTKinds.Process_2, name: $scope$name, proc: $scope$proc };
             }
             return $$res;
         });
     }
     matchProcess_$0($$dpth, $$cr) {
         return this.run($$dpth, () => {
+            let $scope$name;
             let $$res = null;
             if (true
                 && this.regexAccept(String.raw `(?:,)`, "", $$dpth + 1, $$cr) !== null
-                && this.matchName($$dpth + 1, $$cr) !== null) {
-                $$res = { kind: ASTKinds.Process_$0, };
+                && ($scope$name = this.matchName($$dpth + 1, $$cr)) !== null) {
+                $$res = { kind: ASTKinds.Process_$0, name: $scope$name };
             }
             return $$res;
         });
     }
     matchTE($$dpth, $$cr) {
+        return this.choice([
+            () => this.matchTE_1($$dpth + 1, $$cr),
+            () => this.matchTE_2($$dpth + 1, $$cr),
+            () => this.matchTE_3($$dpth + 1, $$cr),
+            () => this.matchTE_4($$dpth + 1, $$cr),
+        ]);
+    }
+    matchTE_1($$dpth, $$cr) {
+        return this.run($$dpth, () => {
+            let $scope$typeExpr;
+            let $scope$typeExprMore;
+            let $$res = null;
+            if (true
+                && this.regexAccept(String.raw `(?:\()`, "", $$dpth + 1, $$cr) !== null
+                && ($scope$typeExpr = this.matchTE($$dpth + 1, $$cr)) !== null
+                && this.regexAccept(String.raw `(?:\))`, "", $$dpth + 1, $$cr) !== null
+                && (($scope$typeExprMore = this.matchTE1($$dpth + 1, $$cr)) || true)) {
+                $$res = new TE_1($scope$typeExpr, $scope$typeExprMore);
+            }
+            return $$res;
+        });
+    }
+    matchTE_2($$dpth, $$cr) {
+        return this.run($$dpth, () => {
+            let $scope$typeExpr;
+            let $scope$typeExprMore;
+            let $$res = null;
+            if (true
+                && this.regexAccept(String.raw `(?:Pow)`, "", $$dpth + 1, $$cr) !== null
+                && this.regexAccept(String.raw `(?:\()`, "", $$dpth + 1, $$cr) !== null
+                && ($scope$typeExpr = this.matchTE($$dpth + 1, $$cr)) !== null
+                && this.regexAccept(String.raw `(?:\))`, "", $$dpth + 1, $$cr) !== null
+                && (($scope$typeExprMore = this.matchTE1($$dpth + 1, $$cr)) || true)) {
+                $$res = new TE_2($scope$typeExpr, $scope$typeExprMore);
+            }
+            return $$res;
+        });
+    }
+    matchTE_3($$dpth, $$cr) {
+        return this.run($$dpth, () => {
+            let $scope$typeExpr;
+            let $scope$typeExprMore;
+            let $$res = null;
+            if (true
+                && this.regexAccept(String.raw `(?:\[)`, "", $$dpth + 1, $$cr) !== null
+                && ($scope$typeExpr = this.matchTE($$dpth + 1, $$cr)) !== null
+                && this.regexAccept(String.raw `(?:\])`, "", $$dpth + 1, $$cr) !== null
+                && (($scope$typeExprMore = this.matchTE1($$dpth + 1, $$cr)) || true)) {
+                $$res = new TE_3($scope$typeExpr, $scope$typeExprMore);
+            }
+            return $$res;
+        });
+    }
+    matchTE_4($$dpth, $$cr) {
+        return this.run($$dpth, () => {
+            let $scope$typename;
+            let $scope$typeExprMore;
+            let $$res = null;
+            if (true
+                && ($scope$typename = this.matchTypeName($$dpth + 1, $$cr)) !== null
+                && (($scope$typeExprMore = this.matchTE1($$dpth + 1, $$cr)) || true)) {
+                $$res = new TE_4($scope$typename, $scope$typeExprMore);
+            }
+            return $$res;
+        });
+    }
+    matchTE1($$dpth, $$cr) {
         const fn = () => {
             return this.choice([
-                () => this.matchTE_1($$dpth + 1, $$cr),
-                () => this.matchTE_2($$dpth + 1, $$cr),
-                () => this.matchTE_3($$dpth + 1, $$cr),
-                () => this.matchTE_4($$dpth + 1, $$cr),
-                () => this.matchTE_5($$dpth + 1, $$cr),
-                () => this.matchTE_6($$dpth + 1, $$cr),
-                () => this.matchTE_7($$dpth + 1, $$cr),
+                () => this.matchTE1_1($$dpth + 1, $$cr),
+                () => this.matchTE1_2($$dpth + 1, $$cr),
+                () => this.matchTE1_3($$dpth + 1, $$cr),
             ]);
         };
         const $scope$pos = this.mark();
-        const memo = this.$scope$TE$memo.get($scope$pos.overallPos);
+        const memo = this.$scope$TE1$memo.get($scope$pos.overallPos);
         if (memo !== undefined) {
             this.reset(memo[1]);
             return memo[0];
         }
         const $scope$oldMemoSafe = this.memoSafe;
         this.memoSafe = false;
-        this.$scope$TE$memo.set($scope$pos.overallPos, [null, $scope$pos]);
+        this.$scope$TE1$memo.set($scope$pos.overallPos, [null, $scope$pos]);
         let lastRes = null;
         let lastPos = $scope$pos;
         for (;;) {
@@ -518,94 +1078,60 @@ class Parser {
                 break;
             lastRes = res;
             lastPos = end;
-            this.$scope$TE$memo.set($scope$pos.overallPos, [lastRes, lastPos]);
+            this.$scope$TE1$memo.set($scope$pos.overallPos, [lastRes, lastPos]);
         }
         this.reset(lastPos);
         this.memoSafe = $scope$oldMemoSafe;
         return lastRes;
     }
-    matchTE_1($$dpth, $$cr) {
-        return this.matchTypeName($$dpth + 1, $$cr);
-    }
-    matchTE_2($$dpth, $$cr) {
+    matchTE1_1($$dpth, $$cr) {
         return this.run($$dpth, () => {
+            let $scope$typeExpr;
+            let $scope$typeExprMore;
             let $$res = null;
             if (true
-                && this.matchTE($$dpth + 1, $$cr) !== null
-                && this.loop(() => this.matchTE_$0($$dpth + 1, $$cr), 0, -1) !== null) {
-                $$res = { kind: ASTKinds.TE_2, };
+                && this.regexAccept(String.raw `(?:\-\>)`, "", $$dpth + 1, $$cr) !== null
+                && ($scope$typeExpr = this.matchTE($$dpth + 1, $$cr)) !== null
+                && (($scope$typeExprMore = this.matchTE1($$dpth + 1, $$cr)) || true)) {
+                $$res = new TE1_1($scope$typeExpr, $scope$typeExprMore);
             }
             return $$res;
         });
     }
-    matchTE_3($$dpth, $$cr) {
+    matchTE1_2($$dpth, $$cr) {
         return this.run($$dpth, () => {
+            let $scope$typeExpr;
+            let $scope$typeExprMore;
             let $$res = null;
             if (true
-                && this.matchTE($$dpth + 1, $$cr) !== null
-                && this.regexAccept(String.raw `(?:-\>)`, "", $$dpth + 1, $$cr) !== null
-                && this.matchTE($$dpth + 1, $$cr) !== null) {
-                $$res = { kind: ASTKinds.TE_3, };
-            }
-            return $$res;
-        });
-    }
-    matchTE_4($$dpth, $$cr) {
-        return this.run($$dpth, () => {
-            let $$res = null;
-            if (true
-                && this.matchTE($$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?:\+->)`, "", $$dpth + 1, $$cr) !== null
-                && this.matchTE($$dpth + 1, $$cr) !== null) {
-                $$res = { kind: ASTKinds.TE_4, };
+                && ($scope$typeExpr = this.matchTE($$dpth + 1, $$cr)) !== null
+                && (($scope$typeExprMore = this.matchTE1($$dpth + 1, $$cr)) || true)) {
+                $$res = new TE1_2($scope$typeExpr, $scope$typeExprMore);
             }
             return $$res;
         });
     }
-    matchTE_5($$dpth, $$cr) {
+    matchTE1_3($$dpth, $$cr) {
         return this.run($$dpth, () => {
+            let $scope$typeExprMore;
             let $$res = null;
             if (true
-                && this.regexAccept(String.raw `(?:Pow)`, "", $$dpth + 1, $$cr) !== null
-                && this.regexAccept(String.raw `(?:\()`, "", $$dpth + 1, $$cr) !== null
-                && this.matchTE($$dpth + 1, $$cr) !== null
-                && this.regexAccept(String.raw `(?:\))`, "", $$dpth + 1, $$cr) !== null) {
-                $$res = { kind: ASTKinds.TE_5, };
+                && this.loop(() => this.matchTE1_$0($$dpth + 1, $$cr), 0, -1) !== null
+                && (($scope$typeExprMore = this.matchTE1($$dpth + 1, $$cr)) || true)) {
+                $$res = new TE1_3($scope$typeExprMore);
             }
             return $$res;
         });
     }
-    matchTE_6($$dpth, $$cr) {
+    matchTE1_$0($$dpth, $$cr) {
         return this.run($$dpth, () => {
+            let $scope$typeExpr;
             let $$res = null;
             if (true
-                && this.regexAccept(String.raw `(?:\[)`, "", $$dpth + 1, $$cr) !== null
-                && this.matchTE($$dpth + 1, $$cr) !== null
-                && this.regexAccept(String.raw `(?:\])`, "", $$dpth + 1, $$cr) !== null) {
-                $$res = { kind: ASTKinds.TE_6, };
-            }
-            return $$res;
-        });
-    }
-    matchTE_7($$dpth, $$cr) {
-        return this.run($$dpth, () => {
-            let $$res = null;
-            if (true
-                && this.regexAccept(String.raw `(?:\()`, "", $$dpth + 1, $$cr) !== null
-                && this.matchTE($$dpth + 1, $$cr) !== null
-                && this.regexAccept(String.raw `(?:\))`, "", $$dpth + 1, $$cr) !== null) {
-                $$res = { kind: ASTKinds.TE_7, };
-            }
-            return $$res;
-        });
-    }
-    matchTE_$0($$dpth, $$cr) {
-        return this.run($$dpth, () => {
-            let $$res = null;
-            if (true
-                && this.regexAccept(String.raw `(?:x)`, "", $$dpth + 1, $$cr) !== null
-                && this.matchTE($$dpth + 1, $$cr) !== null) {
-                $$res = { kind: ASTKinds.TE_$0, };
+                && this.regexAccept(String.raw `(?: x )`, "", $$dpth + 1, $$cr) !== null
+                && ($scope$typeExpr = this.matchTE($$dpth + 1, $$cr)) !== null) {
+                $$res = { kind: ASTKinds.TE1_$0, typeExpr: $scope$typeExpr };
             }
             return $$res;
         });
@@ -618,28 +1144,34 @@ class Parser {
     }
     matchBTE_1($$dpth, $$cr) {
         return this.run($$dpth, () => {
+            let $scope$left;
+            let $scope$right;
+            let $scope$typeExpr;
             let $$res = null;
             if (true
-                && this.matchBTE_AUX($$dpth + 1, $$cr) !== null
-                && this.regexAccept(String.raw `(?:x)`, "", $$dpth + 1, $$cr) !== null
-                && this.matchBTE_AUX($$dpth + 1, $$cr) !== null
+                && ($scope$left = this.matchBTE_AUX($$dpth + 1, $$cr)) !== null
+                && this.regexAccept(String.raw `(?: x )`, "", $$dpth + 1, $$cr) !== null
+                && ($scope$right = this.matchBTE_AUX($$dpth + 1, $$cr)) !== null
                 && this.regexAccept(String.raw `(?:->)`, "", $$dpth + 1, $$cr) !== null
-                && this.matchTE($$dpth + 1, $$cr) !== null) {
-                $$res = { kind: ASTKinds.BTE_1, };
+                && ($scope$typeExpr = this.matchTE($$dpth + 1, $$cr)) !== null) {
+                $$res = { kind: ASTKinds.BTE_1, left: $scope$left, right: $scope$right, typeExpr: $scope$typeExpr };
             }
             return $$res;
         });
     }
     matchBTE_2($$dpth, $$cr) {
         return this.run($$dpth, () => {
+            let $scope$left;
+            let $scope$right;
+            let $scope$typeExpr;
             let $$res = null;
             if (true
-                && this.matchBTE_AUX($$dpth + 1, $$cr) !== null
-                && this.regexAccept(String.raw `(?:x)`, "", $$dpth + 1, $$cr) !== null
-                && this.matchBTE_AUX($$dpth + 1, $$cr) !== null
+                && ($scope$left = this.matchBTE_AUX($$dpth + 1, $$cr)) !== null
+                && this.regexAccept(String.raw `(?: x )`, "", $$dpth + 1, $$cr) !== null
+                && ($scope$right = this.matchBTE_AUX($$dpth + 1, $$cr)) !== null
                 && this.regexAccept(String.raw `(?:\+->)`, "", $$dpth + 1, $$cr) !== null
-                && this.matchTE($$dpth + 1, $$cr) !== null) {
-                $$res = { kind: ASTKinds.BTE_2, };
+                && ($scope$typeExpr = this.matchTE($$dpth + 1, $$cr)) !== null) {
+                $$res = { kind: ASTKinds.BTE_2, left: $scope$left, right: $scope$right, typeExpr: $scope$typeExpr };
             }
             return $$res;
         });
@@ -653,633 +1185,729 @@ class Parser {
         ]);
     }
     matchBTE_AUX_1($$dpth, $$cr) {
-        return this.matchTypeName($$dpth + 1, $$cr);
+        return this.run($$dpth, () => {
+            let $scope$name;
+            let $$res = null;
+            if (true
+                && ($scope$name = this.matchTypeName($$dpth + 1, $$cr)) !== null) {
+                $$res = new BTE_AUX_1($scope$name);
+            }
+            return $$res;
+        });
     }
     matchBTE_AUX_2($$dpth, $$cr) {
         return this.run($$dpth, () => {
+            let $scope$typeExpr;
             let $$res = null;
             if (true
                 && this.regexAccept(String.raw `(?:\()`, "", $$dpth + 1, $$cr) !== null
-                && this.matchTE($$dpth + 1, $$cr) !== null
+                && ($scope$typeExpr = this.matchTE($$dpth + 1, $$cr)) !== null
                 && this.regexAccept(String.raw `(?:\))`, "", $$dpth + 1, $$cr) !== null) {
-                $$res = { kind: ASTKinds.BTE_AUX_2, };
+                $$res = new BTE_AUX_2($scope$typeExpr);
             }
             return $$res;
         });
     }
     matchBTE_AUX_3($$dpth, $$cr) {
         return this.run($$dpth, () => {
+            let $scope$typeExpr;
             let $$res = null;
             if (true
                 && this.regexAccept(String.raw `(?:Pow)`, "", $$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?:\()`, "", $$dpth + 1, $$cr) !== null
-                && this.matchTE($$dpth + 1, $$cr) !== null
+                && ($scope$typeExpr = this.matchTE($$dpth + 1, $$cr)) !== null
                 && this.regexAccept(String.raw `(?:\))`, "", $$dpth + 1, $$cr) !== null) {
-                $$res = { kind: ASTKinds.BTE_AUX_3, };
+                $$res = new BTE_AUX_3($scope$typeExpr);
             }
             return $$res;
         });
     }
     matchBTE_AUX_4($$dpth, $$cr) {
         return this.run($$dpth, () => {
+            let $scope$typeExpr;
             let $$res = null;
             if (true
                 && this.regexAccept(String.raw `(?:\[)`, "", $$dpth + 1, $$cr) !== null
-                && this.matchTE($$dpth + 1, $$cr) !== null
+                && ($scope$typeExpr = this.matchTE($$dpth + 1, $$cr)) !== null
                 && this.regexAccept(String.raw `(?:\])`, "", $$dpth + 1, $$cr) !== null) {
-                $$res = { kind: ASTKinds.BTE_AUX_4, };
+                $$res = new BTE_AUX_4($scope$typeExpr);
             }
             return $$res;
         });
     }
     matchSPE($$dpth, $$cr) {
-        const fn = () => {
-            return this.choice([
-                () => this.matchSPE_1($$dpth + 1, $$cr),
-                () => this.matchSPE_2($$dpth + 1, $$cr),
-                () => this.matchSPE_3($$dpth + 1, $$cr),
-                () => this.matchSPE_4($$dpth + 1, $$cr),
-                () => this.matchSPE_5($$dpth + 1, $$cr),
-                () => this.matchSPE_6($$dpth + 1, $$cr),
-                () => this.matchSPE_7($$dpth + 1, $$cr),
-                () => this.matchSPE_8($$dpth + 1, $$cr),
-                () => this.matchSPE_9($$dpth + 1, $$cr),
-                () => this.matchSPE_10($$dpth + 1, $$cr),
-                () => this.matchSPE_11($$dpth + 1, $$cr),
-                () => this.matchSPE_12($$dpth + 1, $$cr),
-            ]);
-        };
-        const $scope$pos = this.mark();
-        const memo = this.$scope$SPE$memo.get($scope$pos.overallPos);
-        if (memo !== undefined) {
-            this.reset(memo[1]);
-            return memo[0];
-        }
-        const $scope$oldMemoSafe = this.memoSafe;
-        this.memoSafe = false;
-        this.$scope$SPE$memo.set($scope$pos.overallPos, [null, $scope$pos]);
-        let lastRes = null;
-        let lastPos = $scope$pos;
-        for (;;) {
-            this.reset($scope$pos);
-            const res = fn();
-            const end = this.mark();
-            if (end.overallPos <= lastPos.overallPos)
-                break;
-            lastRes = res;
-            lastPos = end;
-            this.$scope$SPE$memo.set($scope$pos.overallPos, [lastRes, lastPos]);
-        }
-        this.reset(lastPos);
-        this.memoSafe = $scope$oldMemoSafe;
-        return lastRes;
+        return this.choice([
+            () => this.matchSPE_1($$dpth + 1, $$cr),
+            () => this.matchSPE_2($$dpth + 1, $$cr),
+            () => this.matchSPE_3($$dpth + 1, $$cr),
+            () => this.matchSPE_4($$dpth + 1, $$cr),
+            () => this.matchSPE_5($$dpth + 1, $$cr),
+            () => this.matchSPE_6($$dpth + 1, $$cr),
+            () => this.matchSPE_7($$dpth + 1, $$cr),
+            () => this.matchSPE_8($$dpth + 1, $$cr),
+            () => this.matchSPE_9($$dpth + 1, $$cr),
+            () => this.matchSPE_10($$dpth + 1, $$cr),
+            () => this.matchSPE_11($$dpth + 1, $$cr),
+        ]);
     }
     matchSPE_1($$dpth, $$cr) {
         return this.run($$dpth, () => {
+            let $scope$dataExp;
+            let $scope$proc;
+            let $scope$procMore;
             let $$res = null;
             if (true
-                && this.matchName($$dpth + 1, $$cr) !== null
-                && this.regexAccept(String.raw `(?:\()`, "", $$dpth + 1, $$cr) !== null
-                && ((this.matchDE($$dpth + 1, $$cr)) || true)
-                && this.loopPlus(() => this.matchSPE_$0($$dpth + 1, $$cr)) !== null
-                && this.regexAccept(String.raw `(?:\))`, "", $$dpth + 1, $$cr) !== null) {
-                $$res = { kind: ASTKinds.SPE_1, };
+                && this.regexAccept(String.raw `(?:\[)`, "", $$dpth + 1, $$cr) !== null
+                && ($scope$dataExp = this.matchDE($$dpth + 1, $$cr)) !== null
+                && this.regexAccept(String.raw `(?:\])`, "", $$dpth + 1, $$cr) !== null
+                && ($scope$proc = this.matchSPE($$dpth + 1, $$cr)) !== null
+                && (($scope$procMore = this.matchSPE1($$dpth + 1, $$cr)) || true)) {
+                $$res = new SPE_1($scope$dataExp, $scope$proc, $scope$procMore);
             }
             return $$res;
         });
     }
     matchSPE_2($$dpth, $$cr) {
-        return this.matchName($$dpth + 1, $$cr);
+        return this.run($$dpth, () => {
+            let $scope$name;
+            let $scope$dataExpList;
+            let $scope$dataExpAssignment;
+            let $scope$proc;
+            let $scope$procMore;
+            let $$res = null;
+            if (true
+                && this.regexAccept(String.raw `(?:\[\[)`, "", $$dpth + 1, $$cr) !== null
+                && ($scope$name = this.matchName($$dpth + 1, $$cr)) !== null
+                && ($scope$dataExpList = this.loop(() => this.matchSPE_$0($$dpth + 1, $$cr), 0, -1)) !== null
+                && this.regexAccept(String.raw `(?::=)`, "", $$dpth + 1, $$cr) !== null
+                && ($scope$dataExpAssignment = this.matchDE($$dpth + 1, $$cr)) !== null
+                && this.regexAccept(String.raw `(?:\]\])`, "", $$dpth + 1, $$cr) !== null
+                && this.matchlb($$dpth + 1, $$cr) !== null
+                && this.matchsp($$dpth + 1, $$cr) !== null
+                && ($scope$proc = this.matchSPE($$dpth + 1, $$cr)) !== null
+                && (($scope$procMore = this.matchSPE1($$dpth + 1, $$cr)) || true)) {
+                $$res = new SPE_2($scope$name, $scope$dataExpList, $scope$dataExpAssignment, $scope$proc, $scope$procMore);
+            }
+            return $$res;
+        });
     }
     matchSPE_3($$dpth, $$cr) {
         return this.run($$dpth, () => {
+            let $scope$dataExpL;
+            let $scope$dataExpR;
+            let $scope$procL;
+            let $scope$procR;
+            let $scope$procMore;
             let $$res = null;
             if (true
-                && this.regexAccept(String.raw `(?:\[)`, "", $$dpth + 1, $$cr) !== null
-                && this.matchDE($$dpth + 1, $$cr) !== null
-                && this.regexAccept(String.raw `(?:\])`, "", $$dpth + 1, $$cr) !== null
-                && this.matchSPE($$dpth + 1, $$cr) !== null) {
-                $$res = { kind: ASTKinds.SPE_3, };
+                && this.regexAccept(String.raw `(?:unicast)`, "", $$dpth + 1, $$cr) !== null
+                && this.regexAccept(String.raw `(?:\()`, "", $$dpth + 1, $$cr) !== null
+                && ($scope$dataExpL = this.matchDE($$dpth + 1, $$cr)) !== null
+                && this.regexAccept(String.raw `(?:,)`, "", $$dpth + 1, $$cr) !== null
+                && ($scope$dataExpR = this.matchDE($$dpth + 1, $$cr)) !== null
+                && this.regexAccept(String.raw `(?:\))`, "", $$dpth + 1, $$cr) !== null
+                && this.regexAccept(String.raw `(?:.)`, "", $$dpth + 1, $$cr) !== null
+                && ($scope$procL = this.matchSPE($$dpth + 1, $$cr)) !== null
+                && this.matchlb($$dpth + 1, $$cr) !== null
+                && this.matchsp($$dpth + 1, $$cr) !== null
+                && this.regexAccept(String.raw `(?:>)`, "", $$dpth + 1, $$cr) !== null
+                && ($scope$procR = this.matchSPE($$dpth + 1, $$cr)) !== null
+                && (($scope$procMore = this.matchSPE1($$dpth + 1, $$cr)) || true)) {
+                $$res = new SPE_3($scope$dataExpL, $scope$dataExpR, $scope$procL, $scope$procR, $scope$procMore);
             }
             return $$res;
         });
     }
     matchSPE_4($$dpth, $$cr) {
         return this.run($$dpth, () => {
+            let $scope$dataExp;
+            let $scope$proc;
+            let $scope$procMore;
             let $$res = null;
             if (true
-                && this.regexAccept(String.raw `(?:\[\[)`, "", $$dpth + 1, $$cr) !== null
-                && this.matchName($$dpth + 1, $$cr) !== null
-                && this.loop(() => this.matchSPE_$1($$dpth + 1, $$cr), 0, -1) !== null
-                && this.regexAccept(String.raw `(?::=)`, "", $$dpth + 1, $$cr) !== null
-                && this.matchDE($$dpth + 1, $$cr) !== null
-                && this.regexAccept(String.raw `(?:\]\])`, "", $$dpth + 1, $$cr) !== null
+                && this.regexAccept(String.raw `(?:broadcast)`, "", $$dpth + 1, $$cr) !== null
+                && this.regexAccept(String.raw `(?:\()`, "", $$dpth + 1, $$cr) !== null
+                && ($scope$dataExp = this.matchDE($$dpth + 1, $$cr)) !== null
+                && this.regexAccept(String.raw `(?:\))`, "", $$dpth + 1, $$cr) !== null
+                && this.regexAccept(String.raw `(?:.)`, "", $$dpth + 1, $$cr) !== null
                 && this.matchlb($$dpth + 1, $$cr) !== null
-                && this.matchSPE($$dpth + 1, $$cr) !== null) {
-                $$res = { kind: ASTKinds.SPE_4, };
+                && this.matchsp($$dpth + 1, $$cr) !== null
+                && ($scope$proc = this.matchSPE($$dpth + 1, $$cr)) !== null
+                && (($scope$procMore = this.matchSPE1($$dpth + 1, $$cr)) || true)) {
+                $$res = new SPE_4($scope$dataExp, $scope$proc, $scope$procMore);
             }
             return $$res;
         });
     }
     matchSPE_5($$dpth, $$cr) {
         return this.run($$dpth, () => {
+            let $scope$dataExpL;
+            let $scope$dataExpR;
+            let $scope$proc;
+            let $scope$procMore;
             let $$res = null;
             if (true
-                && this.matchSPE($$dpth + 1, $$cr) !== null
+                && this.regexAccept(String.raw `(?:groupcast)`, "", $$dpth + 1, $$cr) !== null
+                && this.regexAccept(String.raw `(?:\()`, "", $$dpth + 1, $$cr) !== null
+                && ($scope$dataExpL = this.matchDE($$dpth + 1, $$cr)) !== null
+                && this.regexAccept(String.raw `(?:,)`, "", $$dpth + 1, $$cr) !== null
+                && ($scope$dataExpR = this.matchDE($$dpth + 1, $$cr)) !== null
+                && this.regexAccept(String.raw `(?:\))`, "", $$dpth + 1, $$cr) !== null
+                && this.regexAccept(String.raw `(?:.)`, "", $$dpth + 1, $$cr) !== null
                 && this.matchlb($$dpth + 1, $$cr) !== null
-                && this.regexAccept(String.raw `(?:\+)`, "", $$dpth + 1, $$cr) !== null
-                && this.matchSPE($$dpth + 1, $$cr) !== null) {
-                $$res = { kind: ASTKinds.SPE_5, };
+                && this.matchsp($$dpth + 1, $$cr) !== null
+                && ($scope$proc = this.matchSPE($$dpth + 1, $$cr)) !== null
+                && (($scope$procMore = this.matchSPE1($$dpth + 1, $$cr)) || true)) {
+                $$res = new SPE_5($scope$dataExpL, $scope$dataExpR, $scope$proc, $scope$procMore);
             }
             return $$res;
         });
     }
     matchSPE_6($$dpth, $$cr) {
         return this.run($$dpth, () => {
+            let $scope$dataExp;
+            let $scope$proc;
+            let $scope$procMore;
             let $$res = null;
             if (true
-                && this.regexAccept(String.raw `(?:unicast)`, "", $$dpth + 1, $$cr) !== null
+                && this.regexAccept(String.raw `(?:send)`, "", $$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?:\()`, "", $$dpth + 1, $$cr) !== null
-                && this.matchDE($$dpth + 1, $$cr) !== null
-                && this.regexAccept(String.raw `(?:,)`, "", $$dpth + 1, $$cr) !== null
-                && this.matchDE($$dpth + 1, $$cr) !== null
+                && ($scope$dataExp = this.matchDE($$dpth + 1, $$cr)) !== null
                 && this.regexAccept(String.raw `(?:\))`, "", $$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?:.)`, "", $$dpth + 1, $$cr) !== null
-                && this.matchSPE($$dpth + 1, $$cr) !== null
                 && this.matchlb($$dpth + 1, $$cr) !== null
-                && this.regexAccept(String.raw `(?:>)`, "", $$dpth + 1, $$cr) !== null
-                && this.matchSPE($$dpth + 1, $$cr) !== null) {
-                $$res = { kind: ASTKinds.SPE_6, };
+                && this.matchsp($$dpth + 1, $$cr) !== null
+                && ($scope$proc = this.matchSPE($$dpth + 1, $$cr)) !== null
+                && (($scope$procMore = this.matchSPE1($$dpth + 1, $$cr)) || true)) {
+                $$res = new SPE_6($scope$dataExp, $scope$proc, $scope$procMore);
             }
             return $$res;
         });
     }
     matchSPE_7($$dpth, $$cr) {
         return this.run($$dpth, () => {
+            let $scope$dataExp;
+            let $scope$proc;
+            let $scope$procMore;
             let $$res = null;
             if (true
-                && this.regexAccept(String.raw `(?:broadcast)`, "", $$dpth + 1, $$cr) !== null
+                && this.regexAccept(String.raw `(?:deliver)`, "", $$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?:\()`, "", $$dpth + 1, $$cr) !== null
-                && this.matchDE($$dpth + 1, $$cr) !== null
+                && ($scope$dataExp = this.matchDE($$dpth + 1, $$cr)) !== null
                 && this.regexAccept(String.raw `(?:\))`, "", $$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?:.)`, "", $$dpth + 1, $$cr) !== null
                 && this.matchlb($$dpth + 1, $$cr) !== null
-                && this.matchSPE($$dpth + 1, $$cr) !== null) {
-                $$res = { kind: ASTKinds.SPE_7, };
+                && this.matchsp($$dpth + 1, $$cr) !== null
+                && ($scope$proc = this.matchSPE($$dpth + 1, $$cr)) !== null
+                && (($scope$procMore = this.matchSPE1($$dpth + 1, $$cr)) || true)) {
+                $$res = new SPE_7($scope$dataExp, $scope$proc, $scope$procMore);
             }
             return $$res;
         });
     }
     matchSPE_8($$dpth, $$cr) {
         return this.run($$dpth, () => {
+            let $scope$name;
+            let $scope$dataExpList;
+            let $scope$proc;
+            let $scope$procMore;
             let $$res = null;
             if (true
-                && this.regexAccept(String.raw `(?:groupcast)`, "", $$dpth + 1, $$cr) !== null
+                && this.regexAccept(String.raw `(?:receive)`, "", $$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?:\()`, "", $$dpth + 1, $$cr) !== null
-                && this.matchDE($$dpth + 1, $$cr) !== null
-                && this.regexAccept(String.raw `(?:,)`, "", $$dpth + 1, $$cr) !== null
-                && this.matchDE($$dpth + 1, $$cr) !== null
+                && ($scope$name = this.matchName($$dpth + 1, $$cr)) !== null
+                && ($scope$dataExpList = this.loop(() => this.matchSPE_$1($$dpth + 1, $$cr), 0, -1)) !== null
                 && this.regexAccept(String.raw `(?:\))`, "", $$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?:.)`, "", $$dpth + 1, $$cr) !== null
                 && this.matchlb($$dpth + 1, $$cr) !== null
-                && this.matchSPE($$dpth + 1, $$cr) !== null) {
-                $$res = { kind: ASTKinds.SPE_8, };
+                && this.matchsp($$dpth + 1, $$cr) !== null
+                && ($scope$proc = this.matchSPE($$dpth + 1, $$cr)) !== null
+                && (($scope$procMore = this.matchSPE1($$dpth + 1, $$cr)) || true)) {
+                $$res = new SPE_8($scope$name, $scope$dataExpList, $scope$proc, $scope$procMore);
             }
             return $$res;
         });
     }
     matchSPE_9($$dpth, $$cr) {
         return this.run($$dpth, () => {
+            let $scope$proc;
+            let $scope$procMore;
             let $$res = null;
             if (true
-                && this.regexAccept(String.raw `(?:send)`, "", $$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?:\()`, "", $$dpth + 1, $$cr) !== null
-                && this.matchDE($$dpth + 1, $$cr) !== null
+                && ($scope$proc = this.matchSPE($$dpth + 1, $$cr)) !== null
                 && this.regexAccept(String.raw `(?:\))`, "", $$dpth + 1, $$cr) !== null
-                && this.regexAccept(String.raw `(?:.)`, "", $$dpth + 1, $$cr) !== null
-                && this.matchlb($$dpth + 1, $$cr) !== null
-                && this.matchSPE($$dpth + 1, $$cr) !== null) {
-                $$res = { kind: ASTKinds.SPE_9, };
+                && (($scope$procMore = this.matchSPE1($$dpth + 1, $$cr)) || true)) {
+                $$res = new SPE_9($scope$proc, $scope$procMore);
             }
             return $$res;
         });
     }
     matchSPE_10($$dpth, $$cr) {
         return this.run($$dpth, () => {
+            let $scope$name;
+            let $scope$dataExpFirst;
+            let $scope$dataExpW;
+            let $scope$procMore;
             let $$res = null;
             if (true
-                && this.regexAccept(String.raw `(?:deliver)`, "", $$dpth + 1, $$cr) !== null
+                && ($scope$name = this.matchName($$dpth + 1, $$cr)) !== null
                 && this.regexAccept(String.raw `(?:\()`, "", $$dpth + 1, $$cr) !== null
-                && this.matchDE($$dpth + 1, $$cr) !== null
+                && (($scope$dataExpFirst = this.matchDE($$dpth + 1, $$cr)) || true)
+                && ($scope$dataExpW = this.loopPlus(() => this.matchSPE_$2($$dpth + 1, $$cr))) !== null
                 && this.regexAccept(String.raw `(?:\))`, "", $$dpth + 1, $$cr) !== null
-                && this.regexAccept(String.raw `(?:.)`, "", $$dpth + 1, $$cr) !== null
-                && this.matchlb($$dpth + 1, $$cr) !== null
-                && this.matchSPE($$dpth + 1, $$cr) !== null) {
-                $$res = { kind: ASTKinds.SPE_10, };
+                && (($scope$procMore = this.matchSPE1($$dpth + 1, $$cr)) || true)) {
+                $$res = new SPE_10($scope$name, $scope$dataExpFirst, $scope$dataExpW, $scope$procMore);
             }
             return $$res;
         });
     }
     matchSPE_11($$dpth, $$cr) {
         return this.run($$dpth, () => {
+            let $scope$name;
+            let $scope$procMore;
             let $$res = null;
             if (true
-                && this.regexAccept(String.raw `(?:receive)`, "", $$dpth + 1, $$cr) !== null
-                && this.regexAccept(String.raw `(?:\()`, "", $$dpth + 1, $$cr) !== null
-                && this.matchName($$dpth + 1, $$cr) !== null
-                && this.loop(() => this.matchSPE_$2($$dpth + 1, $$cr), 0, -1) !== null
-                && this.regexAccept(String.raw `(?:\))`, "", $$dpth + 1, $$cr) !== null
-                && this.regexAccept(String.raw `(?:.)`, "", $$dpth + 1, $$cr) !== null
-                && this.matchlb($$dpth + 1, $$cr) !== null
-                && this.matchSPE($$dpth + 1, $$cr) !== null) {
-                $$res = { kind: ASTKinds.SPE_11, };
-            }
-            return $$res;
-        });
-    }
-    matchSPE_12($$dpth, $$cr) {
-        return this.run($$dpth, () => {
-            let $$res = null;
-            if (true
-                && this.regexAccept(String.raw `(?:\()`, "", $$dpth + 1, $$cr) !== null
-                && this.matchSPE($$dpth + 1, $$cr) !== null
-                && this.regexAccept(String.raw `(?:\))`, "", $$dpth + 1, $$cr) !== null) {
-                $$res = { kind: ASTKinds.SPE_12, };
+                && ($scope$name = this.matchName($$dpth + 1, $$cr)) !== null
+                && (($scope$procMore = this.matchSPE1($$dpth + 1, $$cr)) || true)) {
+                $$res = new SPE_11($scope$name, $scope$procMore);
             }
             return $$res;
         });
     }
     matchSPE_$0($$dpth, $$cr) {
         return this.run($$dpth, () => {
+            let $scope$dataExp;
             let $$res = null;
             if (true
-                && this.regexAccept(String.raw `(?:,)`, "", $$dpth + 1, $$cr) !== null
-                && this.matchDE($$dpth + 1, $$cr) !== null) {
-                $$res = { kind: ASTKinds.SPE_$0, };
+                && this.regexAccept(String.raw `(?:\[)`, "", $$dpth + 1, $$cr) !== null
+                && ($scope$dataExp = this.matchDE($$dpth + 1, $$cr)) !== null
+                && this.regexAccept(String.raw `(?:\])`, "", $$dpth + 1, $$cr) !== null) {
+                $$res = { kind: ASTKinds.SPE_$0, dataExp: $scope$dataExp };
             }
             return $$res;
         });
     }
     matchSPE_$1($$dpth, $$cr) {
         return this.run($$dpth, () => {
+            let $scope$dataExp;
             let $$res = null;
             if (true
                 && this.regexAccept(String.raw `(?:\[)`, "", $$dpth + 1, $$cr) !== null
-                && this.matchDE($$dpth + 1, $$cr) !== null
+                && ($scope$dataExp = this.matchDE($$dpth + 1, $$cr)) !== null
                 && this.regexAccept(String.raw `(?:\])`, "", $$dpth + 1, $$cr) !== null) {
-                $$res = { kind: ASTKinds.SPE_$1, };
+                $$res = { kind: ASTKinds.SPE_$1, dataExp: $scope$dataExp };
             }
             return $$res;
         });
     }
     matchSPE_$2($$dpth, $$cr) {
         return this.run($$dpth, () => {
+            let $scope$dataExp;
             let $$res = null;
             if (true
-                && this.regexAccept(String.raw `(?:\[)`, "", $$dpth + 1, $$cr) !== null
-                && this.matchDE($$dpth + 1, $$cr) !== null
-                && this.regexAccept(String.raw `(?:\])`, "", $$dpth + 1, $$cr) !== null) {
-                $$res = { kind: ASTKinds.SPE_$2, };
+                && this.regexAccept(String.raw `(?:,)`, "", $$dpth + 1, $$cr) !== null
+                && ($scope$dataExp = this.matchDE($$dpth + 1, $$cr)) !== null) {
+                $$res = { kind: ASTKinds.SPE_$2, dataExp: $scope$dataExp };
+            }
+            return $$res;
+        });
+    }
+    matchSPE1($$dpth, $$cr) {
+        return this.run($$dpth, () => {
+            let $scope$proc;
+            let $scope$procMore;
+            let $$res = null;
+            if (true
+                && this.matchlb($$dpth + 1, $$cr) !== null
+                && this.matchsp($$dpth + 1, $$cr) !== null
+                && this.regexAccept(String.raw `(?:\+)`, "", $$dpth + 1, $$cr) !== null
+                && ($scope$proc = this.matchSPE($$dpth + 1, $$cr)) !== null
+                && (($scope$procMore = this.matchSPE1($$dpth + 1, $$cr)) || true)) {
+                $$res = new SPE1($scope$proc, $scope$procMore);
             }
             return $$res;
         });
     }
     matchDE($$dpth, $$cr) {
-        const fn = () => {
-            return this.choice([
-                () => this.matchDE_1($$dpth + 1, $$cr),
-                () => this.matchDE_2($$dpth + 1, $$cr),
-                () => this.matchDE_3($$dpth + 1, $$cr),
-                () => this.matchDE_4($$dpth + 1, $$cr),
-                () => this.matchDE_5($$dpth + 1, $$cr),
-                () => this.matchDE_6($$dpth + 1, $$cr),
-                () => this.matchDE_7($$dpth + 1, $$cr),
-                () => this.matchDE_8($$dpth + 1, $$cr),
-                () => this.matchDE_9($$dpth + 1, $$cr),
-                () => this.matchDE_10($$dpth + 1, $$cr),
-                () => this.matchDE_11($$dpth + 1, $$cr),
-                () => this.matchDE_12($$dpth + 1, $$cr),
-                () => this.matchDE_13($$dpth + 1, $$cr),
-                () => this.matchDE_14($$dpth + 1, $$cr),
-                () => this.matchDE_15($$dpth + 1, $$cr),
-                () => this.matchDE_16($$dpth + 1, $$cr),
-                () => this.matchDE_17($$dpth + 1, $$cr),
-                () => this.matchDE_18($$dpth + 1, $$cr),
-                () => this.matchDE_19($$dpth + 1, $$cr),
-                () => this.matchDE_20($$dpth + 1, $$cr),
-                () => this.matchDE_21($$dpth + 1, $$cr),
-            ]);
-        };
-        const $scope$pos = this.mark();
-        const memo = this.$scope$DE$memo.get($scope$pos.overallPos);
-        if (memo !== undefined) {
-            this.reset(memo[1]);
-            return memo[0];
-        }
-        const $scope$oldMemoSafe = this.memoSafe;
-        this.memoSafe = false;
-        this.$scope$DE$memo.set($scope$pos.overallPos, [null, $scope$pos]);
-        let lastRes = null;
-        let lastPos = $scope$pos;
-        for (;;) {
-            this.reset($scope$pos);
-            const res = fn();
-            const end = this.mark();
-            if (end.overallPos <= lastPos.overallPos)
-                break;
-            lastRes = res;
-            lastPos = end;
-            this.$scope$DE$memo.set($scope$pos.overallPos, [lastRes, lastPos]);
-        }
-        this.reset(lastPos);
-        this.memoSafe = $scope$oldMemoSafe;
-        return lastRes;
+        return this.choice([
+            () => this.matchDE_1($$dpth + 1, $$cr),
+            () => this.matchDE_2($$dpth + 1, $$cr),
+            () => this.matchDE_3($$dpth + 1, $$cr),
+            () => this.matchDE_4($$dpth + 1, $$cr),
+            () => this.matchDE_5($$dpth + 1, $$cr),
+            () => this.matchDE_6($$dpth + 1, $$cr),
+            () => this.matchDE_7($$dpth + 1, $$cr),
+            () => this.matchDE_8($$dpth + 1, $$cr),
+        ]);
     }
     matchDE_1($$dpth, $$cr) {
-        return this.matchName($$dpth + 1, $$cr);
+        return this.run($$dpth, () => {
+            let $scope$dataExp;
+            let $scope$dataExpMore;
+            let $$res = null;
+            if (true
+                && this.regexAccept(String.raw `(?:{)`, "", $$dpth + 1, $$cr) !== null
+                && ($scope$dataExp = this.matchDE($$dpth + 1, $$cr)) !== null
+                && this.regexAccept(String.raw `(?:})`, "", $$dpth + 1, $$cr) !== null
+                && (($scope$dataExpMore = this.matchDE1($$dpth + 1, $$cr)) || true)) {
+                $$res = new DE_1($scope$dataExp, $scope$dataExpMore);
+            }
+            return $$res;
+        });
     }
     matchDE_2($$dpth, $$cr) {
         return this.run($$dpth, () => {
+            let $scope$name;
+            let $scope$dataExpLeft;
+            let $scope$dataExpRight;
+            let $scope$dataExpMore;
             let $$res = null;
             if (true
-                && this.matchDE($$dpth + 1, $$cr) !== null
-                && this.matchsp($$dpth + 1, $$cr) !== null
-                && this.matchDE($$dpth + 1, $$cr) !== null) {
-                $$res = { kind: ASTKinds.DE_2, };
+                && this.regexAccept(String.raw `(?:{)`, "", $$dpth + 1, $$cr) !== null
+                && this.regexAccept(String.raw `(?:\()`, "", $$dpth + 1, $$cr) !== null
+                && ($scope$name = this.matchName($$dpth + 1, $$cr)) !== null
+                && this.regexAccept(String.raw `(?:,)`, "", $$dpth + 1, $$cr) !== null
+                && ($scope$dataExpLeft = this.matchDE($$dpth + 1, $$cr)) !== null
+                && this.regexAccept(String.raw `(?:\))`, "", $$dpth + 1, $$cr) !== null
+                && this.regexAccept(String.raw `(?:|)`, "", $$dpth + 1, $$cr) !== null
+                && ($scope$dataExpRight = this.matchDE($$dpth + 1, $$cr)) !== null
+                && this.regexAccept(String.raw `(?:})`, "", $$dpth + 1, $$cr) !== null
+                && (($scope$dataExpMore = this.matchDE1($$dpth + 1, $$cr)) || true)) {
+                $$res = new DE_2($scope$name, $scope$dataExpLeft, $scope$dataExpRight, $scope$dataExpMore);
             }
             return $$res;
         });
     }
     matchDE_3($$dpth, $$cr) {
         return this.run($$dpth, () => {
+            let $scope$name;
+            let $scope$dataExpRight;
+            let $scope$dataExpMore;
             let $$res = null;
             if (true
-                && this.matchDE($$dpth + 1, $$cr) !== null
-                && this.loopPlus(() => this.matchDE_$0($$dpth + 1, $$cr)) !== null) {
-                $$res = { kind: ASTKinds.DE_3, };
+                && this.regexAccept(String.raw `(?:{)`, "", $$dpth + 1, $$cr) !== null
+                && ($scope$name = this.matchName($$dpth + 1, $$cr)) !== null
+                && this.regexAccept(String.raw `(?:|)`, "", $$dpth + 1, $$cr) !== null
+                && ($scope$dataExpRight = this.matchDE($$dpth + 1, $$cr)) !== null
+                && this.regexAccept(String.raw `(?:})`, "", $$dpth + 1, $$cr) !== null
+                && (($scope$dataExpMore = this.matchDE1($$dpth + 1, $$cr)) || true)) {
+                $$res = new DE_3($scope$name, $scope$dataExpRight, $scope$dataExpMore);
             }
             return $$res;
         });
     }
     matchDE_4($$dpth, $$cr) {
         return this.run($$dpth, () => {
+            let $scope$name;
+            let $scope$dataExp;
+            let $scope$dataExpMore;
             let $$res = null;
             if (true
-                && this.regexAccept(String.raw `(?:{)`, "", $$dpth + 1, $$cr) !== null
-                && this.matchDE($$dpth + 1, $$cr) !== null
-                && this.regexAccept(String.raw `(?:})`, "", $$dpth + 1, $$cr) !== null) {
-                $$res = { kind: ASTKinds.DE_4, };
+                && this.regexAccept(String.raw `(?:lambda )`, "", $$dpth + 1, $$cr) !== null
+                && ($scope$name = this.matchName($$dpth + 1, $$cr)) !== null
+                && this.regexAccept(String.raw `(?:.)`, "", $$dpth + 1, $$cr) !== null
+                && ($scope$dataExp = this.matchDE($$dpth + 1, $$cr)) !== null
+                && (($scope$dataExpMore = this.matchDE1($$dpth + 1, $$cr)) || true)) {
+                $$res = new DE_4($scope$name, $scope$dataExp, $scope$dataExpMore);
             }
             return $$res;
         });
     }
     matchDE_5($$dpth, $$cr) {
         return this.run($$dpth, () => {
+            let $scope$name;
+            let $scope$dataExp;
+            let $scope$dataExpMore;
             let $$res = null;
             if (true
-                && this.regexAccept(String.raw `(?:{)`, "", $$dpth + 1, $$cr) !== null
-                && this.matchName($$dpth + 1, $$cr) !== null
-                && this.regexAccept(String.raw `(?:|)`, "", $$dpth + 1, $$cr) !== null
-                && this.matchDE($$dpth + 1, $$cr) !== null
-                && this.regexAccept(String.raw `(?:})`, "", $$dpth + 1, $$cr) !== null) {
-                $$res = { kind: ASTKinds.DE_5, };
+                && this.regexAccept(String.raw `(?:forall )`, "", $$dpth + 1, $$cr) !== null
+                && ($scope$name = this.matchName($$dpth + 1, $$cr)) !== null
+                && this.regexAccept(String.raw `(?:.)`, "", $$dpth + 1, $$cr) !== null
+                && ($scope$dataExp = this.matchDE($$dpth + 1, $$cr)) !== null
+                && (($scope$dataExpMore = this.matchDE1($$dpth + 1, $$cr)) || true)) {
+                $$res = new DE_5($scope$name, $scope$dataExp, $scope$dataExpMore);
             }
             return $$res;
         });
     }
     matchDE_6($$dpth, $$cr) {
         return this.run($$dpth, () => {
+            let $scope$name;
+            let $scope$dataExp;
+            let $scope$dataExpMore;
             let $$res = null;
             if (true
-                && this.regexAccept(String.raw `(?:{)`, "", $$dpth + 1, $$cr) !== null
-                && this.regexAccept(String.raw `(?:\()`, "", $$dpth + 1, $$cr) !== null
-                && this.matchName($$dpth + 1, $$cr) !== null
-                && this.regexAccept(String.raw `(?:,)`, "", $$dpth + 1, $$cr) !== null
-                && this.matchDE($$dpth + 1, $$cr) !== null
-                && this.regexAccept(String.raw `(?:\))`, "", $$dpth + 1, $$cr) !== null
-                && this.regexAccept(String.raw `(?:|)`, "", $$dpth + 1, $$cr) !== null
-                && this.matchDE($$dpth + 1, $$cr) !== null
-                && this.regexAccept(String.raw `(?:})`, "", $$dpth + 1, $$cr) !== null) {
-                $$res = { kind: ASTKinds.DE_6, };
+                && this.regexAccept(String.raw `(?:exists )`, "", $$dpth + 1, $$cr) !== null
+                && ($scope$name = this.matchName($$dpth + 1, $$cr)) !== null
+                && this.regexAccept(String.raw `(?:.)`, "", $$dpth + 1, $$cr) !== null
+                && ($scope$dataExp = this.matchDE($$dpth + 1, $$cr)) !== null
+                && (($scope$dataExpMore = this.matchDE1($$dpth + 1, $$cr)) || true)) {
+                $$res = new DE_6($scope$name, $scope$dataExp, $scope$dataExpMore);
             }
             return $$res;
         });
     }
     matchDE_7($$dpth, $$cr) {
         return this.run($$dpth, () => {
+            let $scope$dataExp;
+            let $scope$dataExpMore;
             let $$res = null;
             if (true
-                && this.regexAccept(String.raw `(?:lambda)`, "", $$dpth + 1, $$cr) !== null
-                && this.matchName($$dpth + 1, $$cr) !== null
-                && this.regexAccept(String.raw `(?:.)`, "", $$dpth + 1, $$cr) !== null
-                && this.matchsp($$dpth + 1, $$cr) !== null
-                && this.matchDE($$dpth + 1, $$cr) !== null) {
-                $$res = { kind: ASTKinds.DE_7, };
+                && this.regexAccept(String.raw `(?:\()`, "", $$dpth + 1, $$cr) !== null
+                && ($scope$dataExp = this.matchDE($$dpth + 1, $$cr)) !== null
+                && this.regexAccept(String.raw `(?:\))`, "", $$dpth + 1, $$cr) !== null
+                && (($scope$dataExpMore = this.matchDE1($$dpth + 1, $$cr)) || true)) {
+                $$res = new DE_7($scope$dataExp, $scope$dataExpMore);
             }
             return $$res;
         });
     }
     matchDE_8($$dpth, $$cr) {
         return this.run($$dpth, () => {
+            let $scope$name;
+            let $scope$dataExpMore;
             let $$res = null;
             if (true
-                && this.regexAccept(String.raw `(?:forall)`, "", $$dpth + 1, $$cr) !== null
-                && this.matchName($$dpth + 1, $$cr) !== null
-                && this.regexAccept(String.raw `(?:.)`, "", $$dpth + 1, $$cr) !== null
-                && this.matchsp($$dpth + 1, $$cr) !== null
-                && this.matchDE($$dpth + 1, $$cr) !== null) {
-                $$res = { kind: ASTKinds.DE_8, };
+                && ($scope$name = this.matchName($$dpth + 1, $$cr)) !== null
+                && (($scope$dataExpMore = this.matchDE1($$dpth + 1, $$cr)) || true)) {
+                $$res = new DE_8($scope$name, $scope$dataExpMore);
             }
             return $$res;
         });
     }
-    matchDE_9($$dpth, $$cr) {
+    matchDE1($$dpth, $$cr) {
+        return this.choice([
+            () => this.matchDE1_1($$dpth + 1, $$cr),
+            () => this.matchDE1_2($$dpth + 1, $$cr),
+            () => this.matchDE1_3($$dpth + 1, $$cr),
+            () => this.matchDE1_4($$dpth + 1, $$cr),
+            () => this.matchDE1_5($$dpth + 1, $$cr),
+            () => this.matchDE1_6($$dpth + 1, $$cr),
+            () => this.matchDE1_7($$dpth + 1, $$cr),
+            () => this.matchDE1_8($$dpth + 1, $$cr),
+            () => this.matchDE1_9($$dpth + 1, $$cr),
+            () => this.matchDE1_10($$dpth + 1, $$cr),
+            () => this.matchDE1_11($$dpth + 1, $$cr),
+            () => this.matchDE1_12($$dpth + 1, $$cr),
+            () => this.matchDE1_13($$dpth + 1, $$cr),
+        ]);
+    }
+    matchDE1_1($$dpth, $$cr) {
         return this.run($$dpth, () => {
+            let $scope$dataExp;
+            let $scope$dataExpMore;
             let $$res = null;
             if (true
-                && this.regexAccept(String.raw `(?:exists)`, "", $$dpth + 1, $$cr) !== null
-                && this.matchName($$dpth + 1, $$cr) !== null
-                && this.regexAccept(String.raw `(?:.)`, "", $$dpth + 1, $$cr) !== null
                 && this.matchsp($$dpth + 1, $$cr) !== null
-                && this.matchDE($$dpth + 1, $$cr) !== null) {
-                $$res = { kind: ASTKinds.DE_9, };
+                && ($scope$dataExp = this.matchDE($$dpth + 1, $$cr)) !== null
+                && (($scope$dataExpMore = this.matchDE1($$dpth + 1, $$cr)) || true)) {
+                $$res = new DE1_1($scope$dataExp, $scope$dataExpMore);
             }
             return $$res;
         });
     }
-    matchDE_10($$dpth, $$cr) {
+    matchDE1_2($$dpth, $$cr) {
         return this.run($$dpth, () => {
+            let $scope$dataExpW;
+            let $scope$dataExpMore;
             let $$res = null;
             if (true
-                && this.matchDE($$dpth + 1, $$cr) !== null
+                && ($scope$dataExpW = this.loopPlus(() => this.matchDE1_$0($$dpth + 1, $$cr))) !== null
+                && (($scope$dataExpMore = this.matchDE1($$dpth + 1, $$cr)) || true)) {
+                $$res = new DE1_2($scope$dataExpW, $scope$dataExpMore);
+            }
+            return $$res;
+        });
+    }
+    matchDE1_3($$dpth, $$cr) {
+        return this.run($$dpth, () => {
+            let $scope$dataExp;
+            let $scope$dataExpMore;
+            let $$res = null;
+            if (true
                 && this.regexAccept(String.raw `(?:->)`, "", $$dpth + 1, $$cr) !== null
-                && this.matchDE($$dpth + 1, $$cr) !== null) {
-                $$res = { kind: ASTKinds.DE_10, };
+                && ($scope$dataExp = this.matchDE($$dpth + 1, $$cr)) !== null
+                && (($scope$dataExpMore = this.matchDE1($$dpth + 1, $$cr)) || true)) {
+                $$res = new DE1_3($scope$dataExp, $scope$dataExpMore);
             }
             return $$res;
         });
     }
-    matchDE_11($$dpth, $$cr) {
+    matchDE1_4($$dpth, $$cr) {
         return this.run($$dpth, () => {
+            let $scope$dataExp;
+            let $scope$dataExpMore;
             let $$res = null;
             if (true
-                && this.matchDE($$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?:<->)`, "", $$dpth + 1, $$cr) !== null
-                && this.matchDE($$dpth + 1, $$cr) !== null) {
-                $$res = { kind: ASTKinds.DE_11, };
+                && ($scope$dataExp = this.matchDE($$dpth + 1, $$cr)) !== null
+                && (($scope$dataExpMore = this.matchDE1($$dpth + 1, $$cr)) || true)) {
+                $$res = new DE1_4($scope$dataExp, $scope$dataExpMore);
             }
             return $$res;
         });
     }
-    matchDE_12($$dpth, $$cr) {
+    matchDE1_5($$dpth, $$cr) {
         return this.run($$dpth, () => {
+            let $scope$dataExp;
+            let $scope$dataExpMore;
             let $$res = null;
             if (true
-                && this.matchDE($$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?:&)`, "", $$dpth + 1, $$cr) !== null
-                && this.matchDE($$dpth + 1, $$cr) !== null) {
-                $$res = { kind: ASTKinds.DE_12, };
+                && ($scope$dataExp = this.matchDE($$dpth + 1, $$cr)) !== null
+                && (($scope$dataExpMore = this.matchDE1($$dpth + 1, $$cr)) || true)) {
+                $$res = new DE1_5($scope$dataExp, $scope$dataExpMore);
             }
             return $$res;
         });
     }
-    matchDE_13($$dpth, $$cr) {
+    matchDE1_6($$dpth, $$cr) {
         return this.run($$dpth, () => {
+            let $scope$dataExp;
+            let $scope$dataExpMore;
             let $$res = null;
             if (true
-                && this.matchDE($$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?:|)`, "", $$dpth + 1, $$cr) !== null
-                && this.matchDE($$dpth + 1, $$cr) !== null) {
-                $$res = { kind: ASTKinds.DE_13, };
+                && ($scope$dataExp = this.matchDE($$dpth + 1, $$cr)) !== null
+                && (($scope$dataExpMore = this.matchDE1($$dpth + 1, $$cr)) || true)) {
+                $$res = new DE1_6($scope$dataExp, $scope$dataExpMore);
             }
             return $$res;
         });
     }
-    matchDE_14($$dpth, $$cr) {
+    matchDE1_7($$dpth, $$cr) {
         return this.run($$dpth, () => {
+            let $scope$dataExp;
+            let $scope$dataExpMore;
             let $$res = null;
             if (true
-                && this.matchDE($$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?:=)`, "", $$dpth + 1, $$cr) !== null
-                && this.matchDE($$dpth + 1, $$cr) !== null) {
-                $$res = { kind: ASTKinds.DE_14, };
+                && ($scope$dataExp = this.matchDE($$dpth + 1, $$cr)) !== null
+                && (($scope$dataExpMore = this.matchDE1($$dpth + 1, $$cr)) || true)) {
+                $$res = new DE1_7($scope$dataExp, $scope$dataExpMore);
             }
             return $$res;
         });
     }
-    matchDE_15($$dpth, $$cr) {
+    matchDE1_8($$dpth, $$cr) {
         return this.run($$dpth, () => {
+            let $scope$dataExp;
+            let $scope$dataExpMore;
             let $$res = null;
             if (true
-                && this.matchDE($$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?:!=)`, "", $$dpth + 1, $$cr) !== null
-                && this.matchDE($$dpth + 1, $$cr) !== null) {
-                $$res = { kind: ASTKinds.DE_15, };
+                && ($scope$dataExp = this.matchDE($$dpth + 1, $$cr)) !== null
+                && (($scope$dataExpMore = this.matchDE1($$dpth + 1, $$cr)) || true)) {
+                $$res = new DE1_8($scope$dataExp, $scope$dataExpMore);
             }
             return $$res;
         });
     }
-    matchDE_16($$dpth, $$cr) {
+    matchDE1_9($$dpth, $$cr) {
         return this.run($$dpth, () => {
+            let $scope$dataExp;
+            let $scope$dataExpMore;
             let $$res = null;
             if (true
-                && this.matchDE($$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?:>=)`, "", $$dpth + 1, $$cr) !== null
-                && this.matchDE($$dpth + 1, $$cr) !== null) {
-                $$res = { kind: ASTKinds.DE_16, };
+                && ($scope$dataExp = this.matchDE($$dpth + 1, $$cr)) !== null
+                && (($scope$dataExpMore = this.matchDE1($$dpth + 1, $$cr)) || true)) {
+                $$res = new DE1_9($scope$dataExp, $scope$dataExpMore);
             }
             return $$res;
         });
     }
-    matchDE_17($$dpth, $$cr) {
+    matchDE1_10($$dpth, $$cr) {
         return this.run($$dpth, () => {
+            let $scope$dataExp;
+            let $scope$dataExpMore;
             let $$res = null;
             if (true
-                && this.matchDE($$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?:<=)`, "", $$dpth + 1, $$cr) !== null
-                && this.matchDE($$dpth + 1, $$cr) !== null) {
-                $$res = { kind: ASTKinds.DE_17, };
+                && ($scope$dataExp = this.matchDE($$dpth + 1, $$cr)) !== null
+                && (($scope$dataExpMore = this.matchDE1($$dpth + 1, $$cr)) || true)) {
+                $$res = new DE1_10($scope$dataExp, $scope$dataExpMore);
             }
             return $$res;
         });
     }
-    matchDE_18($$dpth, $$cr) {
+    matchDE1_11($$dpth, $$cr) {
         return this.run($$dpth, () => {
+            let $scope$dataExp;
+            let $scope$dataExpMore;
             let $$res = null;
             if (true
-                && this.matchDE($$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?:>)`, "", $$dpth + 1, $$cr) !== null
-                && this.matchDE($$dpth + 1, $$cr) !== null) {
-                $$res = { kind: ASTKinds.DE_18, };
+                && ($scope$dataExp = this.matchDE($$dpth + 1, $$cr)) !== null
+                && (($scope$dataExpMore = this.matchDE1($$dpth + 1, $$cr)) || true)) {
+                $$res = new DE1_11($scope$dataExp, $scope$dataExpMore);
             }
             return $$res;
         });
     }
-    matchDE_19($$dpth, $$cr) {
+    matchDE1_12($$dpth, $$cr) {
         return this.run($$dpth, () => {
+            let $scope$dataExp;
+            let $scope$dataExpMore;
             let $$res = null;
             if (true
-                && this.matchDE($$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?:<)`, "", $$dpth + 1, $$cr) !== null
-                && this.matchDE($$dpth + 1, $$cr) !== null) {
-                $$res = { kind: ASTKinds.DE_19, };
+                && ($scope$dataExp = this.matchDE($$dpth + 1, $$cr)) !== null
+                && (($scope$dataExpMore = this.matchDE1($$dpth + 1, $$cr)) || true)) {
+                $$res = new DE1_12($scope$dataExp, $scope$dataExpMore);
             }
             return $$res;
         });
     }
-    matchDE_20($$dpth, $$cr) {
+    matchDE1_13($$dpth, $$cr) {
         return this.run($$dpth, () => {
+            let $scope$func;
+            let $scope$dataExp;
+            let $scope$dataExpMore;
             let $$res = null;
             if (true
-                && this.matchDE($$dpth + 1, $$cr) !== null
-                && this.matchInfix($$dpth + 1, $$cr) !== null
-                && this.matchDE($$dpth + 1, $$cr) !== null) {
-                $$res = { kind: ASTKinds.DE_20, };
+                && ($scope$func = this.matchInfix($$dpth + 1, $$cr)) !== null
+                && ($scope$dataExp = this.matchDE($$dpth + 1, $$cr)) !== null
+                && (($scope$dataExpMore = this.matchDE1($$dpth + 1, $$cr)) || true)) {
+                $$res = new DE1_13($scope$func, $scope$dataExp, $scope$dataExpMore);
             }
             return $$res;
         });
     }
-    matchDE_21($$dpth, $$cr) {
+    matchDE1_$0($$dpth, $$cr) {
         return this.run($$dpth, () => {
-            let $$res = null;
-            if (true
-                && this.regexAccept(String.raw `(?:\()`, "", $$dpth + 1, $$cr) !== null
-                && this.matchDE($$dpth + 1, $$cr) !== null
-                && this.regexAccept(String.raw `(?:\))`, "", $$dpth + 1, $$cr) !== null) {
-                $$res = { kind: ASTKinds.DE_21, };
-            }
-            return $$res;
-        });
-    }
-    matchDE_$0($$dpth, $$cr) {
-        return this.run($$dpth, () => {
+            let $scope$dataExp;
             let $$res = null;
             if (true
                 && this.regexAccept(String.raw `(?:,)`, "", $$dpth + 1, $$cr) !== null
-                && this.matchDE($$dpth + 1, $$cr) !== null) {
-                $$res = { kind: ASTKinds.DE_$0, };
+                && ($scope$dataExp = this.matchDE($$dpth + 1, $$cr)) !== null) {
+                $$res = { kind: ASTKinds.DE1_$0, dataExp: $scope$dataExp };
             }
             return $$res;
         });
     }
     matchTypeName($$dpth, $$cr) {
-        return this.matchName($$dpth + 1, $$cr);
+        return this.run($$dpth, () => {
+            let $scope$name;
+            let $$res = null;
+            if (true
+                && ($scope$name = this.matchName($$dpth + 1, $$cr)) !== null) {
+                $$res = new TypeName($scope$name);
+            }
+            return $$res;
+        });
     }
     matchName($$dpth, $$cr) {
-        return this.choice([
-            () => this.matchName_1($$dpth + 1, $$cr),
-            () => this.matchName_2($$dpth + 1, $$cr),
-            () => this.matchName_3($$dpth + 1, $$cr),
-        ]);
-    }
-    matchName_1($$dpth, $$cr) {
-        return this.matchNameString($$dpth + 1, $$cr);
-    }
-    matchName_2($$dpth, $$cr) {
-        return this.regexAccept(String.raw `(?:\!)`, "", $$dpth + 1, $$cr);
-    }
-    matchName_3($$dpth, $$cr) {
-        return this.regexAccept(String.raw `(?:\[\])`, "", $$dpth + 1, $$cr);
+        return this.run($$dpth, () => {
+            let $scope$nameString;
+            let $$res = null;
+            if (true
+                && ($scope$nameString = this.matchNameString($$dpth + 1, $$cr)) !== null) {
+                $$res = new Name($scope$nameString);
+            }
+            return $$res;
+        });
     }
     matchNameString($$dpth, $$cr) {
         return this.choice([
@@ -1288,28 +1916,63 @@ class Parser {
         ]);
     }
     matchNameString_1($$dpth, $$cr) {
-        return this.matchNameString_$0($$dpth + 1, $$cr);
+        return this.run($$dpth, () => {
+            let $scope$prefix;
+            let $$res = null;
+            if (true
+                && ($scope$prefix = this.matchNameString_$0($$dpth + 1, $$cr)) !== null) {
+                $$res = new NameString_1($scope$prefix);
+            }
+            return $$res;
+        });
     }
     matchNameString_2($$dpth, $$cr) {
-        return this.loopPlus(() => this.matchNameChar($$dpth + 1, $$cr));
+        return this.run($$dpth, () => {
+            let $scope$final;
+            let $$res = null;
+            if (true
+                && ($scope$final = this.loopPlus(() => this.matchNameChar($$dpth + 1, $$cr))) !== null) {
+                $$res = new NameString_2($scope$final);
+            }
+            return $$res;
+        });
     }
     matchNameString_$0($$dpth, $$cr) {
         return this.run($$dpth, () => {
+            let $scope$pre;
+            let $scope$dot;
+            let $scope$post;
             let $$res = null;
             if (true
-                && this.loop(() => this.matchNameChar($$dpth + 1, $$cr), 0, -1) !== null
-                && this.regexAccept(String.raw `(?:.)`, "", $$dpth + 1, $$cr) !== null
-                && this.matchNameString($$dpth + 1, $$cr) !== null) {
-                $$res = { kind: ASTKinds.NameString_$0, };
+                && ($scope$pre = this.loop(() => this.matchNameChar($$dpth + 1, $$cr), 0, -1)) !== null
+                && ($scope$dot = this.regexAccept(String.raw `(?:\.)`, "", $$dpth + 1, $$cr)) !== null
+                && ($scope$post = this.matchNameString($$dpth + 1, $$cr)) !== null) {
+                $$res = { kind: ASTKinds.NameString_$0, pre: $scope$pre, dot: $scope$dot, post: $scope$post };
             }
             return $$res;
         });
     }
     matchNameChar($$dpth, $$cr) {
-        return this.regexAccept(String.raw `(?:[a-zA-Z0-9])`, "", $$dpth + 1, $$cr);
+        return this.run($$dpth, () => {
+            let $scope$char;
+            let $$res = null;
+            if (true
+                && ($scope$char = this.regexAccept(String.raw `(?:[a-zA-Z0-9])`, "", $$dpth + 1, $$cr)) !== null) {
+                $$res = new NameChar($scope$char);
+            }
+            return $$res;
+        });
     }
     matchInfix($$dpth, $$cr) {
-        return this.regexAccept(String.raw `(?:[\*\+-\:<\=>\!\&|\\]+)`, "", $$dpth + 1, $$cr);
+        return this.run($$dpth, () => {
+            let $scope$char;
+            let $$res = null;
+            if (true
+                && ($scope$char = this.regexAccept(String.raw `(?:[\*\+-<\=>\!\&|\\]+)`, "", $$dpth + 1, $$cr)) !== null) {
+                $$res = new Infix($scope$char);
+            }
+            return $$res;
+        });
     }
     matchws($$dpth, $$cr) {
         return this.loop(() => this.matchws_$0($$dpth + 1, $$cr), 0, -1);
@@ -1327,7 +1990,23 @@ class Parser {
         return this.matchlb($$dpth + 1, $$cr);
     }
     matchsp($$dpth, $$cr) {
-        return this.regexAccept(String.raw `(?:\s+)`, "", $$dpth + 1, $$cr);
+        return this.loopPlus(() => this.matchsp_$0($$dpth + 1, $$cr));
+    }
+    matchsp_$0($$dpth, $$cr) {
+        return this.choice([
+            () => this.matchsp_$0_1($$dpth + 1, $$cr),
+            () => this.matchsp_$0_2($$dpth + 1, $$cr),
+            () => this.matchsp_$0_3($$dpth + 1, $$cr),
+        ]);
+    }
+    matchsp_$0_1($$dpth, $$cr) {
+        return this.regexAccept(String.raw `(?: )`, "", $$dpth + 1, $$cr);
+    }
+    matchsp_$0_2($$dpth, $$cr) {
+        return this.regexAccept(String.raw `(?:\t)`, "", $$dpth + 1, $$cr);
+    }
+    matchsp_$0_3($$dpth, $$cr) {
+        return this.regexAccept(String.raw `(?:\v)`, "", $$dpth + 1, $$cr);
     }
     matchlb($$dpth, $$cr) {
         return this.loopPlus(() => this.matchlb_$0($$dpth + 1, $$cr));
@@ -1346,20 +2025,20 @@ class Parser {
     }
     test() {
         const mrk = this.mark();
-        const res = this.matchAWN(0);
+        const res = this.matchAWNRoot(0);
         const ans = res !== null;
         this.reset(mrk);
         return ans;
     }
     parse() {
         const mrk = this.mark();
-        const res = this.matchAWN(0);
+        const res = this.matchAWNRoot(0);
         if (res)
             return { ast: res, errs: [] };
         this.reset(mrk);
         const rec = new ErrorTracker();
         this.clearMemos();
-        this.matchAWN(0, rec);
+        this.matchAWNRoot(0, rec);
         const err = rec.getErr();
         return { ast: res, errs: err !== null ? [err] : [] };
     }

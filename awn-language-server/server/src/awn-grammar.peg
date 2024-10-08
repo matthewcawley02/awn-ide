@@ -1,75 +1,152 @@
-//series of blocks, any whitespace is allowed between blocks
-AWN := ws {Block ws}* $
+AWNRoot := ws block=Block* $
 
-//for each entry in a block, optional spacing before, and each entry must be separated by a linebreak
-//the block must also end in a linebreak (meaning you need an extra line at the end of the document currently)
+//in a block, each entry must be separated by a linebreak, optional spacing at the start
+//because each entry must be delimited with a linebreak, an extra line is required at the end of the doc currently
 
 Block :=
-	  'INCLUDES:' sp? Include {lb sp? Include}* lb
-	| 'include' sp? Include lb
-	| 'TYPES:' sp? Type {lb sp? Type}* lb
-	| 'VARIABLES:' sp? ConVar {lb sp? ConVar}* lb
-	| 'CONSTANTS:' sp? ConVar {lb sp? ConVar}* lb
-	| 'FUNCTIONS:' sp? Function {lb sp? Function}* lb
-	| 'PROCESSES:' sp? Process {lb sp? Process}* lb
-	| 'proc' sp? Process lb
+	  'INCLUDES:' include=Include+
+	| 'include' include=Include
+	| 'TYPES:' type=Type+
+	| 'VARIABLES:' var=ConVar+
+	| 'CONSTANTS:' const=ConVar+
+	| 'FUNCTIONS:' func=Function+
+	| 'PROCESSES:' proc=Process+
+	| 'proc' proc=Process
 
-Include := Name // could change this later to specifically be a filepath
+Include := sp name=Name lb
 
-Type := TypeName {sp '\=' sp TE}?
+Type := sp typeName=TypeName typeExprW={'\=' typeExpr=TE }? lb
 
 ConVar :=
-	  TE sp Name {',' Name}*
-	| Name ':' TE
+	  sp typeExpr=TE sp nameFirst=Name namesMore={',' name=Name}* lb
+	| sp name=Name '\:' typeExpr=TE lb
 
 Function :=
-	  Name ':' sp TE
-	| Infix ':' sp BTE
+	  sp name=Name '\:' sp typeExpr=TE lb
+	| sp name=Infix '\:' sp binTypeExpr=BTE lb
 
 Process :=
-	  Name '\(' Name? {',' Name}* '\)' ':=' lb sp? SPE
-	| Name ':=' SPE
+	  sp name=Name '\(' nameFirst=Name? namesMore={',' name=Name}* '\)' '\:\=' lb sp proc=SPE lb
+	| sp name=Name '\:\=' proc=SPE lb
 
 //============
 // TYPE EXPRESSIONS
 //============
 
-TE :=
-	  TypeName
-	| TE {'x' TE}*
-	| TE '-\>' TE
-	| TE '\+->' TE
-	| 'Pow' '\(' TE '\)'
-	| '\[' TE '\]'
-	| '\(' TE '\)'
+TE := '\(' typeExpr=TE '\)' typeExprMore=TE1?
+	.typetype = string{
+		return "brackets"
+	}
+	| 'Pow' '\(' typeExpr=TE '\)' typeExprMore=TE1?
+	.typetype = string{
+		return "pow"
+	}
+	| '\[' typeExpr=TE '\]' typeExprMore=TE1?
+	.typetype = string{
+		return "list"
+	}
+	| typename=TypeName typeExprMore=TE1?
+	.typetype = string{
+		return "name"
+	}
+
+TE1 := '\-\>' typeExpr=TE typeExprMore=TE1?
+	.typetype = string{
+		return "function"
+	}
+	| '\+->' typeExpr=TE typeExprMore=TE1?
+	.typetype = string{
+		return "part_function"
+	}
+	| {' x ' typeExpr=TE}* typeExprMore=TE1?
+	.typetype = string{
+		return "product"
+	}
+
+
+// for l x r
+//	.exprList = TE[]{
+//		const l = [left]
+//        l.push(...right.map(r => r.typeExpr));
+//       return l
+//	}
 
 BTE :=
-	  BTE_AUX 'x' BTE_AUX '->' TE
-	| BTE_AUX 'x' BTE_AUX '\+->' TE
+	  left=BTE_AUX ' x ' right=BTE_AUX '->' typeExpr=TE
+	| left=BTE_AUX ' x ' right=BTE_AUX '\+->' typeExpr=TE
 
 BTE_AUX :=
-	  TypeName
-	| '\(' TE '\)'
-	| 'Pow' '\(' TE '\)'
-	| '\[' TE '\]'
+	  name=TypeName
+	.typetype = string {
+		return "name"
+	}
+	| '\(' typeExpr=TE '\)'
+	.typetype = string {
+		return "brackets"
+	}
+	| 'Pow' '\(' typeExpr=TE '\)'
+	.typetype = string {
+		return "pow"
+	}
+	| '\[' typeExpr=TE '\]'
+	.typetype = string {
+		return "list"
+	}
 
 //==================
 // SP EXPRESSIONS
 //==================
 
 SPE :=
-	  Name '\(' DE? {',' DE}+ '\)'
-	| Name
-	| '\[' DE '\]' SPE
-	| '\[\[' Name {'\[' DE '\]' }* ':=' DE '\]\]' lb SPE
-	| SPE lb '\+' SPE
-	| 'unicast' '\(' DE ',' DE '\)' '.' SPE lb '>' SPE
-	| 'broadcast' '\(' DE '\)' '.' lb SPE
-	| 'groupcast' '\(' DE ',' DE '\)' '.' lb SPE
-	| 'send' '\(' DE '\)' '.' lb SPE
-	| 'deliver' '\(' DE '\)' '.' lb SPE
-	| 'receive' '\(' Name { '\[' DE '\]' }* '\)' '.' lb SPE
-	| '\(' SPE '\)'
+	  '\[' dataExp=DE '\]' proc=SPE procMore=SPE1?
+	.procType = string {
+		return "guard"
+	}
+	| '\[\[' name=Name dataExpList={'\[' dataExp=DE '\]' }* ':=' dataExpAssignment=DE '\]\]' lb sp proc=SPE procMore=SPE1?
+	.procType = string {
+		return "assignment"
+	}
+	| 'unicast' '\(' dataExpL=DE ',' dataExpR=DE '\)' '.' procL=SPE lb sp '>' procR=SPE procMore=SPE1?
+	.procType = string {
+		return "unicast"
+	}
+	| 'broadcast' '\(' dataExp=DE '\)' '.' lb sp proc=SPE procMore=SPE1?
+	.procType = string {
+		return "broadcast"
+	}
+	| 'groupcast' '\(' dataExpL=DE ',' dataExpR=DE '\)' '.' lb sp proc=SPE procMore=SPE1?
+	.procType = string {
+		return "groupcast"
+	}
+	| 'send' '\(' dataExp=DE '\)' '.' lb sp proc=SPE procMore=SPE1?
+	.procType = string {
+		return "send"
+	}
+	| 'deliver' '\(' dataExp=DE '\)' '.' lb sp proc=SPE procMore=SPE1?
+	.procType = string {
+		return "deliver"
+	}
+	| 'receive' '\(' name=Name dataExpList={ '\[' dataExp=DE '\]' }* '\)' '.' lb sp proc=SPE procMore=SPE1?
+	.procType = string {
+		return "receive"
+	}
+	| '\(' proc=SPE '\)' procMore=SPE1?
+	.procType = string {
+		return "brackets"
+	}
+	| name=Name '\(' dataExpFirst=DE? dataExpW={',' dataExp=DE}+ '\)' procMore=SPE1?
+	.procType = string {
+		return "call"
+	}
+	| name=Name procMore=SPE1?
+	.procType = string {
+		return "name"
+	}
+
+SPE1 := lb sp '\+' proc=SPE procMore=SPE1?
+.procType = string {
+		return "choice"
+	}
 
 //===============
 // DATA EXPRESSIONS
@@ -78,27 +155,92 @@ SPE :=
 //currently have not implemented the "DB brack" ones
 
 DE :=
-	  Name
-	| DE sp DE
-	| DE {',' DE}+
-	| '{' DE '}'
-	| '{' Name '|' DE '}'
-	| '{' '\(' Name ',' DE '\)' '|' DE '}'
-	| 'lambda' Name '.' sp DE
-	| 'forall' Name '.' sp DE
-	| 'exists' Name '.' sp DE
-	| DE '->' DE
-	| DE '<->' DE
-	| DE '&' DE
-	| DE '|' DE
-	| DE '=' DE
-	| DE '!=' DE
-	| DE '>=' DE
-	| DE '<=' DE
-	| DE '>' DE
-	| DE '<' DE
-	| DE Infix DE
-	| '\(' DE '\)'
+	  '{' dataExp=DE '}' dataExpMore=DE1?
+	.dataExpType = string {
+		return "singleton"
+	}
+	| '{' '\(' name=Name ',' dataExpLeft=DE '\)' '|' dataExpRight=DE '}' dataExpMore=DE1?
+	.dataExpType = string {
+		return "partial"
+	}
+	| '{' name=Name '|' dataExpRight=DE '}' dataExpMore=DE1?
+	.dataExpType = string {
+		return "set"
+	}
+	| 'lambda ' name=Name '.' dataExp=DE dataExpMore=DE1?
+	.dataExpType = string {
+		return "lambda"
+	}
+	| 'forall ' name=Name '.' dataExp=DE dataExpMore=DE1?
+	.dataExpType = string {
+		return "forall"
+	}
+	| 'exists ' name=Name '.' dataExp=DE dataExpMore=DE1?
+	.dataExpType = string {
+		return "exists"
+	}
+	| '\(' dataExp=DE '\)' dataExpMore=DE1?
+	.dataExpType = string {
+		return "brackets"
+	}
+	| name=Name dataExpMore=DE1?
+	.dataExpType = string {
+		return "name"
+	}
+
+DE1 := 
+	  sp dataExp=DE dataExpMore=DE1?
+	  .dataExpType = string {
+		return "function"
+	}
+	| dataExpW={',' dataExp=DE}+ dataExpMore=DE1?
+	.dataExpType = string {
+		return "tuple"
+	}
+	| '->' dataExp=DE dataExpMore=DE1?
+	.dataExpType = string {
+		return "implicates"
+	}
+	| '<->' dataExp=DE dataExpMore=DE1?
+	.dataExpType = string {
+		return "iff"
+	}
+	| '&' dataExp=DE dataExpMore=DE1?
+	.dataExpType = string {
+		return "and"
+	}
+	| '|' dataExp=DE dataExpMore=DE1?
+	.dataExpType = string {
+		return "or"
+	}
+	| '=' dataExp=DE dataExpMore=DE1?
+	.dataExpType = string {
+		return "eq"
+	}
+	| '!=' dataExp=DE dataExpMore=DE1?
+	.dataExpType = string {
+		return "neq"
+	}
+	| '>=' dataExp=DE dataExpMore=DE1?
+	.dataExpType = string {
+		return "gtreq"
+	}
+	| '<=' dataExp=DE dataExpMore=DE1?
+	.dataExpType = string {
+		return "leseq"
+	}
+	| '>' dataExp=DE dataExpMore=DE1?
+	.dataExpType = string {
+		return "gtr"
+	}
+	| '<' dataExp=DE dataExpMore=DE1?
+	.dataExpType = string {
+		return "les"
+	}
+	| func=Infix dataExp=DE dataExpMore=DE1?
+	.dataExpType = string {
+		return "infix"
+	}
 
 
 //=============
@@ -111,18 +253,29 @@ DE :=
 // grammar uses them for different things, so I'll keep them separate to make things easier later
 // when I am hopefully able to split them up.
 
-TypeName := Name
+TypeName := name=Name
+	.value = string {return name.value}
 
-Name := NameString | '\!' | '\[\]'
+Name := nameString=NameString 
+	.value = string {return nameString.value}
 
-NameString := {NameChar* '.' NameString} | NameChar+
+NameString := prefix={pre=NameChar* dot='\.' post=NameString} 
+	.value = string {
+		return prefix.pre.map(NameChar => NameChar.value).join('') + '.' + prefix.post.value
+	}
+	| final=NameChar+
+	.value = string{
+		return final.map(NameChar=> NameChar.value).join('')
+	}
 
-NameChar := '[a-zA-Z0-9]' //simplified for now
+NameChar := char='[a-zA-Z0-9]' //simplified for now
+	.value = string{return char}
 
-Infix := '[\*\+-\:<\=>\!\&|\\]+' //Currently "InfixOps"
+Infix := char='[\*\+-<\=>\!\&|\\]+' //Currently "InfixOps"
+	.value = string{return char}
 
 ws := {sp | lb}* 						//any whitespace
 
-sp := '\s+'								//spacing on a line
+sp := {' ' | '\t' | '\v'}+				//1 or more spaces/tabs
 
-lb := {'\n' | '\r\n'}+					//linebreak
+lb := {'\n' | '\r\n'}+					//1 or more linebreaks 	
