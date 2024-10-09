@@ -19,11 +19,11 @@ Type := sp typeName=TypeName typeExprW={'\=' typeExpr=TE }? lb
 
 ConVar :=
 	  sp typeExpr=TE sp nameFirst=Name namesMore={',' name=Name}* lb
-	| sp name=Name '\:' typeExpr=TE lb
+	| sp name=Name '\: ' typeExpr=TE lb
 
 Function :=
-	  sp name=Name '\:' sp typeExpr=TE lb
-	| sp name=Infix '\:' sp binTypeExpr=BTE lb
+	  sp name=Name '\: ' typeExpr=TE lb
+	| sp name=Infix '\: ' binTypeExpr=BTE lb
 
 Process :=
 	  sp name=Name '\(' nameFirst=Name? namesMore={',' name=Name}* '\)' '\:\=' lb sp proc=SPE lb
@@ -106,7 +106,7 @@ SPE :=
 	.procType = string {
 		return "assignment"
 	}
-	| 'unicast' '\(' dataExpL=DE ',' dataExpR=DE '\)' '.' procL=SPE lb sp '>' procR=SPE procMore=SPE1?
+	| 'unicast' '\(' dataExpL=DE ', ' dataExpR=DE '\)' '.' procL=SPE lb sp '>' procR=SPE procMore=SPE1?
 	.procType = string {
 		return "unicast"
 	}
@@ -114,7 +114,7 @@ SPE :=
 	.procType = string {
 		return "broadcast"
 	}
-	| 'groupcast' '\(' dataExpL=DE ',' dataExpR=DE '\)' '.' lb sp proc=SPE procMore=SPE1?
+	| 'groupcast' '\(' dataExpL=DE ', ' dataExpR=DE '\)' '.' lb sp proc=SPE procMore=SPE1?
 	.procType = string {
 		return "groupcast"
 	}

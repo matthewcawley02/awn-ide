@@ -18,11 +18,11 @@ Type := sp TypeName { '\=' TE }? lb
 
 ConVar :=
 	  sp TE sp Name {',' Name}* lb
-	| sp Name '\:' TE lb
+	| sp Name '\: ' TE lb
 
 Function :=
-	  sp Name '\:' sp TE lb
-	| sp Infix '\:' sp BTE lb
+	  sp Name '\: ' TE lb
+	| sp Infix '\: ' BTE lb
 
 Process :=
 	  sp Name '\(' Name? {',' Name}* '\)' '\:\=' lb sp SPE lb
@@ -58,9 +58,9 @@ BTE_AUX :=
 SPE :=
 	  '\[' DE '\]' SPE SPE1?
 	| '\[\[' Name {'\[' DE '\]' }* ':=' DE '\]\]' lb sp SPE SPE1?
-	| 'unicast' '\(' DE ',' DE '\)' '.' SPE lb sp '>' SPE SPE1?
+	| 'unicast' '\(' DE ', ' DE '\)' '.' SPE lb sp '>' SPE SPE1?
 	| 'broadcast' '\(' DE '\)' '.' lb sp SPE SPE1?
-	| 'groupcast' '\(' DE ',' DE '\)' '.' lb sp SPE SPE1?
+	| 'groupcast' '\(' DE ', ' DE '\)' '.' lb sp SPE SPE1?
 	| 'send' '\(' DE '\)' '.' lb sp SPE SPE1?
 	| 'deliver' '\(' DE '\)' '.' lb sp SPE SPE1?
 	| 'receive' '\(' Name { '\[' DE '\]' }* '\)' '.' lb sp SPE SPE1?

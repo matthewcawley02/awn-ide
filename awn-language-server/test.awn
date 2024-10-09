@@ -1,8 +1,21 @@
 include https
 
+INCLUDES: qwert
+        asdfgh
+        hkjlz
+
 TYPES:  test1
         test2=jacob
-        test3=Pow(2)->3
+        test3=int x bool
+        test4=x->y
+        test5=x+->y
+        test6=Pow(a->e)
+        test7=[[[f]]]
+        test8=(r)
+
+VARIABLES: int test
+        bool test1,test2,test3
+        foo: [example2->float]->int
 
 CONSTANTS: Pow(2)->3 foo,bar
 
@@ -13,3 +26,24 @@ proc qwerty(asdfgh,zxcvbnm):=
         [[foo:=x->y]]
         bar
 
+PROCESSES: p1(args):=
+        unicast(de1, de2).proc1
+        >proc2
+        +broadcast(de1).
+        groupcast(de1, de2).
+        proc3
+        +send(de2).
+        deliver(de3).
+        receive(foo[de4][de5]).
+        bar
+        +bar2
+
+PROCESSES: p1(args):=
+        send({detest1}).
+        send((name,de1)|de2).
+        send(name|de).
+        send(lambda n.de).
+        send(forall n.de).
+        send(exists n.de).
+        send(a->b<->c&d|e=f!=g>=h<=i>j<k).
+        end

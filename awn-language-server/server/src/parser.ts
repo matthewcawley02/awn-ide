@@ -16,10 +16,10 @@
 * Type := sp typeName=TypeName typeExprW={'\=' typeExpr=TE }? lb
 * ConVar :=
 * 	  sp typeExpr=TE sp nameFirst=Name namesMore={',' name=Name}* lb
-* 	| sp name=Name '\:' typeExpr=TE lb
+* 	| sp name=Name '\: ' typeExpr=TE lb
 * Function :=
-* 	  sp name=Name '\:' sp typeExpr=TE lb
-* 	| sp name=Infix '\:' sp binTypeExpr=BTE lb
+* 	  sp name=Name '\: ' typeExpr=TE lb
+* 	| sp name=Infix '\: ' binTypeExpr=BTE lb
 * Process :=
 * 	  sp name=Name '\(' nameFirst=Name? namesMore={',' name=Name}* '\)' '\:\=' lb sp proc=SPE lb
 * 	| sp name=Name '\:\=' proc=SPE lb
@@ -92,7 +92,7 @@
 * 	.procType = string {
 * 		return "assignment"
 * 	}
-* 	| 'unicast' '\(' dataExpL=DE ',' dataExpR=DE '\)' '.' procL=SPE lb sp '>' procR=SPE procMore=SPE1?
+* 	| 'unicast' '\(' dataExpL=DE ', ' dataExpR=DE '\)' '.' procL=SPE lb sp '>' procR=SPE procMore=SPE1?
 * 	.procType = string {
 * 		return "unicast"
 * 	}
@@ -100,7 +100,7 @@
 * 	.procType = string {
 * 		return "broadcast"
 * 	}
-* 	| 'groupcast' '\(' dataExpL=DE ',' dataExpR=DE '\)' '.' lb sp proc=SPE procMore=SPE1?
+* 	| 'groupcast' '\(' dataExpL=DE ', ' dataExpR=DE '\)' '.' lb sp proc=SPE procMore=SPE1?
 * 	.procType = string {
 * 		return "groupcast"
 * 	}
@@ -1412,7 +1412,7 @@ export class Parser {
                 if (true
                     && this.matchsp($$dpth + 1, $$cr) !== null
                     && ($scope$name = this.matchName($$dpth + 1, $$cr)) !== null
-                    && this.regexAccept(String.raw`(?:\:)`, "", $$dpth + 1, $$cr) !== null
+                    && this.regexAccept(String.raw`(?:\: )`, "", $$dpth + 1, $$cr) !== null
                     && ($scope$typeExpr = this.matchTE($$dpth + 1, $$cr)) !== null
                     && this.matchlb($$dpth + 1, $$cr) !== null
                 ) {
@@ -1450,8 +1450,7 @@ export class Parser {
                 if (true
                     && this.matchsp($$dpth + 1, $$cr) !== null
                     && ($scope$name = this.matchName($$dpth + 1, $$cr)) !== null
-                    && this.regexAccept(String.raw`(?:\:)`, "", $$dpth + 1, $$cr) !== null
-                    && this.matchsp($$dpth + 1, $$cr) !== null
+                    && this.regexAccept(String.raw`(?:\: )`, "", $$dpth + 1, $$cr) !== null
                     && ($scope$typeExpr = this.matchTE($$dpth + 1, $$cr)) !== null
                     && this.matchlb($$dpth + 1, $$cr) !== null
                 ) {
@@ -1469,8 +1468,7 @@ export class Parser {
                 if (true
                     && this.matchsp($$dpth + 1, $$cr) !== null
                     && ($scope$name = this.matchInfix($$dpth + 1, $$cr)) !== null
-                    && this.regexAccept(String.raw`(?:\:)`, "", $$dpth + 1, $$cr) !== null
-                    && this.matchsp($$dpth + 1, $$cr) !== null
+                    && this.regexAccept(String.raw`(?:\: )`, "", $$dpth + 1, $$cr) !== null
                     && ($scope$binTypeExpr = this.matchBTE($$dpth + 1, $$cr)) !== null
                     && this.matchlb($$dpth + 1, $$cr) !== null
                 ) {
@@ -1895,7 +1893,7 @@ export class Parser {
                     && this.regexAccept(String.raw`(?:unicast)`, "", $$dpth + 1, $$cr) !== null
                     && this.regexAccept(String.raw`(?:\()`, "", $$dpth + 1, $$cr) !== null
                     && ($scope$dataExpL = this.matchDE($$dpth + 1, $$cr)) !== null
-                    && this.regexAccept(String.raw`(?:,)`, "", $$dpth + 1, $$cr) !== null
+                    && this.regexAccept(String.raw`(?:, )`, "", $$dpth + 1, $$cr) !== null
                     && ($scope$dataExpR = this.matchDE($$dpth + 1, $$cr)) !== null
                     && this.regexAccept(String.raw`(?:\))`, "", $$dpth + 1, $$cr) !== null
                     && this.regexAccept(String.raw`(?:.)`, "", $$dpth + 1, $$cr) !== null
@@ -1946,7 +1944,7 @@ export class Parser {
                     && this.regexAccept(String.raw`(?:groupcast)`, "", $$dpth + 1, $$cr) !== null
                     && this.regexAccept(String.raw`(?:\()`, "", $$dpth + 1, $$cr) !== null
                     && ($scope$dataExpL = this.matchDE($$dpth + 1, $$cr)) !== null
-                    && this.regexAccept(String.raw`(?:,)`, "", $$dpth + 1, $$cr) !== null
+                    && this.regexAccept(String.raw`(?:, )`, "", $$dpth + 1, $$cr) !== null
                     && ($scope$dataExpR = this.matchDE($$dpth + 1, $$cr)) !== null
                     && this.regexAccept(String.raw`(?:\))`, "", $$dpth + 1, $$cr) !== null
                     && this.regexAccept(String.raw`(?:.)`, "", $$dpth + 1, $$cr) !== null

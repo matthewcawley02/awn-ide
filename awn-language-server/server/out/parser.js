@@ -866,7 +866,7 @@ class Parser {
             if (true
                 && this.matchsp($$dpth + 1, $$cr) !== null
                 && ($scope$name = this.matchName($$dpth + 1, $$cr)) !== null
-                && this.regexAccept(String.raw `(?:\:)`, "", $$dpth + 1, $$cr) !== null
+                && this.regexAccept(String.raw `(?:\: )`, "", $$dpth + 1, $$cr) !== null
                 && ($scope$typeExpr = this.matchTE($$dpth + 1, $$cr)) !== null
                 && this.matchlb($$dpth + 1, $$cr) !== null) {
                 $$res = { kind: ASTKinds.ConVar_2, name: $scope$name, typeExpr: $scope$typeExpr };
@@ -900,8 +900,7 @@ class Parser {
             if (true
                 && this.matchsp($$dpth + 1, $$cr) !== null
                 && ($scope$name = this.matchName($$dpth + 1, $$cr)) !== null
-                && this.regexAccept(String.raw `(?:\:)`, "", $$dpth + 1, $$cr) !== null
-                && this.matchsp($$dpth + 1, $$cr) !== null
+                && this.regexAccept(String.raw `(?:\: )`, "", $$dpth + 1, $$cr) !== null
                 && ($scope$typeExpr = this.matchTE($$dpth + 1, $$cr)) !== null
                 && this.matchlb($$dpth + 1, $$cr) !== null) {
                 $$res = { kind: ASTKinds.Function_1, name: $scope$name, typeExpr: $scope$typeExpr };
@@ -917,8 +916,7 @@ class Parser {
             if (true
                 && this.matchsp($$dpth + 1, $$cr) !== null
                 && ($scope$name = this.matchInfix($$dpth + 1, $$cr)) !== null
-                && this.regexAccept(String.raw `(?:\:)`, "", $$dpth + 1, $$cr) !== null
-                && this.matchsp($$dpth + 1, $$cr) !== null
+                && this.regexAccept(String.raw `(?:\: )`, "", $$dpth + 1, $$cr) !== null
                 && ($scope$binTypeExpr = this.matchBTE($$dpth + 1, $$cr)) !== null
                 && this.matchlb($$dpth + 1, $$cr) !== null) {
                 $$res = { kind: ASTKinds.Function_2, name: $scope$name, binTypeExpr: $scope$binTypeExpr };
@@ -1303,7 +1301,7 @@ class Parser {
                 && this.regexAccept(String.raw `(?:unicast)`, "", $$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?:\()`, "", $$dpth + 1, $$cr) !== null
                 && ($scope$dataExpL = this.matchDE($$dpth + 1, $$cr)) !== null
-                && this.regexAccept(String.raw `(?:,)`, "", $$dpth + 1, $$cr) !== null
+                && this.regexAccept(String.raw `(?:, )`, "", $$dpth + 1, $$cr) !== null
                 && ($scope$dataExpR = this.matchDE($$dpth + 1, $$cr)) !== null
                 && this.regexAccept(String.raw `(?:\))`, "", $$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?:.)`, "", $$dpth + 1, $$cr) !== null
@@ -1350,7 +1348,7 @@ class Parser {
                 && this.regexAccept(String.raw `(?:groupcast)`, "", $$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?:\()`, "", $$dpth + 1, $$cr) !== null
                 && ($scope$dataExpL = this.matchDE($$dpth + 1, $$cr)) !== null
-                && this.regexAccept(String.raw `(?:,)`, "", $$dpth + 1, $$cr) !== null
+                && this.regexAccept(String.raw `(?:, )`, "", $$dpth + 1, $$cr) !== null
                 && ($scope$dataExpR = this.matchDE($$dpth + 1, $$cr)) !== null
                 && this.regexAccept(String.raw `(?:\))`, "", $$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?:.)`, "", $$dpth + 1, $$cr) !== null
