@@ -24,9 +24,11 @@ import {
 import{
 	parse,
 	ParseResult,
-	AWNRoot,
-	SyntaxErr,
-} from './parser'
+} from './parser';
+
+import{
+	parseAWNRoot
+} from './semanticTokens'
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -42,14 +44,14 @@ connection.onInitialize((params: InitializeParams) => {
 	const capabilities = params.capabilities;
 
 	if (!!(capabilities.workspace && !!capabilities.workspace.configuration) === false){ 
-		console.log("Problem: Client does not support workspace configuration requests.")
-	};
+		console.log("Problem: Client does not support workspace configuration requests.");
+	}
 	if (!!(capabilities.workspace && !!capabilities.workspace.workspaceFolders) === false){
-		console.log("Problem: Client does not support workspace folders.")
+		console.log("Problem: Client does not support workspace folders.");
 	}
 	if (!!(capabilities.textDocument && capabilities.textDocument.publishDiagnostics 
 		&& capabilities.textDocument.publishDiagnostics.relatedInformation) == false){
-		console.log("Problem: Client does not support the textDocument/publishDiagnostics notif")
+		console.log("Problem: Client does not support the textDocument/publishDiagnostics notif");
 	}
 
 	const result: InitializeResult = {
@@ -69,7 +71,7 @@ connection.onInitialize((params: InitializeParams) => {
 			},
 			semanticTokensProvider: {
 				legend: {
-					tokenTypes: ['type', 'function', 'const', 'variable', 'process', 'keyword', 'comment'],
+					tokenTypes: ['keyword', 'type', 'function', 'variable', 'variable', 'number', 'string', 'parameter', 'number'],
 					tokenModifiers: []
 				},
 				full: true
@@ -144,25 +146,26 @@ connection.languages.diagnostics.on(async (params) => {
 });
 
 connection.onRequest("textDocument/semanticTokens/full", (params) => {
+	console.log("received semantic tokens request");
 	const document = documents.get(params.textDocument.uri);
 	if(document === undefined){
-		console.log("document undefined idk")
+		console.log("document undefined idk");
 		return{
-			data: [0]
-		}
+			data: [0,0,0,0,0]
+		};
 	}
 	const parseResult: ParseResult = parse(document.getText());
-	if (parseResult.ast === null){
-		return{ //obviously to change later
-			data: [0]
-		}
+	console.log(parseResult);
+	if(parseResult.ast !== null){
+		const semanticTokens = parseAWNRoot(parseResult.ast);
+		console.log(semanticTokens);
+		return{
+			data: semanticTokens
+		};
 	}else{
-		console.log(parseResult)
-	}
-
-	const result = [1,1,4,0,0]
-	return{
-		data: result
+		return{
+			data: [0,0,0,0,0]
+		}
 	}
 });
 
@@ -176,7 +179,6 @@ async function validateTextDocument(textDocument: TextDocument): Promise<Diagnos
 	const diagnostics: Diagnostic[] = [];
 
 	if(parseResult.errs !== null){
-		//console.log(`${parseResult.errs.length} errors detected`)
 		while(problems < settings.maxNumberOfProblems && problems < parseResult.errs.length){
 			const problem = parseResult.errs[problems];
 			const diagnostic: Diagnostic = {
@@ -186,7 +188,7 @@ async function validateTextDocument(textDocument: TextDocument): Promise<Diagnos
 					end: {line: problem.pos.line-1, character: problem.pos.offset+1}
 				},
 				message: problem.toString()
-			}
+			};
 			diagnostics.push(diagnostic);
 			problems++;
 		}

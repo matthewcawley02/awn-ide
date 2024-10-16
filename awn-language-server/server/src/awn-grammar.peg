@@ -4,30 +4,30 @@ AWNRoot := ws block=Block* $
 //because each entry must be delimited with a linebreak, an extra line is required at the end of the doc currently
 
 Block :=
-	  'INCLUDES:' include=Include+
-	| 'include' include=Include
-	| 'TYPES:' type=Type+
-	| 'VARIABLES:' var=ConVar+
-	| 'CONSTANTS:' const=ConVar+
-	| 'FUNCTIONS:' func=Function+
-	| 'PROCESSES:' proc=Process+
-	| 'proc' proc=Process
+	  pos=@ 'INCLUDES:' include=Include+
+	| pos=@ 'include' include=Include
+	| pos=@ 'TYPES:' type=Type+
+	| pos=@ 'VARIABLES:' var=ConVar+
+	| pos=@ 'CONSTANTS:' const=ConVar+
+	| pos=@ 'FUNCTIONS:' func=Function+
+	| pos=@ 'PROCESSES:' proc=Process+
+	| pos=@ 'proc' proc=Process
 
-Include := sp name=Name lb
+Include := sp posS=@ name=Name posE=@ lb
 
-Type := sp typeName=TypeName typeExprW={'\=' typeExpr=TE }? lb
+Type := sp posS=@ typeName=TypeName posE=@ typeExprW={'\=' typeExpr=TE }? lb
 
 ConVar :=
-	  sp typeExpr=TE sp nameFirst=Name namesMore={',' name=Name}* lb
-	| sp name=Name '\: ' typeExpr=TE lb
+	  sp typeExpr=TE sp posS=@ nameFirst=Name posE=@ namesMore={',' posS=@ name=Name posE=@ }* lb
+	| sp posS=@ name=Name posE=@ '\: ' typeExpr=TE lb
 
 Function :=
-	  sp name=Name '\: ' typeExpr=TE lb
+	  sp posS=@ name=Name posE=@ '\: ' typeExpr=TE lb
 	| sp name=Infix '\: ' binTypeExpr=BTE lb
 
 Process :=
-	  sp name=Name '\(' nameFirst=Name? namesMore={',' name=Name}* '\)' '\:\=' lb sp proc=SPE lb
-	| sp name=Name '\:\=' proc=SPE lb
+	  sp pos1S=@ nameFirst=Name pos1E=@ '\(' pos2S=@ argFirst=Name? pos2E=@ argsMore={',' posS=@ name=Name posE=@ }* '\)' '\:\=' lb sp proc=SPE lb
+	| sp posS=@ name=Name posE=@ '\:\=' proc=SPE lb
 
 //============
 // TYPE EXPRESSIONS
@@ -37,7 +37,7 @@ TE := '\(' typeExpr=TE '\)' typeExprMore=TE1?
 	.typetype = string{
 		return "brackets"
 	}
-	| 'Pow' '\(' typeExpr=TE '\)' typeExprMore=TE1?
+	| pos=@ 'Pow' '\(' typeExpr=TE '\)' typeExprMore=TE1?
 	.typetype = string{
 		return "pow"
 	}
@@ -45,7 +45,7 @@ TE := '\(' typeExpr=TE '\)' typeExprMore=TE1?
 	.typetype = string{
 		return "list"
 	}
-	| typename=TypeName typeExprMore=TE1?
+	| posS=@ typename=TypeName posE=@ typeExprMore=TE1?
 	.typetype = string{
 		return "name"
 	}
@@ -58,7 +58,7 @@ TE1 := '\-\>' typeExpr=TE typeExprMore=TE1?
 	.typetype = string{
 		return "part_function"
 	}
-	| {' x ' typeExpr=TE}* typeExprMore=TE1?
+	| {pos=@ ' x ' typeExpr=TE}* typeExprMore=TE1?
 	.typetype = string{
 		return "product"
 	}
@@ -102,31 +102,31 @@ SPE :=
 	.procType = string {
 		return "guard"
 	}
-	| '\[\[' name=Name dataExpList={'\[' dataExp=DE '\]' }* ':=' dataExpAssignment=DE '\]\]' lb sp proc=SPE procMore=SPE1?
+	| '\[\[' posS=@ name=Name posE=@ dataExpList={'\[' dataExp=DE '\]' }* ':=' dataExpAssignment=DE '\]\]' lb sp proc=SPE procMore=SPE1?
 	.procType = string {
 		return "assignment"
 	}
-	| 'unicast' '\(' dataExpL=DE ', ' dataExpR=DE '\)' '.' procL=SPE lb sp '>' procR=SPE procMore=SPE1?
+	| pos=@ 'unicast' '\(' dataExpL=DE ', ' dataExpR=DE '\)' '.' procL=SPE lb sp '>' procR=SPE procMore=SPE1?
 	.procType = string {
 		return "unicast"
 	}
-	| 'broadcast' '\(' dataExp=DE '\)' '.' lb sp proc=SPE procMore=SPE1?
+	| pos=@ 'broadcast' '\(' dataExp=DE '\)' '.' lb sp proc=SPE procMore=SPE1?
 	.procType = string {
 		return "broadcast"
 	}
-	| 'groupcast' '\(' dataExpL=DE ', ' dataExpR=DE '\)' '.' lb sp proc=SPE procMore=SPE1?
+	| pos=@ 'groupcast' '\(' dataExpL=DE ', ' dataExpR=DE '\)' '.' lb sp proc=SPE procMore=SPE1?
 	.procType = string {
 		return "groupcast"
 	}
-	| 'send' '\(' dataExp=DE '\)' '.' lb sp proc=SPE procMore=SPE1?
+	| pos=@ 'send' '\(' dataExp=DE '\)' '.' lb sp proc=SPE procMore=SPE1?
 	.procType = string {
 		return "send"
 	}
-	| 'deliver' '\(' dataExp=DE '\)' '.' lb sp proc=SPE procMore=SPE1?
+	| pos=@ 'deliver' '\(' dataExp=DE '\)' '.' lb sp proc=SPE procMore=SPE1?
 	.procType = string {
 		return "deliver"
 	}
-	| 'receive' '\(' name=Name dataExpList={ '\[' dataExp=DE '\]' }* '\)' '.' lb sp proc=SPE procMore=SPE1?
+	| pos=@ 'receive' '\(' posS=@ name=Name posE=@ dataExpList={ '\[' dataExp=DE '\]' }* '\)' '.' lb sp proc=SPE procMore=SPE1?
 	.procType = string {
 		return "receive"
 	}
@@ -134,11 +134,11 @@ SPE :=
 	.procType = string {
 		return "brackets"
 	}
-	| name=Name '\(' dataExpFirst=DE? dataExpW={',' dataExp=DE}+ '\)' procMore=SPE1?
+	| posS=@ name=Name posE=@ '\(' dataExpFirst=DE? dataExpW={',' dataExp=DE}+ '\)' procMore=SPE1?
 	.procType = string {
 		return "call"
 	}
-	| name=Name procMore=SPE1?
+	| posS=@ name=Name posE=@ procMore=SPE1?
 	.procType = string {
 		return "name"
 	}
@@ -152,30 +152,28 @@ SPE1 := lb sp '\+' proc=SPE procMore=SPE1?
 // DATA EXPRESSIONS
 //===============
 
-//currently have not implemented the "DB brack" ones
-
 DE :=
 	  '{' dataExp=DE '}' dataExpMore=DE1?
 	.dataExpType = string {
 		return "singleton"
 	}
-	| '{' '\(' name=Name ',' dataExpLeft=DE '\)' '|' dataExpRight=DE '}' dataExpMore=DE1?
+	| '{' '\(' posS=@ name=Name posE=@ ',' dataExpLeft=DE '\)' '|' dataExpRight=DE '}' dataExpMore=DE1?
 	.dataExpType = string {
 		return "partial"
 	}
-	| '{' name=Name '|' dataExpRight=DE '}' dataExpMore=DE1?
+	| '{' posS=@ name=Name posE=@ '|' dataExpRight=DE '}' dataExpMore=DE1?
 	.dataExpType = string {
 		return "set"
 	}
-	| 'lambda ' name=Name '.' dataExp=DE dataExpMore=DE1?
+	| pos=@ 'lambda ' name=Name '.' dataExp=DE dataExpMore=DE1?
 	.dataExpType = string {
 		return "lambda"
 	}
-	| 'forall ' name=Name '.' dataExp=DE dataExpMore=DE1?
+	| pos=@ 'forall ' name=Name '.' dataExp=DE dataExpMore=DE1?
 	.dataExpType = string {
 		return "forall"
 	}
-	| 'exists ' name=Name '.' dataExp=DE dataExpMore=DE1?
+	| pos=@ 'exists ' name=Name '.' dataExp=DE dataExpMore=DE1?
 	.dataExpType = string {
 		return "exists"
 	}
@@ -183,7 +181,7 @@ DE :=
 	.dataExpType = string {
 		return "brackets"
 	}
-	| name=Name dataExpMore=DE1?
+	| posS=@ name=Name posE=@ dataExpMore=DE1?
 	.dataExpType = string {
 		return "name"
 	}

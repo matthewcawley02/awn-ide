@@ -16,10 +16,16 @@ TYPES:  test1
 VARIABLES: int test
         bool test1,test2,test3
         foo: [example2->float]->int
+        [int] setofnumbers
+        variablename: float32
 
 CONSTANTS: Pow(2)->3 foo,bar
+           bool True
+           bool False
 
-FUNCTIONS: t: foo x (bar+->example)
+FUNCTIONS: func: foo->[(bar+->example)]
+           parseInt: int->string
+           read: filetype
 
 proc qwerty(asdfgh,zxcvbnm):=
         broadcast({qwe&rty}).
@@ -40,10 +46,10 @@ PROCESSES: p1(args):=
 
 PROCESSES: p1(args):=
         send({detest1}).
-        send((name,de1)|de2).
-        send(name|de).
+        send((name,de1)>de2).
+        send(name!=de).
         send(lambda n.de).
         send(forall n.de).
         send(exists n.de).
-        send(a->b<->c&d|e=f!=g>=h<=i>j<k).
+        send(a->b<->c&d>e=f!=g>=h<=i>j<k).
         end

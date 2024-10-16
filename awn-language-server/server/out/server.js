@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const node_1 = require("vscode-languageserver/node");
 const vscode_languageserver_textdocument_1 = require("vscode-languageserver-textdocument");
 const parser_1 = require("./parser");
+const semanticTokens_1 = require("./semanticTokens");
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
 const connection = (0, node_1.createConnection)(node_1.ProposedFeatures.all);
@@ -16,7 +17,6 @@ connection.onInitialize((params) => {
     if (!!(capabilities.workspace && !!capabilities.workspace.configuration) === false) {
         console.log("Problem: Client does not support workspace configuration requests.");
     }
-    ;
     if (!!(capabilities.workspace && !!capabilities.workspace.workspaceFolders) === false) {
         console.log("Problem: Client does not support workspace folders.");
     }
@@ -41,7 +41,7 @@ connection.onInitialize((params) => {
             },
             semanticTokensProvider: {
                 legend: {
-                    tokenTypes: ['type', 'function', 'const', 'variable', 'process', 'keyword', 'comment'],
+                    tokenTypes: ['keyword', 'type', 'function', 'variable', 'variable', 'number', 'string', 'parameter', 'number'],
                     tokenModifiers: []
                 },
                 full: true
@@ -103,26 +103,28 @@ connection.languages.diagnostics.on(async (params) => {
     }
 });
 connection.onRequest("textDocument/semanticTokens/full", (params) => {
+    console.log("received semantic tokens request");
     const document = documents.get(params.textDocument.uri);
     if (document === undefined) {
         console.log("document undefined idk");
         return {
-            data: [0]
+            data: [0, 0, 0, 0, 0]
         };
     }
     const parseResult = (0, parser_1.parse)(document.getText());
-    if (parseResult.ast === null) {
+    console.log(parseResult);
+    if (parseResult.ast !== null) {
+        const semanticTokens = (0, semanticTokens_1.parseAWNRoot)(parseResult.ast);
+        console.log(semanticTokens);
         return {
-            data: [0]
+            data: semanticTokens
         };
     }
     else {
-        console.log(parseResult);
+        return {
+            data: [0, 0, 0, 0, 0]
+        };
     }
-    const result = [1, 1, 4, 0, 0];
-    return {
-        data: result
-    };
 });
 async function validateTextDocument(textDocument) {
     const settings = await getDocumentSettings(textDocument.uri);
@@ -131,7 +133,6 @@ async function validateTextDocument(textDocument) {
     let problems = 0;
     const diagnostics = [];
     if (parseResult.errs !== null) {
-        //console.log(`${parseResult.errs.length} errors detected`)
         while (problems < settings.maxNumberOfProblems && problems < parseResult.errs.length) {
             const problem = parseResult.errs[problems];
             const diagnostic = {
