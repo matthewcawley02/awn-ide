@@ -75,9 +75,6 @@ SPE1 := lb sp '\+' SPE SPE1?
 // DATA EXPRESSIONS
 //===============
 
-//currently have not implemented the "DB brack" ones
-//removed spacing after the dot in lambda, forall, exists
-
 DE :=
 	  '{' DE '}' DE1?
 	| '{' '\(' Name ',' DE '\)' '|' DE '}' DE1?
