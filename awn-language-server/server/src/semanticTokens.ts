@@ -30,7 +30,7 @@ enum Colours {
 //NOTES:
 //the correct offset may be +/- 1 from block.pos.offset, have to experiment bc idk what block.pos.offset's behaviour is
 
-export function parseAWNRoot(node: AWNRoot): number[]{
+export function getSemantTokens(node: AWNRoot): number[]{
 	tokens = []
 	curLine = 0; curOffset = 0;
 	for(const block of node.block){

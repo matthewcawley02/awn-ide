@@ -103,26 +103,24 @@ connection.languages.diagnostics.on(async (params) => {
     }
 });
 connection.onRequest("textDocument/semanticTokens/full", (params) => {
-    console.log("received semantic tokens request");
     const document = documents.get(params.textDocument.uri);
     if (document === undefined) {
         console.log("document undefined idk");
         return {
-            data: [0, 0, 0, 0, 0]
+            data: []
         };
     }
     const parseResult = (0, parser_1.parse)(document.getText());
     console.log(parseResult);
     if (parseResult.ast !== null) {
-        const semanticTokens = (0, semanticTokens_1.parseAWNRoot)(parseResult.ast);
-        console.log(semanticTokens);
+        const semanticTokens = (0, semanticTokens_1.getSemantTokens)(parseResult.ast);
         return {
             data: semanticTokens
         };
     }
     else {
         return {
-            data: [0, 0, 0, 0, 0]
+            data: []
         };
     }
 });

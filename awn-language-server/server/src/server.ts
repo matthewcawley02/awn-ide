@@ -27,7 +27,7 @@ import{
 } from './parser';
 
 import{
-	parseAWNRoot
+	getSemantTokens
 } from './semanticTokens'
 
 // Create a connection for the server, using Node's IPC as a transport.
@@ -146,25 +146,23 @@ connection.languages.diagnostics.on(async (params) => {
 });
 
 connection.onRequest("textDocument/semanticTokens/full", (params) => {
-	console.log("received semantic tokens request");
 	const document = documents.get(params.textDocument.uri);
 	if(document === undefined){
 		console.log("document undefined idk");
 		return{
-			data: [0,0,0,0,0]
+			data: []
 		};
 	}
 	const parseResult: ParseResult = parse(document.getText());
 	console.log(parseResult);
 	if(parseResult.ast !== null){
-		const semanticTokens = parseAWNRoot(parseResult.ast);
-		console.log(semanticTokens);
+		const semanticTokens = getSemantTokens(parseResult.ast);
 		return{
 			data: semanticTokens
 		};
 	}else{
 		return{
-			data: [0,0,0,0,0]
+			data: []
 		}
 	}
 });

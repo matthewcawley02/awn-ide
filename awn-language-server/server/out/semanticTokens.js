@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.parseAWNRoot = void 0;
+exports.getSemantTokens = void 0;
 const parser_1 = require("./parser");
 var tokens = [];
 var curLine = 0;
@@ -28,7 +28,7 @@ var Colours;
 //[deltaLine, deltaStartChar, length, tokenType, tokenModifiers]
 //NOTES:
 //the correct offset may be +/- 1 from block.pos.offset, have to experiment bc idk what block.pos.offset's behaviour is
-function parseAWNRoot(node) {
+function getSemantTokens(node) {
     tokens = [];
     curLine = 0;
     curOffset = 0;
@@ -91,7 +91,7 @@ function parseAWNRoot(node) {
     }
     return tokens.flat();
 }
-exports.parseAWNRoot = parseAWNRoot;
+exports.getSemantTokens = getSemantTokens;
 function parseType(node) {
     pushAndUpdate(node.posS.line, node.posS.offset, node.posE.offset - node.posS.offset, Colours.Type, 0);
     if (node.typeExprW !== null) {

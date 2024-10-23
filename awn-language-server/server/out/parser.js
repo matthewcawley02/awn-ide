@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.NameChar = exports.NameString_2 = exports.NameString_1 = exports.Name = exports.TypeName = exports.DE1_13 = exports.DE1_12 = exports.DE1_11 = exports.DE1_10 = exports.DE1_9 = exports.DE1_8 = exports.DE1_7 = exports.DE1_6 = exports.DE1_5 = exports.DE1_4 = exports.DE1_3 = exports.DE1_2 = exports.DE1_1 = exports.DE_8 = exports.DE_7 = exports.DE_6 = exports.DE_5 = exports.DE_4 = exports.DE_3 = exports.DE_2 = exports.DE_1 = exports.SPE1 = exports.SPE_11 = exports.SPE_10 = exports.SPE_9 = exports.SPE_8 = exports.SPE_7 = exports.SPE_6 = exports.SPE_5 = exports.SPE_4 = exports.SPE_3 = exports.SPE_2 = exports.SPE_1 = exports.BTE_AUX_4 = exports.BTE_AUX_3 = exports.BTE_AUX_2 = exports.BTE_AUX_1 = exports.TE1_3 = exports.TE1_2 = exports.TE1_1 = exports.TE_4 = exports.TE_3 = exports.TE_2 = exports.TE_1 = exports.ASTKinds = void 0;
 exports.SyntaxErr = exports.parse = exports.Parser = exports.Infix = void 0;
+const syntaxError_1 = require("./syntaxError");
 var ASTKinds;
 (function (ASTKinds) {
     ASTKinds["AWNRoot"] = "AWNRoot";
@@ -2305,7 +2306,7 @@ class SyntaxErr {
         this.expmatches = [...expmatches];
     }
     toString() {
-        return `Syntax Error at line ${this.pos.line}:${this.pos.offset}. Expected one of ${this.expmatches.map(x => x.kind === "EOF" ? " EOF" : ` ${x.negated ? 'not ' : ''}'${x.literal}'`)}`;
+        return (0, syntaxError_1.syntaxError)(this);
     }
 }
 exports.SyntaxErr = SyntaxErr;
