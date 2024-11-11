@@ -49,68 +49,118 @@ export enum ASTKinds {
 	DE_Tuple = "DE_Tuple"
 }
 
-export interface AWNRoot {
-    kind: ASTKinds.AWNRoot;
-    blocks: Block[];
+export class Node {
+    parent: Node | null = null;
+    precedence: number;
+
+    constructor(precedence: number, parent?: Node) {
+        if (parent) this.parent = parent;
+        this.precedence = precedence;
+    }
+}
+
+//Nodes have children properties as non-nullable (or empty list). This is so 
+//when constructing the AST, we can define all other properties 
+//of the node first, then define the child immediately after.
+//(Otherwise [defining the child] will execute before the rest
+//of the node is built, and we can't have that or rotating
+//won't work as the parents won't exist.)
+export class AWNRoot extends Node {
+    kind = ASTKinds.AWNRoot;
+    blocks: Block[] = [];
+
+	constructor() {
+        super(0, undefined);
+    }
 }
 
 export type Block = Block_Include | Block_Type | Block_ConVar | Block_Function | Block_Process
-export interface Block_Include {
-    kind: ASTKinds.Block_Include;
-    include: [Include, ...Include[]];
+export class Block_Include extends Node {
+    kind = ASTKinds.Block_Include;
+    includes: Include[] = [];
+
+	constructor(parent: Node) {
+        super(0, parent);
+    }
 }
 
-export interface Block_Type {
-    kind: ASTKinds.Block_Type;
-    type: [Type, ...Type[]];
+export class Block_Type extends Node {
+    kind = ASTKinds.Block_Type;
+    types: Type[] = [];
+
+	constructor(parent: Node) {
+        super(0, parent);
+    }
 }
 
-export interface Block_ConVar {
-    kind: ASTKinds.Block_ConVar;
-    var: [ConVar, ...ConVar[]];
+export class Block_ConVar extends Node {
+    kind = ASTKinds.Block_ConVar;
+    vars: ConVar[] = [];
+
+	constructor(parent: Node) {
+        super(0, parent);
+    }
 }
 
-export interface Block_Function {
-    kind: ASTKinds.Block_Function;
-    func: [Function, ...Function[]];
+export class Block_Function extends Node {
+    kind = ASTKinds.Block_Function;
+    funcs: Function[] = [];
+
+	constructor(parent: Node) {
+        super(0, parent);
+    }
 }
 
-export interface Block_Process {
-    kind: ASTKinds.Block_Process;
-    proc: [Process, ...Process[]];
+export class Block_Process extends Node {
+    kind = ASTKinds.Block_Process;
+    procs: Process[] = [];
+
+	constructor(parent: Node) {
+        super(0, parent);
+    }
 }
 
-export interface Include {
-    kind: ASTKinds.Include;
+export class Include extends Node {
+    kind = ASTKinds.Include;
     name: string;
+
+	constructor(parent: Node, name: string) {
+        super(0, parent);
+		this.name = name;
+    }
 }
 
-export interface Type {
-    kind: ASTKinds.Type;
+export class Type extends Node {
+    kind = ASTKinds.Type;
     typeName: string;
-    typeExpr: TE;
+    typeExpr?: TE;
+
+	constructor(parent: Node, typeName: string) {
+        super(0, parent);
+		this.typeName = typeName;
+    }
 }
 
-export interface ConVar {
+export interface ConVar extends Node {
     kind: ASTKinds.ConVar;
     typeExpr: TE;
     names: [string, ... string[]];
 }
 
 export type Function = Function_Generic | Function_Infix
-export interface Function_Generic {
+export interface Function_Generic extends Node {
     kind: ASTKinds.Function_Generic;
     name: string;
     signature: TE;
 }
 
-export interface Function_Infix {
+export interface Function_Infix extends Node {
     kind: ASTKinds.Function_Infix;
     name: string;
     signature: BTE;
 }
 
-export interface Process {
+export interface Process extends Node {
     kind: ASTKinds.Process;
     name: string;
 	args: string[];
@@ -118,52 +168,81 @@ export interface Process {
 }
 
 export type TE = TE_Brack | TE_Pow | TE_List | TE_Name | TE_Function | TE_Partial | TE_Product
-export interface TE_Brack {
-	kind: ASTKinds.TE_Brack;
-	typeExpr: TE;
+export class TE_Brack extends Node {
+	kind = ASTKinds.TE_Brack;
+	typeExpr!: TE;
+
+	constructor(parent: Node) {
+        super(4, parent);
+    }
 }
 
-export interface TE_Pow {
-	kind: ASTKinds.TE_Pow;
-	typeExpr: TE;
+export class TE_Pow extends Node {
+	kind = ASTKinds.TE_Pow;
+	typeExpr!: TE;
+
+	constructor(parent: Node) {
+        super(4, parent);
+    }
 }
 
-export interface TE_List {
-	kind: ASTKinds.TE_List;
-	typeExpr: TE;
+export class TE_List extends Node {
+	kind = ASTKinds.TE_List;
+	typeExpr!: TE;
+
+	constructor(parent: Node) {
+        super(4, parent);
+    }
 }
 
-export interface TE_Name {
-	kind: ASTKinds.TE_Name;
+export class TE_Name extends Node {
+	kind = ASTKinds.TE_Name;
 	typename: string;
+
+	constructor(parent: Node, typename: string) {
+        super(4, parent);
+		this.typename = typename;
+    }
 }
 
-export interface TE_Function {
-	kind: ASTKinds.TE_Function;
-	left: TE;
-	right: TE;
+export class TE_Function extends Node {
+	kind = ASTKinds.TE_Function;
+	left!: TE;
+	right!: TE;
+
+	constructor(parent: Node) {
+        super(2, parent);
+    }
 }
 
-export interface TE_Partial {
-	kind: ASTKinds.TE_Partial;
-	left: TE;
-	right: TE;
+export class TE_Partial extends Node {
+	kind = ASTKinds.TE_Partial;
+	left!: TE;
+	right!: TE;
+
+	constructor(parent: Node) {
+        super(1, parent);
+    }
 }
 
-export interface TE_Product {
-	kind: ASTKinds.TE_Product;
-	left: TE;
-	right: TE;
+export class TE_Product extends Node {
+	kind = ASTKinds.TE_Product;
+	left!: TE;
+	right!: TE;
+
+	constructor(parent: Node) {
+        super(3, parent);
+    }
 }
 
 export type BTE = BTE_Function | BTE_Partial
-export interface BTE_Function {
+export interface BTE_Function extends Node {
     kind: ASTKinds.BTE_Function;
     left: BTE_AUX;
     right: BTE_AUX;
     typeExpr: TE;
 }
-export interface BTE_Partial {
+export interface BTE_Partial extends Node {
     kind: ASTKinds.BTE_Partial;
     left: BTE_AUX;
     right: BTE_AUX;
@@ -171,34 +250,34 @@ export interface BTE_Partial {
 }
 
 export type BTE_AUX = BTE_Brack | BTE_Pow | BTE_List | BTE_Name
-export interface BTE_Brack {
+export interface BTE_Brack extends Node {
 	kind: ASTKinds.BTE_Brack;
 	typeExpr: TE;
 }
 
-export interface BTE_Pow {
+export interface BTE_Pow extends Node {
 	kind: ASTKinds.BTE_Pow;
 	typeExpr: TE;
 }
 
-export interface BTE_List {
+export interface BTE_List extends Node {
 	kind: ASTKinds.BTE_List;
 	typeExpr: TE;
 }
 
-export interface BTE_Name {
+export interface BTE_Name extends Node {
 	kind: ASTKinds.BTE_Name;
 	typename: string;
 }
 
 export type SPE = SPE_Guard | SPE_Assign | SPE_Unicast | SPE_Broadcast | SPE_Groupcast | SPE_Send | SPE_Deliver | SPE_Receive | SPE_Brack | SPE_Call | SPE_Name;
-export interface SPE_Guard {
+export interface SPE_Guard extends Node {
 	kind: ASTKinds.SPE_Guard;
 	dataExp: DE;
 	nextproc: SPE;
 }
 
-export interface SPE_Assign {
+export interface SPE_Assign extends Node {
 	kind: ASTKinds.SPE_Assign;
 	name: string;
 	dataExpList: DE[];
@@ -206,7 +285,7 @@ export interface SPE_Assign {
 	nextproc: SPE;
 }
 
-export interface SPE_Unicast {
+export interface SPE_Unicast extends Node {
 	kind: ASTKinds.SPE_Unicast;
 	dataExpL: DE;
     dataExpR: DE;
@@ -214,7 +293,7 @@ export interface SPE_Unicast {
 	nextproc: SPE;
 }
 
-export interface SPE_Broadcast {
+export interface SPE_Broadcast extends Node {
 	kind: ASTKinds.SPE_Broadcast;
 	dataExp: DE;
     proc: SPE;
@@ -222,7 +301,7 @@ export interface SPE_Broadcast {
 	nextproc: SPE;
 }
 
-export interface SPE_Groupcast {
+export interface SPE_Groupcast extends Node {
 	kind: ASTKinds.SPE_Groupcast;
 	dataExpL: DE;
     dataExpR: DE;
@@ -230,21 +309,21 @@ export interface SPE_Groupcast {
 	nextproc: SPE;
 }
 
-export interface SPE_Send {
+export interface SPE_Send extends Node {
 	kind: ASTKinds.SPE_Send;
 	dataExp: DE;
     proc: SPE;
 	nextproc: SPE;
 }
 
-export interface SPE_Deliver {
+export interface SPE_Deliver extends Node {
 	kind: ASTKinds.SPE_Deliver;
 	dataExp: DE;
     proc: SPE;
 	nextproc: SPE;
 }
 
-export interface SPE_Receive {
+export interface SPE_Receive extends Node {
 	kind: ASTKinds.SPE_Receive;
 	name: string;
 	dataExps: DE[];
@@ -252,82 +331,82 @@ export interface SPE_Receive {
 	nextproc: SPE;
 }
 
-export interface SPE_Brack {
+export interface SPE_Brack extends Node {
 	kind: ASTKinds.SPE_Brack;
 	proc: SPE;
 }
 
-export interface SPE_Call {
+export interface SPE_Call extends Node {
 	kind: ASTKinds.SPE_Call;
 	name: string;
 	args: DE[];
 }
 
-export interface SPE_Name {
+export interface SPE_Name extends Node {
 	kind: ASTKinds.SPE_Name;
 	name: string;
 }
 
-export interface SPE_Choice {
+export interface SPE_Choice extends Node {
 	kind: ASTKinds.SPE_Choice;
 	left: SPE;
 	right: SPE;
 }
 
 export type DE = DE_Singleton | DE_Partial | DE_Set | DE_Lambda | DE_Forall | DE_Exists | DE_Brack | DE_Name | DE_Function | DE_Tuple | DE_Binary;
-export interface DE_Singleton {
+export interface DE_Singleton extends Node {
 	kind: ASTKinds.DE_Singleton;
 	dataExp: DE;
 }
 
-export interface DE_Partial {
+export interface DE_Partial extends Node {
 	kind: ASTKinds.DE_Partial;
 	name: string;
 	left: DE;
 	right: DE;
 }
 
-export interface DE_Set {
+export interface DE_Set extends Node {
 	kind: ASTKinds.DE_Set;
 	name: string;
 	dataExp: DE;
 }
 
-export interface DE_Lambda {
+export interface DE_Lambda extends Node {
 	kind: ASTKinds.DE_Lambda;
 	name: string;
 	dataExp: DE;
 }
 
-export interface DE_Forall {
+export interface DE_Forall extends Node {
 	kind: ASTKinds.DE_Forall;
 	name: string;
 	dataExp: DE;
 }
 
-export interface DE_Exists {
+export interface DE_Exists extends Node {
 	kind: ASTKinds.DE_Exists;
 	name: string;
 	dataExp: DE;
 }
 
-export interface DE_Brack {
+export interface DE_Brack extends Node {
 	kind: ASTKinds.DE_Brack;
 	dataExp: DE;
 }
 
-export interface DE_Name {
+export interface DE_Name extends Node {
 	kind: ASTKinds.DE_Name;
 	name: string;
 }
 
-export interface DE_Function {
+export interface DE_Function extends Node {
 	kind: ASTKinds.DE_Function;
 	left: DE;
 	right: DE;
 }
 
-export interface DE_Tuple {
+export interface DE_Tuple extends Node {
 	kind: ASTKinds.DE_Tuple;
 	dataExps: DE[];
 }
@@ -345,7 +424,7 @@ export enum binExprs {
 	Les = "<",
 }
 
-export interface DE_Binary {
+export interface DE_Binary extends Node {
 	kind: ASTKinds.DE_Binary;
 	bin: binExprs;
 	left: DE;

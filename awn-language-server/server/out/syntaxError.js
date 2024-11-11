@@ -34,7 +34,7 @@ function syntaxError(se) {
     }
     console.log(matchesUgly);
     console.log(matchesNice);
-    return `Syntax Error at line ${se.pos.line}, char ${se.pos.offset + 1}.\n Expected one of ${matchesNice.join(', ')}`;
+    return `Syntax Error at line ${se.pos.line}, char ${se.pos.offset + 1}.\nExpected one of ${matchesNice.join(', ')}`;
 }
 exports.syntaxError = syntaxError;
 //# sourceMappingURL=syntaxError.js.map

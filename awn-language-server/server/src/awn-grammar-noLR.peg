@@ -37,9 +37,13 @@ TE := 'Pow' '\(' TE '\)' TE1?
 	| '\(' TE '\)' TE1?
 	| TypeName TE1?
 
-TE1 := '\-\>' TE TE1?
-	| '\+->' TE TE1?
-	| {' x ' TE}* TE1?
+TE1 := {' x ' TE}* TE1?
+	| TE2
+
+TE2 := '\-\>' TE TE1? 
+	| TE3
+
+TE3 := '\+->' TE TE1?
 
 BTE :=
 	  BTE_AUX ' x ' BTE_AUX '->' TE

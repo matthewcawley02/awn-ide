@@ -18,28 +18,28 @@ Include := sp Name lb   			//could change this later to specifically be a filepa
 Type := sp TypeName { '\=' TE }? lb
 
 ConVar :=
-	  TE sp Name {',' Name}*
-	| Name '\:' TE
+	  TE sp Name {',' Name}*		//multiple of same type
+	| Name '\:' TE					//singular
 
 Function :=
-	  Name '\:' sp TE
-	| Infix '\:' sp BTE
+	  Name '\:' sp TE				//non-binary
+	| Infix '\:' sp BTE				//binary
 
 Process :=
-	  Name '\(' Name? {',' Name}* '\)' ':=' lb sp? SPE
-	| Name ':=' SPE lb
+	  Name '\(' Name? {',' Name}* '\)' ':=' lb sp? SPE	//process with args
+	| Name ':=' SPE lb									//process no args
 
 //============
 // TYPE EXPRESSIONS
 //============
 
 TE := TypeName
-	| TE {'x' TE}*
-	| TE '-\>' TE
-	| TE '\+->' TE
-	| 'Pow' '\(' TE '\)'
-	| '\[' TE '\]'
-	| '\(' TE '\)'
+	| TE {'x' TE}*					//cartesian product
+	| TE '-\>' TE					//function
+	| TE '\+->' TE					//partial function
+	| 'Pow' '\(' TE '\)'			//powerset
+	| '\[' TE '\]'					//list
+	| '\(' TE '\)'					//brackets
 
 BTE :=
 	  BTE_AUX ' x ' BTE_AUX '->' TE
@@ -56,32 +56,30 @@ BTE_AUX :=
 //==================
 
 SPE :=
-	  Name '\(' DE? {',' DE}+ '\)'
-	| Name
-	| '\[' DE '\]' SPE
-	| '\[\[' Name {'\[' DE '\]' }* ':=' DE '\]\]' lb SPE
-	| SPE lb '\+' SPE
-	| 'unicast' '\(' DE ',' DE '\)' '.' SPE lb '>' SPE
-	| 'broadcast' '\(' DE '\)' '.' lb SPE
-	| 'groupcast' '\(' DE ',' DE '\)' '.' lb SPE
-	| 'send' '\(' DE '\)' '.' lb SPE
-	| 'deliver' '\(' DE '\)' '.' lb SPE
-	| 'receive' '\(' Name { '\[' DE '\]' }* '\)' '.' lb SPE
-	| '\(' SPE '\)'
+	  Name '\(' DE? {',' DE}+ '\)'								//call with args
+	| Name														//call no args
+	| '\[' DE '\]' SPE											//guard
+	| '\[\[' Name {'\[' DE '\]' }* ':=' DE '\]\]' lb SPE		//assignment
+	| SPE lb '\+' SPE											//choice
+	| 'unicast' '\(' DE ',' DE '\)' '.' SPE lb '>' SPE			//unicast
+	| 'broadcast' '\(' DE '\)' '.' lb SPE						//broadcast
+	| 'groupcast' '\(' DE ',' DE '\)' '.' lb SPE				//groupcast
+	| 'send' '\(' DE '\)' '.' lb SPE							//send
+	| 'deliver' '\(' DE '\)' '.' lb SPE							//deliver
+	| 'receive' '\(' Name { '\[' DE '\]' }* '\)' '.' lb SPE		//receive
+	| '\(' SPE '\)'												//brackets
 
 //===============
 // DATA EXPRESSIONS
 //===============
 
-//currently have not implemented the "DB brack" ones
-
 DE :=
 	  Name
 	| DE sp DE
-	| DE {',' DE}+
-	| '{' DE '}'
-	| '{' Name '|' DE '}'
-	| '{' '\(' Name ',' DE '\)' '|' DE '}'
+	| DE {',' DE}+								//tuple
+	| '{' DE '}'								//singleton
+	| '{' Name '|' DE '}'						//set construction
+	| '{' '\(' Name ',' DE '\)' '|' DE '}'		//partial set construction
 	| 'lambda' Name '.' sp DE
 	| 'forall' Name '.' sp DE
 	| 'exists' Name '.' sp DE
