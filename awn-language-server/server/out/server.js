@@ -4,11 +4,14 @@ const node_1 = require("vscode-languageserver/node");
 const vscode_languageserver_textdocument_1 = require("vscode-languageserver-textdocument");
 const parser_1 = require("./parser");
 const semanticTokens_1 = require("./semanticTokens");
+const convertAST_1 = require("./convertAST");
+const check_1 = require("./check");
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
 const connection = (0, node_1.createConnection)(node_1.ProposedFeatures.all);
 // Create a simple text document manager.
 const documents = new node_1.TextDocuments(vscode_languageserver_textdocument_1.TextDocument);
+var diagnostics = [];
 /* Handler for connection initialisation
    Client gives its capabilities through "InitializeParams"
    Server then returns its list of capabilities to the client */
@@ -53,6 +56,7 @@ connection.onInitialize((params) => {
 //Set up listeners on initialization
 connection.onInitialized(() => {
     console.log("Initialized connection with client");
+    (0, check_1.InitialiseCheck)();
     connection.client.register(node_1.DidChangeConfigurationNotification.type, undefined);
     connection.workspace.onDidChangeWorkspaceFolders(_event => {
         connection.console.log('Workspace folder change event received.');
@@ -82,7 +86,6 @@ documents.onDidClose(e => {
     documentSettings.delete(e.document.uri);
 });
 documents.onDidChangeContent(change => {
-    //console.log("Content of document changed");
     validateTextDocument(change.document);
 });
 //Handler for the "document diagnostic" request from the client
@@ -102,6 +105,11 @@ connection.languages.diagnostics.on(async (params) => {
         };
     }
 });
+//Request occurs every time the document changes
+//(this specifically does the semantic tokens, in addition,
+//validateTextDocument is called every time the document changes
+//which does parsing and semantic checking)
+//though this also parses which is inefficient so i should change that later (TODO)
 connection.onRequest("textDocument/semanticTokens/full", (params) => {
     const document = documents.get(params.textDocument.uri);
     if (document === undefined) {
@@ -111,8 +119,8 @@ connection.onRequest("textDocument/semanticTokens/full", (params) => {
         };
     }
     const parseResult = (0, parser_1.parse)(document.getText());
-    console.log(parseResult);
-    if (parseResult.ast !== null) {
+    if (parseResult.ast != null) {
+        //TODO change getSemantTokens to use the new ast
         const semanticTokens = (0, semanticTokens_1.getSemantTokens)(parseResult.ast);
         return {
             data: semanticTokens
@@ -124,13 +132,15 @@ connection.onRequest("textDocument/semanticTokens/full", (params) => {
         };
     }
 });
+//called whenever there is a change in the document. parses and checks for semantic errors
 async function validateTextDocument(textDocument) {
     const settings = await getDocumentSettings(textDocument.uri);
     const text = textDocument.getText();
     const parseResult = (0, parser_1.parse)(text);
     let problems = 0;
-    const diagnostics = [];
-    if (parseResult.errs !== null) {
+    diagnostics = [];
+    //if parsing itself fails
+    if (parseResult.errs.length > 0) {
         while (problems < settings.maxNumberOfProblems && problems < parseResult.errs.length) {
             const problem = parseResult.errs[problems];
             const diagnostic = {
@@ -144,7 +154,16 @@ async function validateTextDocument(textDocument) {
             diagnostics.push(diagnostic);
             problems++;
         }
+        return diagnostics;
     }
+    //if parsing succeeds, check for semantic errors
+    if (parseResult.ast != null) {
+        const newast = (0, convertAST_1.convertNewToOldAST)(parseResult.ast);
+        console.log("converted AST:\n", newast);
+        const semanticErrors = (0, check_1.Check)(newast);
+        diagnostics.push(...semanticErrors);
+    }
+    console.log("Diagnostics:", diagnostics);
     return diagnostics;
 }
 connection.onDidChangeWatchedFiles(_change => {

@@ -1,0 +1,22 @@
+TYPES: test=IP
+       test=Bool
+       test1=IP->Bool
+       test2=foo->string
+       test3=Bool->test3
+       test4=Pow([test3])
+       test5=Pow(test1->Bool)
+
+VARIABLES: test5 foo,bar
+           test4 foo,bar
+           Bool x
+           Bool y
+
+CONSTANTS: Bool test,test1
+           Pow(test5) test8
+           IP w
+           IP z
+
+FUNCTIONS: func: foo->[(bar+->example)]
+           parseInt: int->string
+           read: filetype
+

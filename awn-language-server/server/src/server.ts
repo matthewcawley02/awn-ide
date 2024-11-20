@@ -30,12 +30,19 @@ import{
 	getSemantTokens
 } from './semanticTokens'
 
+import { convertNewToOldAST } from './convertAST';
+
+import { InitialiseCheck, Check } from './check';
+import { AWNRoot } from './ast';
+
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
 const connection = createConnection(ProposedFeatures.all);
 
 // Create a simple text document manager.
 const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
+
+var diagnostics: Diagnostic[] = []
 
 /* Handler for connection initialisation
    Client gives its capabilities through "InitializeParams"
@@ -84,6 +91,7 @@ connection.onInitialize((params: InitializeParams) => {
 //Set up listeners on initialization
 connection.onInitialized(() => {
 	console.log("Initialized connection with client");
+	InitialiseCheck()
 
 	connection.client.register(DidChangeConfigurationNotification.type, undefined);
 	connection.workspace.onDidChangeWorkspaceFolders(_event => {
@@ -124,7 +132,6 @@ documents.onDidClose(e => {
 });
 
 documents.onDidChangeContent(change => {
-	//console.log("Content of document changed");
 	validateTextDocument(change.document);
 });
 
@@ -145,6 +152,11 @@ connection.languages.diagnostics.on(async (params) => {
 	}
 });
 
+//Request occurs every time the document changes
+//(this specifically does the semantic tokens, in addition,
+//validateTextDocument is called every time the document changes
+//which does parsing and semantic checking)
+//though this also parses which is inefficient so i should change that later (TODO)
 connection.onRequest("textDocument/semanticTokens/full", (params) => {
 	const document = documents.get(params.textDocument.uri);
 	if(document === undefined){
@@ -154,8 +166,8 @@ connection.onRequest("textDocument/semanticTokens/full", (params) => {
 		};
 	}
 	const parseResult: ParseResult = parse(document.getText());
-	console.log(parseResult);
-	if(parseResult.ast !== null){
+	if(parseResult.ast != null){
+		//TODO change getSemantTokens to use the new ast
 		const semanticTokens = getSemantTokens(parseResult.ast);
 		return{
 			data: semanticTokens
@@ -167,16 +179,18 @@ connection.onRequest("textDocument/semanticTokens/full", (params) => {
 	}
 });
 
+//called whenever there is a change in the document. parses and checks for semantic errors
 async function validateTextDocument(textDocument: TextDocument): Promise<Diagnostic[]> {
 	const settings = await getDocumentSettings(textDocument.uri);
 
-	const text: string = textDocument.getText();	
-	const parseResult: ParseResult = parse(text);
+	const text: string = textDocument.getText()	
+	const parseResult: ParseResult = parse(text)
 
-	let problems = 0;
-	const diagnostics: Diagnostic[] = [];
+	let problems = 0
+	diagnostics = []
 
-	if(parseResult.errs !== null){
+	//if parsing itself fails
+	if(parseResult.errs.length > 0){
 		while(problems < settings.maxNumberOfProblems && problems < parseResult.errs.length){
 			const problem = parseResult.errs[problems];
 			const diagnostic: Diagnostic = {
@@ -190,8 +204,17 @@ async function validateTextDocument(textDocument: TextDocument): Promise<Diagnos
 			diagnostics.push(diagnostic);
 			problems++;
 		}
+		return diagnostics
 	}
-	return diagnostics;
+	//if parsing succeeds, check for semantic errors
+	if(parseResult.ast != null){
+		const newast: AWNRoot = convertNewToOldAST(parseResult.ast)
+		console.log("converted AST:\n", newast)
+		const semanticErrors: Diagnostic[] = Check(newast)
+		diagnostics.push(...semanticErrors)
+	}
+	console.log("Diagnostics:", diagnostics)
+	return diagnostics
 }
 
 connection.onDidChangeWatchedFiles(_change => {

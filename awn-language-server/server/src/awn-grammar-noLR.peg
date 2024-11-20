@@ -11,6 +11,7 @@ Block :=
 	| 'FUNCTIONS:' Function+
 	| 'PROCESSES:' Process+
 	| 'proc' Process
+	| 'ALIASES:' Alias+
 
 Include := sp Name lb
 
@@ -28,6 +29,10 @@ Process :=
 	  sp Name '\(' Name? {',' Name}* '\)' '\:\=' lb sp SPE lb
 	| sp Name '\:\=' SPE lb
 
+Alias :=
+	  sp Name '\:\=' sp '\"' Name? {',' Name}* '\"' lb
+	| sp Name '\:\=' sp '\"' DE '\"' lb
+
 //============
 // TYPE EXPRESSIONS
 //============
@@ -38,12 +43,8 @@ TE := 'Pow' '\(' TE '\)' TE1?
 	| TypeName TE1?
 
 TE1 := {' x ' TE}* TE1?
-	| TE2
-
-TE2 := '\-\>' TE TE1? 
-	| TE3
-
-TE3 := '\+->' TE TE1?
+	| '\->' TE TE1?
+	| '\+->' TE TE1?
 
 BTE :=
 	  BTE_AUX ' x ' BTE_AUX '->' TE
@@ -92,14 +93,14 @@ DE :=
 DE1 := 
 	  sp DE DE1?
 	| {',' DE}+ DE1?
-	| '->' DE DE1?
-	| '<->' DE DE1?
-	| '&' DE DE1?
+	| '\->' DE DE1?
+	| '<\->' DE DE1?
+	| '\&' DE DE1?
 	| '|' DE DE1?
-	| '=' DE DE1?
-	| '!=' DE DE1?
-	| '>=' DE DE1?
-	| '<=' DE DE1?
+	| '\=' DE DE1?
+	| '\!\=' DE DE1?
+	| '>\=' DE DE1?
+	| '<\=' DE DE1?
 	| '>' DE DE1?
 	| '<' DE DE1?
 	| Infix DE DE1?
@@ -121,7 +122,7 @@ Name := NameString | '\!'| '\[\]'
 
 NameString := {NameChar* '\.' NameString} | NameChar+
 
-NameChar := '[a-zA-Z0-9]' //simplified for now
+NameChar := '[a-zA-Z0-9]' //simplified
 
 Infix := '[\*\+-<\=>\!\&|\\]+' //Currently "InfixOps". Also removed ":" for now (because of the "Infix :") rule, but probably possible to find a workaround for this
 

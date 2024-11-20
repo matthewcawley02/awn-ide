@@ -2,15 +2,21 @@ export enum ASTKinds {
     AWNRoot = "AWNRoot",
     Block_Include = "Block_Include",
     Block_Type = "Block_Type",
-    Block_ConVar = "Block_ConVar",  //having these combined means we can't have a const and a var with the same name, can change this if wanted
+	Block_Variable = "Block_Variable",
+    Block_Constant = "Block_Constant",
     Block_Function = "Block_Function",
     Block_Process = "Block_Process",
+	Block_Alias = "Block_Alias",
     Include = "Include",
     Type = "Type",
+	Variable = "Variable",
+	Constant = "Constant",
     ConVar = "ConVar",
     Function_Generic = "Function_Generic",
     Function_Infix = "Function_Infix",
     Process = "Process",
+	Alias_List = "Alias_List",
+	Alias_Data = "Alias_Data",
     TE_Brack = "TE_Brack",
     TE_Pow = "TE_Pow",
     TE_List = "TE_List",
@@ -49,13 +55,19 @@ export enum ASTKinds {
 	DE_Tuple = "DE_Tuple"
 }
 
-export class Node {
-    parent: Node | null = null;
-    precedence: number;
+export function isBracketType(x: ASTKinds): boolean {
+	return x === ASTKinds.TE_Brack || x === ASTKinds.TE_List || x === ASTKinds.TE_Pow || x === ASTKinds.DE_Brack || x === ASTKinds.SPE_Brack
+}
 
-    constructor(precedence: number, parent?: Node) {
-        if (parent) this.parent = parent;
+export class Node {
+    parent: Node;
+    precedence: number;
+	kind: ASTKinds
+
+    constructor(precedence: number, kind: ASTKinds, parent: Node) {
+        this.parent = parent;
         this.precedence = precedence;
+		this.kind = kind;
     }
 }
 
@@ -66,367 +78,484 @@ export class Node {
 //of the node is built, and we can't have that or rotating
 //won't work as the parents won't exist.)
 export class AWNRoot extends Node {
-    kind = ASTKinds.AWNRoot;
     blocks: Block[] = [];
 
 	constructor() {
-        super(0, undefined);
+		//Going with the approach of having the root have itself as parent to avoid null checks.
+		//The one time this node is instantiated, immediately afterwards, parent is set properly.
+        super(10, ASTKinds.AWNRoot, {} as Node);
     }
 }
 
-export type Block = Block_Include | Block_Type | Block_ConVar | Block_Function | Block_Process
+export type Block = Block_Include | Block_Type | Block_Constant | Block_Variable | Block_Function | Block_Process | Block_Alias
 export class Block_Include extends Node {
-    kind = ASTKinds.Block_Include;
     includes: Include[] = [];
 
 	constructor(parent: Node) {
-        super(0, parent);
+        super(10, ASTKinds.Block_Include, parent);
     }
 }
 
 export class Block_Type extends Node {
-    kind = ASTKinds.Block_Type;
     types: Type[] = [];
 
 	constructor(parent: Node) {
-        super(0, parent);
+        super(10, ASTKinds.Block_Type, parent);
     }
 }
 
-export class Block_ConVar extends Node {
-    kind = ASTKinds.Block_ConVar;
-    vars: ConVar[] = [];
+export class Block_Variable extends Node {
+    vars: Variable[] = [];
 
 	constructor(parent: Node) {
-        super(0, parent);
+        super(10, ASTKinds.Block_Variable, parent);
+    }
+}
+
+export class Block_Constant extends Node {
+    consts: Constant[] = [];
+
+	constructor(parent: Node) {
+        super(10, ASTKinds.Block_Constant, parent);
     }
 }
 
 export class Block_Function extends Node {
-    kind = ASTKinds.Block_Function;
     funcs: Function[] = [];
 
 	constructor(parent: Node) {
-        super(0, parent);
+        super(10, ASTKinds.Block_Function, parent);
     }
 }
 
 export class Block_Process extends Node {
-    kind = ASTKinds.Block_Process;
     procs: Process[] = [];
 
 	constructor(parent: Node) {
-        super(0, parent);
+        super(10, ASTKinds.Block_Process, parent);
+    }
+}
+
+export class Block_Alias extends Node {
+	aliases: Alias[] = [];
+
+	constructor(parent: Node) {
+        super(10, ASTKinds.Block_Alias, parent);
     }
 }
 
 export class Include extends Node {
-    kind = ASTKinds.Include;
     name: string;
 
 	constructor(parent: Node, name: string) {
-        super(0, parent);
+        super(0, ASTKinds.Include, parent);
 		this.name = name;
     }
 }
 
 export class Type extends Node {
-    kind = ASTKinds.Type;
     typeName: string;
-    typeExpr?: TE;
+    typeExpr!: TE; //empty type declarations are given the TE_Name typeExpr, so this can't be null
 
 	constructor(parent: Node, typeName: string) {
-        super(0, parent);
+        super(10, ASTKinds.Type, parent);
 		this.typeName = typeName;
     }
 }
 
-export interface ConVar extends Node {
-    kind: ASTKinds.ConVar;
-    typeExpr: TE;
-    names: [string, ... string[]];
+export class TE extends Node{
+	children: TE[] = [];
+
+	constructor(parent: Node, precedence: number, kind: ASTKinds){
+		super(precedence, kind, parent)
+	}
 }
 
-export type Function = Function_Generic | Function_Infix
-export interface Function_Generic extends Node {
-    kind: ASTKinds.Function_Generic;
-    name: string;
-    signature: TE;
-}
-
-export interface Function_Infix extends Node {
-    kind: ASTKinds.Function_Infix;
-    name: string;
-    signature: BTE;
-}
-
-export interface Process extends Node {
-    kind: ASTKinds.Process;
-    name: string;
-	args: string[];
-    proc: SPE;
-}
-
-export type TE = TE_Brack | TE_Pow | TE_List | TE_Name | TE_Function | TE_Partial | TE_Product
-export class TE_Brack extends Node {
-	kind = ASTKinds.TE_Brack;
+export class TE_Brack extends TE {
 	typeExpr!: TE;
 
 	constructor(parent: Node) {
-        super(4, parent);
+        super(parent, 4, ASTKinds.TE_Brack);
     }
 }
 
-export class TE_Pow extends Node {
-	kind = ASTKinds.TE_Pow;
+export class TE_Pow extends TE {
+	typeExpr!: TE;
+
+	constructor(parent: Node, typeExpr?: TE) {
+        super(parent, 4, ASTKinds.TE_Pow);
+		if(typeExpr != null){
+			this.typeExpr = typeExpr
+		}
+    }
+}
+
+export class TE_List extends TE {
 	typeExpr!: TE;
 
 	constructor(parent: Node) {
-        super(4, parent);
+        super(parent, 4, ASTKinds.TE_List);
     }
 }
 
-export class TE_List extends Node {
-	kind = ASTKinds.TE_List;
-	typeExpr!: TE;
-
-	constructor(parent: Node) {
-        super(4, parent);
-    }
-}
-
-export class TE_Name extends Node {
-	kind = ASTKinds.TE_Name;
+export class TE_Name extends TE {
 	typename: string;
 
 	constructor(parent: Node, typename: string) {
-        super(4, parent);
+        super(parent, 0, ASTKinds.TE_Name);
 		this.typename = typename;
     }
 }
 
-export class TE_Function extends Node {
-	kind = ASTKinds.TE_Function;
+export class TE_Function extends TE {
 	left!: TE;
 	right!: TE;
 
-	constructor(parent: Node) {
-        super(2, parent);
+	constructor(parent: Node, left?: TE, right?: TE) {
+        super(parent, 2, ASTKinds.TE_Function);
+		if(left != null && right != null){
+			this.left = left; this.right = right
+		}
     }
 }
 
-export class TE_Partial extends Node {
-	kind = ASTKinds.TE_Partial;
+export class TE_Partial extends TE {
 	left!: TE;
 	right!: TE;
 
-	constructor(parent: Node) {
-        super(1, parent);
+	constructor(parent: Node, left?: TE, right?: TE) {
+        super(parent, 1, ASTKinds.TE_Function);
+		if(left != null && right != null){
+			this.left = left; this.right = right
+		}
     }
 }
 
-export class TE_Product extends Node {
-	kind = ASTKinds.TE_Product;
+export class TE_Product extends TE {
 	left!: TE;
 	right!: TE;
 
 	constructor(parent: Node) {
-        super(3, parent);
+        super(parent, 3, ASTKinds.TE_Product);
     }
 }
 
 export type BTE = BTE_Function | BTE_Partial
-export interface BTE_Function extends Node {
-    kind: ASTKinds.BTE_Function;
-    left: BTE_AUX;
-    right: BTE_AUX;
-    typeExpr: TE;
-}
-export interface BTE_Partial extends Node {
-    kind: ASTKinds.BTE_Partial;
-    left: BTE_AUX;
-    right: BTE_AUX;
-    typeExpr: TE;
+
+export class BTE_Function extends TE {
+	left!: BTE_AUX;
+	right!: BTE_AUX;
+	output!: TE;
+
+	constructor(parent: Node) {
+        super(parent, 10, ASTKinds.BTE_Function);
+    }
 }
 
-export type BTE_AUX = BTE_Brack | BTE_Pow | BTE_List | BTE_Name
-export interface BTE_Brack extends Node {
-	kind: ASTKinds.BTE_Brack;
-	typeExpr: TE;
+export class BTE_Partial extends TE {
+	left!: BTE_AUX;
+	right!: BTE_AUX;
+	output!: TE;
+
+	constructor(parent: Node) {
+        super(parent, 10, ASTKinds.BTE_Partial);
+    }
+}
+export type BTE_AUX = TE_Brack | TE_Pow | TE_List | TE_Name
+
+
+export class Variable extends Node {
+    typeExpr!: TE;
+    name: string;
+
+	constructor(parent: Node, name: string) {
+        super(10, ASTKinds.Variable, parent);
+		this.name = name;
+    }
 }
 
-export interface BTE_Pow extends Node {
-	kind: ASTKinds.BTE_Pow;
-	typeExpr: TE;
+export class Constant extends Node {
+    typeExpr!: TE;
+    name: string;
+
+	constructor(parent: Node, name: string) {
+        super(10, ASTKinds.Constant, parent);
+		this.name = name;
+    }
 }
 
-export interface BTE_List extends Node {
-	kind: ASTKinds.BTE_List;
-	typeExpr: TE;
+export type Function = Function_Generic | Function_Infix
+export class Function_Generic extends Node {
+    name: string;
+    signature!: TE;
+
+	constructor(parent: Node, name: string) {
+        super(10, ASTKinds.Function_Generic, parent);
+		this.name = name;
+    }
 }
 
-export interface BTE_Name extends Node {
-	kind: ASTKinds.BTE_Name;
-	typename: string;
+export class Function_Infix extends Node {
+    name: string;
+    signature!: BTE;
+
+	constructor(parent: Node, name: string) {
+        super(10, ASTKinds.Function_Infix, parent);
+		this.name = name;
+    }
 }
 
-export type SPE = SPE_Guard | SPE_Assign | SPE_Unicast | SPE_Broadcast | SPE_Groupcast | SPE_Send | SPE_Deliver | SPE_Receive | SPE_Brack | SPE_Call | SPE_Name;
-export interface SPE_Guard extends Node {
-	kind: ASTKinds.SPE_Guard;
-	dataExp: DE;
-	nextproc: SPE;
+export class Process extends Node {
+    name: string;
+	args!: string[];
+    proc!: SPE;
+
+	constructor(parent: Node, name: string) {
+        super(10, ASTKinds.Process, parent);
+		this.name = name;
+    }
 }
 
-export interface SPE_Assign extends Node {
-	kind: ASTKinds.SPE_Assign;
+export type Alias = Alias_List | Alias_Data
+export class Alias_List extends Node {
 	name: string;
-	dataExpList: DE[];
-	dataExpAssign: DE;
-	nextproc: SPE;
+	args!: string[];
+
+	constructor(parent: Node, name: string) {
+        super(10, ASTKinds.Alias_List, parent);
+		this.name = name;
+    }
 }
 
-export interface SPE_Unicast extends Node {
-	kind: ASTKinds.SPE_Unicast;
-	dataExpL: DE;
-    dataExpR: DE;
-    proc: SPE;
-	nextproc: SPE;
-}
-
-export interface SPE_Broadcast extends Node {
-	kind: ASTKinds.SPE_Broadcast;
-	dataExp: DE;
-    proc: SPE;
-    procR: SPE
-	nextproc: SPE;
-}
-
-export interface SPE_Groupcast extends Node {
-	kind: ASTKinds.SPE_Groupcast;
-	dataExpL: DE;
-    dataExpR: DE;
-	proc: SPE;
-	nextproc: SPE;
-}
-
-export interface SPE_Send extends Node {
-	kind: ASTKinds.SPE_Send;
-	dataExp: DE;
-    proc: SPE;
-	nextproc: SPE;
-}
-
-export interface SPE_Deliver extends Node {
-	kind: ASTKinds.SPE_Deliver;
-	dataExp: DE;
-    proc: SPE;
-	nextproc: SPE;
-}
-
-export interface SPE_Receive extends Node {
-	kind: ASTKinds.SPE_Receive;
+export class Alias_Data extends Node {
 	name: string;
-	dataExps: DE[];
-    proc: SPE;
-	nextproc: SPE;
+	dataExp!: DE;
+
+	constructor(parent: Node, name: string) {
+        super(10, ASTKinds.Alias_Data, parent);
+		this.name = name;
+    }
 }
 
-export interface SPE_Brack extends Node {
-	kind: ASTKinds.SPE_Brack;
-	proc: SPE;
+export type SPE = SPE_Guard | SPE_Assign | SPE_Unicast | SPE_Broadcast | SPE_Groupcast | SPE_Send | SPE_Deliver | SPE_Receive | SPE_Call | SPE_Choice | SPE_Name;
+export class SPE_Guard extends Node {
+	dataExp!: DE;
+	nextproc!: SPE;
+
+	constructor(parent: Node) {
+        super(0, ASTKinds.SPE_Guard, parent);
+    }
 }
 
-export interface SPE_Call extends Node {
-	kind: ASTKinds.SPE_Call;
+export class SPE_Assign extends Node {
 	name: string;
-	args: DE[];
+	variable!: Variable
+	dataExpList!: DE[];
+	dataExpAssign!: DE;
+	nextproc!: SPE;
+
+	constructor(parent: Node, name: string) {
+        super(0, ASTKinds.SPE_Assign, parent);
+		this.name = name
+    }
 }
 
-export interface SPE_Name extends Node {
-	kind: ASTKinds.SPE_Name;
+export class SPE_Unicast extends Node {
+	dataExpL!: DE;
+    dataExpR!: DE;
+    procA!: SPE;
+	procB!: SPE;
+
+	constructor(parent: Node) {
+        super(0, ASTKinds.SPE_Unicast, parent);
+    }
+}
+
+export class SPE_Broadcast extends Node {
+	dataExp!: DE;
+	nextproc!: SPE;
+
+	constructor(parent: Node) {
+        super(0, ASTKinds.SPE_Broadcast, parent);
+    }
+}
+
+export class SPE_Groupcast extends Node {
+	dataExpL!: DE;
+    dataExpR!: DE;
+	nextproc!: SPE;
+
+	constructor(parent: Node) {
+        super(0, ASTKinds.SPE_Groupcast, parent);
+    }
+}
+
+export class SPE_Send extends Node {
+	dataExp!: DE;
+	nextproc!: SPE;
+
+	constructor(parent: Node) {
+        super(0, ASTKinds.SPE_Send, parent);
+    }
+}
+
+export class SPE_Deliver extends Node {
+	dataExp!: DE;
+	nextproc!: SPE;
+
+	constructor(parent: Node) {
+        super(0, ASTKinds.SPE_Deliver, parent);
+    }
+}
+
+export class SPE_Receive extends Node {
 	name: string;
+	variable!: Variable;
+	dataExps!: DE[];
+	nextproc!: SPE;
+
+	constructor(parent: Node, name: string) {
+        super(0, ASTKinds.SPE_Receive, parent);
+		this.name = name;
+    }
 }
 
-export interface SPE_Choice extends Node {
-	kind: ASTKinds.SPE_Choice;
-	left: SPE;
-	right: SPE;
-}
-
-export type DE = DE_Singleton | DE_Partial | DE_Set | DE_Lambda | DE_Forall | DE_Exists | DE_Brack | DE_Name | DE_Function | DE_Tuple | DE_Binary;
-export interface DE_Singleton extends Node {
-	kind: ASTKinds.DE_Singleton;
-	dataExp: DE;
-}
-
-export interface DE_Partial extends Node {
-	kind: ASTKinds.DE_Partial;
+export class SPE_Call extends Node {
 	name: string;
-	left: DE;
-	right: DE;
+	args!: DE[];
+
+	constructor(parent: Node, name: string) {
+        super(0, ASTKinds.SPE_Call, parent);
+		this.name = name;
+    }
 }
 
-export interface DE_Set extends Node {
-	kind: ASTKinds.DE_Set;
+export class SPE_Name extends Node {
 	name: string;
-	dataExp: DE;
+
+	constructor(parent: Node, name: string) {
+        super(0, ASTKinds.SPE_Name, parent);
+		this.name = name;
+    }
 }
 
-export interface DE_Lambda extends Node {
-	kind: ASTKinds.DE_Lambda;
+export class SPE_Choice extends Node {
+	left!: SPE;
+	right!: SPE;
+
+	constructor(parent: Node) {
+        super(0, ASTKinds.SPE_Choice, parent);
+    }
+}
+
+export class DE extends Node{
+	children: DE[] = [];
+	type!: TE
+
+	constructor(precedence: number, kind: ASTKinds, parent: Node){
+		super(precedence, kind, parent)
+	}
+}
+
+export class DE_Singleton extends DE {
+	dataExp!: DE;
+
+	constructor(parent: Node) {
+        super(0, ASTKinds.DE_Singleton, parent);
+    }
+}
+
+export class DE_Partial extends DE {
 	name: string;
-	dataExp: DE;
+	left!: DE;
+	right!: DE;
+
+	constructor(parent: Node, name: string) {
+        super(0, ASTKinds.DE_Partial, parent);
+		this.name = name;
+    }
 }
 
-export interface DE_Forall extends Node {
-	kind: ASTKinds.DE_Forall;
+export class DE_Set extends DE {
 	name: string;
-	dataExp: DE;
+	dataExp!: DE;
+
+	constructor(parent: Node, name: string) {
+        super(0, ASTKinds.DE_Set, parent);
+		this.name = name;
+    }
 }
 
-export interface DE_Exists extends Node {
-	kind: ASTKinds.DE_Exists;
+export class DE_Lambda extends DE {
 	name: string;
-	dataExp: DE;
+	dataExp!: DE;
+
+	constructor(parent: Node, name: string) {
+        super(6, ASTKinds.DE_Lambda, parent);
+		this.name = name;
+    }
 }
 
-export interface DE_Brack extends Node {
-	kind: ASTKinds.DE_Brack;
-	dataExp: DE;
-}
-
-export interface DE_Name extends Node {
-	kind: ASTKinds.DE_Name;
+export class DE_Forall extends DE {
 	name: string;
+	dataExp!: DE;
+
+	constructor(parent: Node, name: string) {
+        super(6, ASTKinds.DE_Forall, parent);
+		this.name = name;
+    }
 }
 
-export interface DE_Function extends Node {
-	kind: ASTKinds.DE_Function;
-	left: DE;
-	right: DE;
+export class DE_Exists extends DE {
+	name: string;
+	dataExp!: DE;
+
+	constructor(parent: Node, name: string) {
+        super(6, ASTKinds.DE_Exists, parent);
+		this.name = name;
+    }
 }
 
-export interface DE_Tuple extends Node {
-	kind: ASTKinds.DE_Tuple;
-	dataExps: DE[];
+export class DE_Brack extends DE {
+	dataExp!: DE;
+
+	constructor(parent: Node) {
+        super(10, ASTKinds.DE_Brack, parent);
+    }
 }
 
-export enum binExprs {
-	Implicates = "->",
-	Iff = "<->",
-	And = "&",
-	Or = "|",
-	Eq = "=",
-	Neq = "!=",
-	Gtreq = ">=",
-	Lsreq = "<=",
-	Gtr = ">",
-	Les = "<",
+export class DE_Name extends DE {
+	name: string;
+
+	constructor(parent: Node, name: string) {
+        super(0, ASTKinds.DE_Name, parent);
+		this.name = name;
+    }
 }
 
-export interface DE_Binary extends Node {
-	kind: ASTKinds.DE_Binary;
-	bin: binExprs;
-	left: DE;
-	right: DE;
+export class DE_Function extends DE {
+	left!: DE;
+	right!: DE;
+
+	constructor(parent: Node) {
+        super(0, ASTKinds.DE_Function, parent);
+    }
+}
+
+export class DE_Tuple extends DE {
+	dataExps!: DE[];
+
+	constructor(parent: Node) {
+        super(5, ASTKinds.DE_Tuple, parent);
+    }
+}
+
+export class DE_Binary extends DE {
+	function!: Function_Infix;
+	left!: DE;
+	right!: DE;
+
+	constructor(parent: Node, precedence: number) {
+        super(precedence, ASTKinds.DE_Binary, parent);
+    }
 }

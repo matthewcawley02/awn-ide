@@ -12,6 +12,7 @@ Block :=
 	| pos=@ 'FUNCTIONS:' func=Function+
 	| pos=@ 'PROCESSES:' proc=Process+
 	| pos=@ 'proc' proc=Process
+	| pos=@ 'ALIASES:' alias=Alias+
 
 Include := sp posS=@ name=Name posE=@ lb
 
@@ -28,6 +29,10 @@ Function :=
 Process :=
 	  sp pos1S=@ nameFirst=Name pos1E=@ '\(' pos2S=@ argFirst=Name? pos2E=@ argsMore={',' posS=@ name=Name posE=@ }* '\)' '\:\=' lb sp proc=SPE lb
 	| sp posS=@ name=Name posE=@ '\:\=' proc=SPE lb
+
+Alias :=
+	  sp pos1S=@ nameFirst=Name pos1E=@ '\:\=' sp '\"' pos2S=@ argFirst=Name? pos2E=@ argsMore={',' posS=@ name=Name posE=@ }* '\"' lb
+	| sp posS=@ name=Name posE=@ '\:\=' sp '\"' dataExp=DE '\"' lb
 
 //============
 // TYPE EXPRESSIONS
@@ -50,7 +55,7 @@ TE := '\(' typeExpr=TE '\)' typeExprMore=TE1?
 		return "name"
 	}
 
-TE1 := '\-\>' typeExpr=TE typeExprMore=TE1?
+TE1 := '\->' typeExpr=TE typeExprMore=TE1?
 	.typetype = string{
 		return "function"
 	}
@@ -195,15 +200,15 @@ DE1 :=
 	.dataExpType = string {
 		return "tuple"
 	}
-	| '->' dataExp=DE dataExpMore=DE1?
+	| '\->' dataExp=DE dataExpMore=DE1?
 	.dataExpType = string {
 		return "implicates"
 	}
-	| '<->' dataExp=DE dataExpMore=DE1?
+	| '<\->' dataExp=DE dataExpMore=DE1?
 	.dataExpType = string {
 		return "iff"
 	}
-	| '&' dataExp=DE dataExpMore=DE1?
+	| '\&' dataExp=DE dataExpMore=DE1?
 	.dataExpType = string {
 		return "and"
 	}
@@ -211,19 +216,19 @@ DE1 :=
 	.dataExpType = string {
 		return "or"
 	}
-	| '=' dataExp=DE dataExpMore=DE1?
+	| '\=' dataExp=DE dataExpMore=DE1?
 	.dataExpType = string {
 		return "eq"
 	}
-	| '!=' dataExp=DE dataExpMore=DE1?
+	| '\!\=' dataExp=DE dataExpMore=DE1?
 	.dataExpType = string {
 		return "neq"
 	}
-	| '>=' dataExp=DE dataExpMore=DE1?
+	| '>\=' dataExp=DE dataExpMore=DE1?
 	.dataExpType = string {
 		return "gtreq"
 	}
-	| '<=' dataExp=DE dataExpMore=DE1?
+	| '<\=' dataExp=DE dataExpMore=DE1?
 	.dataExpType = string {
 		return "leseq"
 	}

@@ -2,7 +2,6 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.NameChar = exports.NameString_2 = exports.NameString_1 = exports.Name = exports.TypeName = exports.DE1_13 = exports.DE1_12 = exports.DE1_11 = exports.DE1_10 = exports.DE1_9 = exports.DE1_8 = exports.DE1_7 = exports.DE1_6 = exports.DE1_5 = exports.DE1_4 = exports.DE1_3 = exports.DE1_2 = exports.DE1_1 = exports.DE_8 = exports.DE_7 = exports.DE_6 = exports.DE_5 = exports.DE_4 = exports.DE_3 = exports.DE_2 = exports.DE_1 = exports.SPE1 = exports.SPE_11 = exports.SPE_10 = exports.SPE_9 = exports.SPE_8 = exports.SPE_7 = exports.SPE_6 = exports.SPE_5 = exports.SPE_4 = exports.SPE_3 = exports.SPE_2 = exports.SPE_1 = exports.BTE_AUX_4 = exports.BTE_AUX_3 = exports.BTE_AUX_2 = exports.BTE_AUX_1 = exports.TE1_3 = exports.TE1_2 = exports.TE1_1 = exports.TE_4 = exports.TE_3 = exports.TE_2 = exports.TE_1 = exports.ASTKinds = void 0;
 exports.SyntaxErr = exports.parse = exports.Parser = exports.Infix = void 0;
-const syntaxError_1 = require("./syntaxError");
 var ASTKinds;
 (function (ASTKinds) {
     ASTKinds["AWNRoot"] = "AWNRoot";
@@ -14,6 +13,7 @@ var ASTKinds;
     ASTKinds["Block_6"] = "Block_6";
     ASTKinds["Block_7"] = "Block_7";
     ASTKinds["Block_8"] = "Block_8";
+    ASTKinds["Block_9"] = "Block_9";
     ASTKinds["Include"] = "Include";
     ASTKinds["Type"] = "Type";
     ASTKinds["Type_$0"] = "Type_$0";
@@ -25,6 +25,9 @@ var ASTKinds;
     ASTKinds["Process_1"] = "Process_1";
     ASTKinds["Process_2"] = "Process_2";
     ASTKinds["Process_$0"] = "Process_$0";
+    ASTKinds["Alias_1"] = "Alias_1";
+    ASTKinds["Alias_2"] = "Alias_2";
+    ASTKinds["Alias_$0"] = "Alias_$0";
     ASTKinds["TE_1"] = "TE_1";
     ASTKinds["TE_2"] = "TE_2";
     ASTKinds["TE_3"] = "TE_3";
@@ -723,6 +726,7 @@ class Parser {
             () => this.matchBlock_6($$dpth + 1, $$cr),
             () => this.matchBlock_7($$dpth + 1, $$cr),
             () => this.matchBlock_8($$dpth + 1, $$cr),
+            () => this.matchBlock_9($$dpth + 1, $$cr),
         ]);
     }
     matchBlock_1($$dpth, $$cr) {
@@ -833,6 +837,20 @@ class Parser {
                 && this.regexAccept(String.raw `(?:proc)`, "", $$dpth + 1, $$cr) !== null
                 && ($scope$proc = this.matchProcess($$dpth + 1, $$cr)) !== null) {
                 $$res = { kind: ASTKinds.Block_8, pos: $scope$pos, proc: $scope$proc };
+            }
+            return $$res;
+        });
+    }
+    matchBlock_9($$dpth, $$cr) {
+        return this.run($$dpth, () => {
+            let $scope$pos;
+            let $scope$alias;
+            let $$res = null;
+            if (true
+                && ($scope$pos = this.mark()) !== null
+                && this.regexAccept(String.raw `(?:ALIASES:)`, "", $$dpth + 1, $$cr) !== null
+                && ($scope$alias = this.loopPlus(() => this.matchAlias($$dpth + 1, $$cr))) !== null) {
+                $$res = { kind: ASTKinds.Block_9, pos: $scope$pos, alias: $scope$alias };
             }
             return $$res;
         });
@@ -1061,6 +1079,80 @@ class Parser {
                 && ($scope$name = this.matchName($$dpth + 1, $$cr)) !== null
                 && ($scope$posE = this.mark()) !== null) {
                 $$res = { kind: ASTKinds.Process_$0, posS: $scope$posS, name: $scope$name, posE: $scope$posE };
+            }
+            return $$res;
+        });
+    }
+    matchAlias($$dpth, $$cr) {
+        return this.choice([
+            () => this.matchAlias_1($$dpth + 1, $$cr),
+            () => this.matchAlias_2($$dpth + 1, $$cr),
+        ]);
+    }
+    matchAlias_1($$dpth, $$cr) {
+        return this.run($$dpth, () => {
+            let $scope$pos1S;
+            let $scope$nameFirst;
+            let $scope$pos1E;
+            let $scope$pos2S;
+            let $scope$argFirst;
+            let $scope$pos2E;
+            let $scope$argsMore;
+            let $$res = null;
+            if (true
+                && this.matchsp($$dpth + 1, $$cr) !== null
+                && ($scope$pos1S = this.mark()) !== null
+                && ($scope$nameFirst = this.matchName($$dpth + 1, $$cr)) !== null
+                && ($scope$pos1E = this.mark()) !== null
+                && this.regexAccept(String.raw `(?:\:\=)`, "", $$dpth + 1, $$cr) !== null
+                && this.matchsp($$dpth + 1, $$cr) !== null
+                && this.regexAccept(String.raw `(?:\")`, "", $$dpth + 1, $$cr) !== null
+                && ($scope$pos2S = this.mark()) !== null
+                && (($scope$argFirst = this.matchName($$dpth + 1, $$cr)) || true)
+                && ($scope$pos2E = this.mark()) !== null
+                && ($scope$argsMore = this.loop(() => this.matchAlias_$0($$dpth + 1, $$cr), 0, -1)) !== null
+                && this.regexAccept(String.raw `(?:\")`, "", $$dpth + 1, $$cr) !== null
+                && this.matchlb($$dpth + 1, $$cr) !== null) {
+                $$res = { kind: ASTKinds.Alias_1, pos1S: $scope$pos1S, nameFirst: $scope$nameFirst, pos1E: $scope$pos1E, pos2S: $scope$pos2S, argFirst: $scope$argFirst, pos2E: $scope$pos2E, argsMore: $scope$argsMore };
+            }
+            return $$res;
+        });
+    }
+    matchAlias_2($$dpth, $$cr) {
+        return this.run($$dpth, () => {
+            let $scope$posS;
+            let $scope$name;
+            let $scope$posE;
+            let $scope$dataExp;
+            let $$res = null;
+            if (true
+                && this.matchsp($$dpth + 1, $$cr) !== null
+                && ($scope$posS = this.mark()) !== null
+                && ($scope$name = this.matchName($$dpth + 1, $$cr)) !== null
+                && ($scope$posE = this.mark()) !== null
+                && this.regexAccept(String.raw `(?:\:\=)`, "", $$dpth + 1, $$cr) !== null
+                && this.matchsp($$dpth + 1, $$cr) !== null
+                && this.regexAccept(String.raw `(?:\")`, "", $$dpth + 1, $$cr) !== null
+                && ($scope$dataExp = this.matchDE($$dpth + 1, $$cr)) !== null
+                && this.regexAccept(String.raw `(?:\")`, "", $$dpth + 1, $$cr) !== null
+                && this.matchlb($$dpth + 1, $$cr) !== null) {
+                $$res = { kind: ASTKinds.Alias_2, posS: $scope$posS, name: $scope$name, posE: $scope$posE, dataExp: $scope$dataExp };
+            }
+            return $$res;
+        });
+    }
+    matchAlias_$0($$dpth, $$cr) {
+        return this.run($$dpth, () => {
+            let $scope$posS;
+            let $scope$name;
+            let $scope$posE;
+            let $$res = null;
+            if (true
+                && this.regexAccept(String.raw `(?:,)`, "", $$dpth + 1, $$cr) !== null
+                && ($scope$posS = this.mark()) !== null
+                && ($scope$name = this.matchName($$dpth + 1, $$cr)) !== null
+                && ($scope$posE = this.mark()) !== null) {
+                $$res = { kind: ASTKinds.Alias_$0, posS: $scope$posS, name: $scope$name, posE: $scope$posE };
             }
             return $$res;
         });
@@ -2306,7 +2398,7 @@ class SyntaxErr {
         this.expmatches = [...expmatches];
     }
     toString() {
-        return (0, syntaxError_1.syntaxError)(this);
+        return `Syntax Error at line ${this.pos.line}:${this.pos.offset}. Expected one of ${this.expmatches.map(x => x.kind === "EOF" ? " EOF" : ` ${x.negated ? 'not ' : ''}'${x.literal}'`)}`;
     }
 }
 exports.SyntaxErr = SyntaxErr;
