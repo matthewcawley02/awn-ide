@@ -144,6 +144,9 @@ function parseTypeExpr(node) {
             break;
         }
         case parser_1.ASTKinds.TE1_3: { //product
+            for (const child of node.products) {
+                parseTypeExpr(child.typeExpr);
+            }
             if (node.typeExprMore !== null) {
                 parseTypeExpr(node.typeExprMore);
             }
@@ -210,7 +213,7 @@ function parseProcExp(node) {
             break;
         }
         case parser_1.ASTKinds.SPE_2: {
-            pushAndUpdate(node.posS.line, node.posS.offset, node.posE.offset - node.posS.offset, Colours.Variable, 0);
+            pushAndUpdate(node.posA.line, node.posA.offset, node.posC.offset - node.posA.offset, Colours.Variable, 0);
             for (const de of node.dataExpList) {
                 parseDataExp(de.dataExp);
             }
@@ -319,14 +322,14 @@ function parseProcExp(node) {
 }
 function parseDataExp(node) {
     switch (node.kind) {
-        case parser_1.ASTKinds.DE_1: {
+        case parser_1.ASTKinds.DE_3: {
             parseDataExp(node.dataExp);
             if (node.dataExpMore !== null) {
                 parseDataExp(node.dataExpMore);
             }
             break;
         }
-        case parser_1.ASTKinds.DE_2: {
+        case parser_1.ASTKinds.DE_1: {
             pushAndUpdate(node.posS.line, node.posS.offset, node.posE.offset - node.posS.offset, Colours.Parameter, 0);
             parseDataExp(node.dataExpLeft);
             parseDataExp(node.dataExpRight);
@@ -335,7 +338,7 @@ function parseDataExp(node) {
             }
             break;
         }
-        case parser_1.ASTKinds.DE_3: {
+        case parser_1.ASTKinds.DE_2: {
             pushAndUpdate(node.posS.line, node.posS.offset, node.posE.offset - node.posS.offset, Colours.Parameter, 0);
             parseDataExp(node.dataExpRight);
             if (node.dataExpMore !== null) {
@@ -375,9 +378,14 @@ function parseDataExp(node) {
             break;
         }
         case parser_1.ASTKinds.DE_8: {
-            pushAndUpdate(node.posS.line, node.posS.offset, node.posE.offset - node.posS.offset, Colours.Parameter, 0);
-            if (node.dataExpMore !== null) {
-                parseDataExp(node.dataExpMore);
+            if (node.dataExpMore !== null) { //temporary hacky thing so that functions are highlighted correctly (just for the sake of it looking better for a demo)
+                if (node.dataExpMore.kind == parser_1.ASTKinds.DE1_1) {
+                    pushAndUpdate(node.posS.line, node.posS.offset, node.posE.offset - node.posS.offset, Colours.Function, 0);
+                    parseDataExp(node.dataExpMore);
+                }
+            }
+            else {
+                pushAndUpdate(node.posS.line, node.posS.offset, node.posE.offset - node.posS.offset, Colours.Parameter, 0);
             }
             break;
         }

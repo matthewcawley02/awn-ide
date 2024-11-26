@@ -158,6 +158,7 @@ async function validateTextDocument(textDocument) {
     }
     //if parsing succeeds, check for semantic errors
     if (parseResult.ast != null) {
+        console.log("original AST:\n", parseResult.ast);
         const newast = (0, convertAST_1.convertNewToOldAST)(parseResult.ast);
         console.log("converted AST:\n", newast);
         const semanticErrors = (0, check_1.Check)(newast);

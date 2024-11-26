@@ -4,6 +4,11 @@ exports.Check = exports.InitialiseCheck = void 0;
 const ast = require("./ast");
 const vscode_languageserver_1 = require("vscode-languageserver");
 var dummyParent; //I'd rather use the same AST nodes, but everything requires a parent. Use a dummy parent when the parent isn't actually necessary.
+const dummyPos = {
+    overallPos: 0,
+    line: 0,
+    offset: 0
+};
 var types = [];
 var variables = [];
 var constants = [];
@@ -38,51 +43,51 @@ function Check(root) {
     invalidFunctions = [];
     invalidProcesses = [];
     invalidAliases = [];
-    const t1 = new ast.Type(dummyParent, "Bool");
-    t1.typeExpr = new ast.TE_Name(t1, "Bool");
+    const t1 = new ast.Type(dummyParent, "Bool", dummyPos);
+    t1.typeExpr = new ast.TE_Name(t1, "Bool", dummyPos);
     types.push(t1);
-    const t2 = new ast.Type(dummyParent, "DATA");
-    t2.typeExpr = new ast.TE_Name(t2, "DATA");
+    const t2 = new ast.Type(dummyParent, "DATA", dummyPos);
+    t2.typeExpr = new ast.TE_Name(t2, "DATA", dummyPos);
     types.push(t2);
-    const t3 = new ast.Type(dummyParent, "MSG");
-    t3.typeExpr = new ast.TE_Name(t3, "MSG");
+    const t3 = new ast.Type(dummyParent, "MSG", dummyPos);
+    t3.typeExpr = new ast.TE_Name(t3, "MSG", dummyPos);
     types.push(t3);
-    const t4 = new ast.Type(dummyParent, "IP");
-    t4.typeExpr = new ast.TE_Name(t4, "IP");
+    const t4 = new ast.Type(dummyParent, "IP", dummyPos);
+    t4.typeExpr = new ast.TE_Name(t4, "IP", dummyPos);
     types.push(t4);
-    const t5 = new ast.Type(dummyParent, "TIME");
-    t5.typeExpr = new ast.TE_Name(t5, "TIME");
+    const t5 = new ast.Type(dummyParent, "TIME", dummyPos);
+    t5.typeExpr = new ast.TE_Name(t5, "TIME", dummyPos);
     types.push(t5);
-    const v = new ast.Variable(dummyParent, "now");
+    const v = new ast.Variable(dummyParent, "now", dummyPos);
     v.typeExpr = t5.typeExpr;
     variables.push(v);
-    const c1 = new ast.Constant(dummyParent, "true");
+    const c1 = new ast.Constant(dummyParent, "true", dummyPos);
     c1.typeExpr = t1.typeExpr;
     constants.push(c1);
-    const c2 = new ast.Constant(dummyParent, "false");
+    const c2 = new ast.Constant(dummyParent, "false", dummyPos);
     c1.typeExpr = t1.typeExpr;
     constants.push(c2);
     const booleanfunc = new ast.BTE_Function(dummyParent);
-    booleanfunc.left = new ast.TE_Name(booleanfunc, "Bool");
-    booleanfunc.right = new ast.TE_Name(booleanfunc, "Bool");
-    booleanfunc.output = new ast.TE_Name(booleanfunc, "Bool");
-    const f1 = new ast.Function_Infix(dummyParent, "&");
+    booleanfunc.left = new ast.TE_Name(booleanfunc, "Bool", dummyPos);
+    booleanfunc.right = new ast.TE_Name(booleanfunc, "Bool", dummyPos);
+    booleanfunc.output = new ast.TE_Name(booleanfunc, "Bool", dummyPos);
+    const f1 = new ast.Function_Infix(dummyParent, "&", dummyPos);
     f1.signature = booleanfunc;
     functions.push(f1);
-    const f2 = new ast.Function_Infix(dummyParent, "|");
+    const f2 = new ast.Function_Infix(dummyParent, "|", dummyPos);
     f2.signature = booleanfunc;
     functions.push(f2);
-    const f3 = new ast.Function_Infix(dummyParent, "->");
+    const f3 = new ast.Function_Infix(dummyParent, "->", dummyPos);
     f3.signature = booleanfunc;
     functions.push(f3);
-    const f4 = new ast.Function_Infix(dummyParent, "<->");
+    const f4 = new ast.Function_Infix(dummyParent, "<->", dummyPos);
     f4.signature = booleanfunc;
     functions.push(f4);
-    const f5 = new ast.Function_Infix(dummyParent, "newpkt");
+    const f5 = new ast.Function_Infix(dummyParent, "newpkt", dummyPos);
     f5.signature = new ast.BTE_Function(f5);
-    booleanfunc.left = new ast.TE_Name(booleanfunc, "Data");
-    booleanfunc.right = new ast.TE_Name(booleanfunc, "IP");
-    booleanfunc.output = new ast.TE_Name(booleanfunc, "MSG");
+    booleanfunc.left = new ast.TE_Name(booleanfunc, "Data", dummyPos);
+    booleanfunc.right = new ast.TE_Name(booleanfunc, "IP", dummyPos);
+    booleanfunc.output = new ast.TE_Name(booleanfunc, "MSG", dummyPos);
     functions.push(f5);
     for (const block of root.blocks) {
         switch (block.kind) {
@@ -92,7 +97,7 @@ function Check(root) {
             case ast.ASTKinds.Block_Type: {
                 for (const typedec of block.types) {
                     if (usedNames().includes(typedec.typeName)) {
-                        errors.push(createErrorMessage(100, 100, 100, 100, `Name "${typedec.typeName}" already defined previously.`));
+                        errors.push(createErrorMessage(`Name "${typedec.typeName}" already defined previously.`, typedec.pos.line, typedec.pos.offset));
                         continue;
                     }
                     const newTE = expandTypeExpression(typedec.typeExpr, typedec.typeName);
@@ -106,7 +111,7 @@ function Check(root) {
             case ast.ASTKinds.Block_Variable: {
                 for (var vari of block.vars) {
                     if (usedNames().includes(vari.name)) {
-                        errors.push(createErrorMessage(100, 100, 100, 100, `Name "${vari.name}" already defined previously.`));
+                        errors.push(createErrorMessage(`Name "${vari.name}" already defined previously.`, vari.namePos.line, vari.namePos.offset));
                         continue;
                     }
                     const newTE = expandTypeExpression(vari.typeExpr);
@@ -123,7 +128,7 @@ function Check(root) {
             case ast.ASTKinds.Block_Constant: {
                 for (var con of block.consts) {
                     if (usedNames().includes(con.name)) {
-                        errors.push(createErrorMessage(100, 100, 100, 100, `Name "${con.name}" already defined previously.`));
+                        errors.push(createErrorMessage(`Name "${con.name}" already defined previously.`, con.namePos.line, con.namePos.offset));
                         continue;
                     }
                     const newTE = expandTypeExpression(con.typeExpr);
@@ -140,7 +145,7 @@ function Check(root) {
             case ast.ASTKinds.Block_Function: {
                 for (var func of block.funcs) {
                     if (usedNames().includes(func.name)) {
-                        errors.push(createErrorMessage(100, 100, 100, 100, `Name "${func.name}" already defined previously.`));
+                        errors.push(createErrorMessage(`Name "${func.name}" already defined previously.`, func.namePos.line, func.namePos.offset));
                         continue;
                     }
                     const newTE = expandTypeExpression(func.signature);
@@ -166,10 +171,16 @@ function Check(root) {
             case ast.ASTKinds.Block_Process: {
                 for (const proc of block.procs) {
                     if (usedNames().includes(proc.name)) {
-                        errors.push(createErrorMessage(100, 100, 100, 100, `Name "${proc.name}" already defined previously.`));
+                        errors.push(createErrorMessage(`Name "${proc.name}" already defined previously.`, proc.namePos.line, proc.namePos.offset));
                         continue;
                     }
-                    if (CheckSPE(proc)) {
+                    //TODO binding rules for process variables
+                    for (const vari of proc.args) {
+                        if (!usedNames().includes(vari.name)) {
+                            errors.push(createErrorMessage(`"Nonexistent variable ${vari.name}" referenced.`, vari.namePos.line, vari.namePos.offset));
+                        }
+                    }
+                    if (CheckSPE(proc.proc)) {
                         processes.push(proc);
                     }
                     else {
@@ -197,11 +208,11 @@ function expandTypeExpression(typeExp, typeName) {
             if (typeExp.typename == typeName) {
                 //circular definition
                 invalidTypes.push(typeName);
-                errors.push(createErrorMessage(100, 100, 100, 100, `"${typeName}" contains a circular type definition.`));
+                errors.push(createErrorMessage(`"${typeName}" contains a circular type definition.`, typeExp.pos.line, typeExp.pos.offset));
                 return null;
             }
         }
-        const result = getTypeDefinition(typeExp.typename); //retrieve the equivalent
+        const result = getTypeDefinition(typeExp.typename, typeExp.pos); //retrieve the equivalent
         if (result == null) {
             //nonexistent type referenced
             if (typeName != null) {
@@ -248,7 +259,7 @@ function expandTypeExpression(typeExp, typeName) {
 //Given a type name, returns its type definition.
 //If the type has been declared but is invalid, returns 1.
 //If the type doesn't exist, returns 0.
-function getTypeDefinition(typeName) {
+function getTypeDefinition(typeName, pos) {
     var result;
     for (const type of types) {
         if (type.typeName == typeName) {
@@ -260,11 +271,28 @@ function getTypeDefinition(typeName) {
             return null;
         }
     }
-    errors.push(createErrorMessage(100, 100, 100, 100, `Nonexistent type "${typeName}" referenced.`));
+    errors.push(createErrorMessage(`Nonexistent type "${typeName}" referenced.`, pos.line, pos.offset));
+    return null;
+}
+function getConstant(constantName, produceError, pos) {
+    var result;
+    for (const con of constants) {
+        if (con.name == constantName) {
+            return con;
+        }
+    }
+    for (const con of invalidConstants) {
+        if (con == constantName) {
+            return null;
+        }
+    }
+    if (produceError) {
+        errors.push(createErrorMessage(`Nonexistent variable "${constantName}" referenced.`, pos.line, pos.offset));
+    }
     return null;
 }
 //TODO add case of VE[DE]
-function getVariable(variableName) {
+function getVariable(variableName, produceError, pos) {
     var result;
     for (const vari of variables) {
         if (vari.name == variableName) {
@@ -276,10 +304,12 @@ function getVariable(variableName) {
             return null;
         }
     }
-    errors.push(createErrorMessage(100, 100, 100, 100, `Nonexistent variable "${variableName}" referenced.`));
+    if (produceError) {
+        errors.push(createErrorMessage(`Nonexistent variable "${variableName}" referenced.`, pos.line, pos.offset));
+    }
     return null;
 }
-function getFunction(functionName) {
+function getFunction(functionName, produceError, pos) {
     var result;
     for (const func of functions) {
         if (func.name == functionName) {
@@ -291,7 +321,9 @@ function getFunction(functionName) {
             return null;
         }
     }
-    errors.push(createErrorMessage(100, 100, 100, 100, `Nonexistent function "${functionName}" referenced.`));
+    if (produceError) {
+        errors.push(createErrorMessage(`Nonexistent function "${functionName}" referenced.`, pos.line, pos.offset));
+    }
     return null;
 }
 //Evaluates and checks the data expression from the bottom up.
@@ -311,7 +343,7 @@ function CheckDataExpression(de) {
             if (CheckDataExpression(DE.dataExp) == false) {
                 return false;
             }
-            const v = getVariable(DE.name);
+            const v = getVariable(DE.name, true, DE.namePos);
             if (v == null) {
                 return false;
             }
@@ -321,7 +353,7 @@ function CheckDataExpression(de) {
                     return true;
                 }
             }
-            errors.push(createErrorMessage(100, 100, 100, 100, `Expected type "Bool" but got TODO.`));
+            errors.push(createErrorMessage(`Expected type "Bool" but got TODO.`, DE.namePos.line, DE.namePos.offset));
             return false;
         }
         case ast.ASTKinds.DE_Partial: {
@@ -329,7 +361,7 @@ function CheckDataExpression(de) {
             if (CheckDataExpression(DE.left) == false || CheckDataExpression(DE.right) == false) {
                 return false;
             }
-            const v = getVariable(DE.name);
+            const v = getVariable(DE.name, true, DE.namePos);
             if (v == null) {
                 return false;
             }
@@ -339,7 +371,7 @@ function CheckDataExpression(de) {
                     return true;
                 }
             }
-            errors.push(createErrorMessage(100, 100, 100, 100, `Expected type "Bool" but got TODO.`));
+            errors.push(createErrorMessage(`Expected type "Bool" but got TODO.`, DE.namePos.line, DE.namePos.offset));
             return false;
         }
         case ast.ASTKinds.DE_Lambda: {
@@ -347,7 +379,7 @@ function CheckDataExpression(de) {
             if (CheckDataExpression(DE.dataExp) == false) {
                 return false;
             }
-            const v = getVariable(DE.name);
+            const v = getVariable(DE.name, true, DE.namePos);
             if (v == null) {
                 return false;
             }
@@ -358,17 +390,17 @@ function CheckDataExpression(de) {
             if (CheckDataExpression(DE.dataExp) == false) {
                 return false;
             }
-            const v = getVariable(DE.name);
+            const v = getVariable(DE.name, true, DE.namePos);
             if (v == null) {
                 return false;
             }
             if (DE.dataExp.type.kind == ast.ASTKinds.TE_Name) {
                 if (DE.dataExp.type.typename == "Bool") {
-                    DE.type = new ast.TE_Name(dummyParent, "Bool");
+                    DE.type = new ast.TE_Name(dummyParent, "Bool", DE.dataExp.type.pos);
                     return true;
                 }
             }
-            errors.push(createErrorMessage(100, 100, 100, 100, `Expected type "Bool" but got TODO.`));
+            errors.push(createErrorMessage(`Expected type "Bool" but got TODO.`, DE.namePos.line, DE.namePos.offset));
             return false;
         }
         case ast.ASTKinds.DE_Exists: {
@@ -376,17 +408,17 @@ function CheckDataExpression(de) {
             if (CheckDataExpression(DE.dataExp) == false) {
                 return false;
             }
-            const v = getVariable(DE.name);
+            const v = getVariable(DE.name, true, DE.namePos);
             if (v == null) {
                 return false;
             }
             if (DE.dataExp.type.kind == ast.ASTKinds.TE_Name) {
                 if (DE.dataExp.type.typename == "Bool") {
-                    DE.type = new ast.TE_Name(dummyParent, "Bool");
+                    DE.type = new ast.TE_Name(dummyParent, "Bool", DE.dataExp.type.pos);
                     return true;
                 }
             }
-            errors.push(createErrorMessage(100, 100, 100, 100, `Expected type "Bool" but got TODO.`));
+            errors.push(createErrorMessage(`Expected type "Bool" but got TODO.`, DE.namePos.line, DE.namePos.offset));
             return false;
         }
         case ast.ASTKinds.DE_Brack: {
@@ -398,43 +430,59 @@ function CheckDataExpression(de) {
             return true;
         }
         case ast.ASTKinds.DE_Name: {
-            const DE = de; //assume function for now (also could be alias)
-            const f = getFunction(DE.name);
-            if (f == null) {
-                return false;
+            const DE = de;
+            const c = getConstant(DE.name, false, DE.namePos);
+            if (c != null) {
+                DE.type = c.typeExpr;
+                return true;
             }
-            DE.type = f.signature;
-            return true;
+            const v = getVariable(DE.name, false, DE.namePos);
+            if (v != null) {
+                DE.type = v.typeExpr;
+                return true;
+            }
+            const f = getFunction(DE.name, false, DE.namePos);
+            if (f != null) {
+                DE.type = f.signature;
+                return true;
+            }
+            errors.push(createErrorMessage(`Nonexistent identifier "${DE.name}" referenced.`, DE.namePos.line, DE.namePos.offset));
+            return false;
         }
         case ast.ASTKinds.DE_Tuple: return true; //TODO
         case ast.ASTKinds.DE_Function: {
             const DE = de;
-            if (CheckDataExpression(DE.left) == false) {
+            if (CheckDataExpression(DE.signature) == false) {
                 return false;
             }
-            if (CheckDataExpression(DE.right) == false) {
+            if (CheckDataExpression(DE.arguments) == false) {
                 return false;
             }
-            //ensure left DE has function type
-            if (![ast.ASTKinds.TE_Function, ast.ASTKinds.TE_Partial].includes(DE.left.kind)) {
-                errors.push(createErrorMessage(100, 100, 100, 100, `Expected functional type but got TODO.`));
+            //ensure signature DE actually is of function type
+            console.log("hello", DE);
+            if (![ast.ASTKinds.TE_Function, ast.ASTKinds.TE_Partial].includes(DE.signature.type.kind)) {
+                errors.push(createErrorMessage(`Expected functional type but got TODO.`, DE.sigPos.line, DE.sigPos.offset));
                 return false;
             }
-            switch (DE.left.kind) {
+            //check that arguments match signature
+            switch (DE.signature.type.kind) {
                 case ast.ASTKinds.TE_Function: {
-                    if (!AreIdenticalTypes(DE.left.type.left, DE.right.type)) {
-                        errors.push(createErrorMessage(100, 100, 100, 100, `Function arguments don't match signature.`));
+                    if (!AreIdenticalTypes(DE.signature.type.left, DE.arguments.type)) {
+                        errors.push(createErrorMessage(`Function arguments don't match signature.`, DE.argPos.line, DE.argPos.offset));
                         return false;
                     }
+                    break;
                 }
                 case ast.ASTKinds.TE_Partial: {
-                    if (!AreIdenticalTypes(DE.left.type.left, DE.right.type)) {
-                        errors.push(createErrorMessage(100, 100, 100, 100, `Function arguments don't match signature.`));
+                    if (!AreIdenticalTypes(DE.signature.type.left, DE.arguments.type)) {
+                        errors.push(createErrorMessage(`Function arguments don't match signature.`, DE.argPos.line, DE.argPos.offset));
                         return false;
                     }
+                    break;
                 }
+                default: return false;
             }
-            DE.type = DE.right.type;
+            DE.type = DE.signature.type.right;
             return true;
         }
         case ast.ASTKinds.DE_Binary: {
@@ -456,93 +504,199 @@ function CheckDataExpression(de) {
 function CheckSPE(proc) {
     switch (proc.kind) {
         case ast.ASTKinds.SPE_Guard: {
-            const DEType = proc.dataExp.type;
-            if (DEType.kind == ast.ASTKinds.TE_Name) {
-                return DEType.typename == "Bool"
-                    && CheckSPE(proc.nextproc);
+            const Proc = proc;
+            if (!CheckDataExpression(Proc.dataExp)) {
+                return false;
             }
-            return false;
+            const DEType = Proc.dataExp.type;
+            if (DEType.kind != ast.ASTKinds.TE_Name) {
+                errors.push(createErrorMessage(`Expected type "Bool" but got TODO instead.`, Proc.DEStart.line, Proc.DEStart.offset, Proc.DEEnd.line, Proc.DEEnd.offset));
+                CheckSPE(Proc.nextproc);
+                return false;
+            }
+            if (DEType.typename != "Bool") {
+                errors.push(createErrorMessage(`Expected type "Bool" but got TODO instead.`, Proc.DEStart.line, Proc.DEStart.offset, Proc.DEEnd.line, Proc.DEEnd.offset));
+                CheckSPE(Proc.nextproc);
+                return false;
+            }
+            return CheckSPE(Proc.nextproc);
         }
         case ast.ASTKinds.SPE_Assign: {
             const Proc = proc;
-            const result = getVariable(Proc.name);
+            const result = getVariable(Proc.name, true, Proc.nameStart);
             if (result == null) {
+                CheckSPE(Proc.nextproc);
                 return false;
             }
             else {
                 Proc.variable = result;
             }
-            return (AreIdenticalTypes(Proc.variable.typeExpr, Proc.dataExpAssign.type))
-                && CheckSPE(Proc.nextproc);
+            if (!AreIdenticalTypes(Proc.variable.typeExpr, Proc.dataExpAssign.type)) {
+                errors.push(createErrorMessage(`Data expression and variable must have the same type.`, Proc.nameStart.line, Proc.nameStart.offset, Proc.end.line, Proc.end.offset));
+                CheckSPE(Proc.nextproc);
+                return false;
+            }
+            return CheckSPE(Proc.nextproc);
         }
         case ast.ASTKinds.SPE_Unicast: {
             const Proc = proc;
+            if (!CheckDataExpression(Proc.dataExpL)) {
+                CheckSPE(Proc.procA);
+                CheckSPE(Proc.procB);
+                return false;
+            }
+            if (!CheckDataExpression(Proc.dataExpR)) {
+                CheckSPE(Proc.procA);
+                CheckSPE(Proc.procB);
+                return false;
+            }
             const DELType = Proc.dataExpL.type;
             const DERType = Proc.dataExpR.type;
-            if (DELType.kind == ast.ASTKinds.TE_Name && DERType.kind == ast.ASTKinds.TE_Name) {
-                return DELType.typename == "IP"
-                    && DERType.typename == "MSG"
-                    && CheckSPE(Proc.procA)
-                    && CheckSPE(Proc.procB);
+            if (DELType.kind != ast.ASTKinds.TE_Name) {
+                errors.push(createErrorMessage(`Expected type "IP" but got TODO instead.`, Proc.DELstart.line, Proc.DELstart.offset, Proc.DELend.line, Proc.DELend.offset));
+                CheckSPE(Proc.procA);
+                CheckSPE(Proc.procB);
+                return false;
             }
-            return false;
+            if (DELType.typename != "IP") {
+                errors.push(createErrorMessage(`Expected type "IP" but got TODO instead.`, Proc.DELstart.line, Proc.DELstart.offset, Proc.DELend.line, Proc.DELend.offset));
+                CheckSPE(Proc.procA);
+                CheckSPE(Proc.procB);
+                return false;
+            }
+            if (DERType.kind != ast.ASTKinds.TE_Name) {
+                errors.push(createErrorMessage(`Expected type "MSG" but got TODO instead.`, Proc.DELend.line, Proc.DELend.offset + 2, Proc.DERend.line, Proc.DERend.offset));
+                CheckSPE(Proc.procA);
+                CheckSPE(Proc.procB);
+                return false;
+            }
+            if (DERType.typename != "MSG") {
+                errors.push(createErrorMessage(`Expected type "MSG" but got TODO instead.`, Proc.DELend.line, Proc.DELend.offset + 2, Proc.DERend.line, Proc.DERend.offset));
+                CheckSPE(Proc.procA);
+                CheckSPE(Proc.procB);
+                return false;
+            }
+            return CheckSPE(Proc.procA) && CheckSPE(Proc.procB);
         }
         case ast.ASTKinds.SPE_Groupcast: {
             const Proc = proc;
+            if (!CheckDataExpression(Proc.dataExpL)) {
+                CheckSPE(Proc.nextproc);
+                return false;
+            }
+            if (!CheckDataExpression(Proc.dataExpR)) {
+                CheckSPE(Proc.nextproc);
+                return false;
+            }
             const DELType = Proc.dataExpL.type;
             const DERType = Proc.dataExpR.type;
-            if (DELType.kind == ast.ASTKinds.TE_Pow) {
-                const deltype = DELType;
-                if (deltype.typeExpr.kind == ast.ASTKinds.TE_Name && DERType.kind == ast.ASTKinds.TE_Name) {
-                    return deltype.typeExpr.typename == "IP"
-                        && DERType.typename == "MSG"
-                        && CheckSPE(Proc.nextproc);
-                }
+            if (DELType.kind != ast.ASTKinds.TE_Pow) {
+                errors.push(createErrorMessage(`Expected type "Pow(IP)" but got TODO instead.`, Proc.DELstart.line, Proc.DELstart.offset, Proc.DELend.line, Proc.DELend.offset));
+                CheckSPE(Proc.nextproc);
+                return false;
             }
-            return false;
+            const deltype = DELType;
+            if (deltype.typeExpr.kind != ast.ASTKinds.TE_Name) {
+                errors.push(createErrorMessage(`Expected type "Pow(IP)" but got TODO instead.`, Proc.DELstart.line, Proc.DELstart.offset, Proc.DELend.line, Proc.DELend.offset));
+                CheckSPE(Proc.nextproc);
+                return false;
+            }
+            if (deltype.typeExpr.typename != "IP") {
+                errors.push(createErrorMessage(`Expected type "Pow(IP)" but got TODO instead.`, Proc.DELstart.line, Proc.DELstart.offset, Proc.DELend.line, Proc.DELend.offset));
+                CheckSPE(Proc.nextproc);
+                return false;
+            }
+            if (DERType.kind != ast.ASTKinds.TE_Name) {
+                errors.push(createErrorMessage(`Expected type "MSG" but got TODO instead.`, Proc.DELend.line, Proc.DELend.offset + 2, Proc.DERend.line, Proc.DERend.offset));
+                CheckSPE(Proc.nextproc);
+                return false;
+            }
+            if (DERType.typename != "MSG") {
+                errors.push(createErrorMessage(`Expected type "MSG" but got TODO instead.`, Proc.DELend.line, Proc.DELend.offset + 2, Proc.DERend.line, Proc.DERend.offset));
+                CheckSPE(Proc.nextproc);
+                return false;
+            }
+            return CheckSPE(Proc.nextproc);
         }
         case ast.ASTKinds.SPE_Broadcast: {
             const Proc = proc;
-            const DEType = Proc.dataExp.type;
-            if (DEType.kind == ast.ASTKinds.TE_Name) {
-                return DEType.typename == "MSG"
-                    && CheckSPE(Proc.nextproc);
+            if (!CheckDataExpression(Proc.dataExp)) {
+                CheckSPE(Proc.nextproc);
+                return false;
             }
-            return false;
+            const DEType = Proc.dataExp.type;
+            if (DEType.kind != ast.ASTKinds.TE_Name) {
+                errors.push(createErrorMessage(`Expected type "MSG" but got TODO instead.`, Proc.DEstart.line, Proc.DEstart.offset, Proc.DEend.line, Proc.DEend.offset));
+                CheckSPE(Proc.nextproc);
+                return false;
+            }
+            if (DEType.typename != "MSG") {
+                errors.push(createErrorMessage(`Expected type "MSG" but got TODO instead.`, Proc.DEstart.line, Proc.DEstart.offset, Proc.DEend.line, Proc.DEend.offset));
+                CheckSPE(Proc.nextproc);
+                return false;
+            }
+            return CheckSPE(Proc.nextproc);
         }
         case ast.ASTKinds.SPE_Send: {
             const Proc = proc;
-            const DEType = Proc.dataExp.type;
-            if (DEType.kind == ast.ASTKinds.TE_Name) {
-                return DEType.typename == "MSG"
-                    && CheckSPE(Proc.nextproc);
+            if (!CheckDataExpression(Proc.dataExp)) {
+                CheckSPE(Proc.nextproc);
+                return false;
             }
-            return false;
+            const DEType = Proc.dataExp.type;
+            if (DEType.kind != ast.ASTKinds.TE_Name) {
+                errors.push(createErrorMessage(`Expected type "MSG" but got TODO instead.`, Proc.DEstart.line, Proc.DEstart.offset, Proc.DEend.line, Proc.DEend.offset));
+                CheckSPE(Proc.nextproc);
+                return false;
+            }
+            if (DEType.typename != "MSG") {
+                errors.push(createErrorMessage(`Expected type "MSG" but got TODO instead.`, Proc.DEstart.line, Proc.DEstart.offset, Proc.DEend.line, Proc.DEend.offset));
+                CheckSPE(Proc.nextproc);
+                return false;
+            }
+            return CheckSPE(Proc.nextproc);
         }
         case ast.ASTKinds.SPE_Deliver: {
             const Proc = proc;
-            const DEType = Proc.dataExp.type;
-            if (DEType.kind == ast.ASTKinds.TE_Name) {
-                return DEType.typename == "DATA"
-                    && CheckSPE(Proc.nextproc);
+            if (!CheckDataExpression(Proc.dataExp)) {
+                CheckSPE(Proc.nextproc);
+                return false;
             }
-            return false;
+            const DEType = Proc.dataExp.type;
+            if (DEType.kind != ast.ASTKinds.TE_Name) {
+                errors.push(createErrorMessage(`Expected type "DATA" but got TODO instead.`, Proc.DEstart.line, Proc.DEstart.offset, Proc.DEend.line, Proc.DEend.offset));
+                CheckSPE(Proc.nextproc);
+                return false;
+            }
+            if (DEType.typename != "DATA") {
+                errors.push(createErrorMessage(`Expected type "DATA" but got TODO instead.`, Proc.DEstart.line, Proc.DEstart.offset, Proc.DEend.line, Proc.DEend.offset));
+                CheckSPE(Proc.nextproc);
+                return false;
+            }
+            return CheckSPE(Proc.nextproc);
         }
         case ast.ASTKinds.SPE_Receive: {
             const Proc = proc;
-            const result = getVariable(Proc.name);
+            const result = getVariable(Proc.name, true, Proc.namePos);
             if (result == null) {
+                CheckSPE(Proc.nextproc);
                 return false;
             }
             else {
                 Proc.variable = result;
             }
             const varitype = Proc.variable.typeExpr;
-            if (varitype.kind == ast.ASTKinds.TE_Name) {
-                return varitype.typename == "MSG"
-                    && CheckSPE(Proc.nextproc);
+            if (varitype.kind != ast.ASTKinds.TE_Name) {
+                errors.push(createErrorMessage(`Expected type "MSG" but got TODO instead.`, Proc.namePos.line, Proc.namePos.offset, Proc.nameEnd.line, Proc.nameEnd.offset));
+                CheckSPE(Proc.nextproc);
+                return false;
             }
-            return false;
+            if (varitype.typename != "MSG") {
+                errors.push(createErrorMessage(`Expected type "MSG" but got TODO instead.`, Proc.namePos.line, Proc.namePos.offset, Proc.nameEnd.line, Proc.nameEnd.offset));
+                CheckSPE(Proc.nextproc);
+                return false;
+            }
+            return CheckSPE(Proc.nextproc);
         }
         case ast.ASTKinds.SPE_Choice: {
             const Proc = proc;
@@ -577,12 +731,12 @@ function usedNames() {
         .concat(processes.map(x => x.name)).concat(invalidProcesses)
         .concat(aliases.map(x => x.name)).concat(invalidAliases);
 }
-function createErrorMessage(startLine, startChar, endLine, endChar, message) {
+function createErrorMessage(message, line, char, lineE, charE) {
     return {
         severity: vscode_languageserver_1.DiagnosticSeverity.Error,
         range: {
-            start: { line: startLine, character: startChar },
-            end: { line: endLine, character: endChar }
+            start: { line: line - 1, character: char },
+            end: { line: lineE == null ? line - 1 : lineE - 1, character: charE == null ? char : charE }
         },
         message: message
     };

@@ -24,7 +24,7 @@ ConVar :=
 
 Function :=
 	  sp posS=@ name=Name posE=@ '\: ' typeExpr=TE lb
-	| sp name=Infix '\: ' binTypeExpr=BTE lb
+	| sp posS=@ name=Infix posE=@ '\: ' binTypeExpr=BTE lb
 
 Process :=
 	  sp pos1S=@ nameFirst=Name pos1E=@ '\(' pos2S=@ argFirst=Name? pos2E=@ argsMore={',' posS=@ name=Name posE=@ }* '\)' '\:\=' lb sp proc=SPE lb
@@ -63,7 +63,7 @@ TE1 := '\->' typeExpr=TE typeExprMore=TE1?
 	.typetype = string{
 		return "part_function"
 	}
-	| {pos=@ ' x ' typeExpr=TE}* typeExprMore=TE1?
+	| products={pos=@ ' x ' typeExpr=TE}* typeExprMore=TE1?
 	.typetype = string{
 		return "product"
 	}
@@ -81,7 +81,7 @@ BTE :=
 	| left=BTE_AUX ' x ' right=BTE_AUX '\+->' typeExpr=TE
 
 BTE_AUX :=
-	  name=TypeName
+	  posS=@ name=TypeName posE=@
 	.typetype = string {
 		return "name"
 	}
@@ -103,31 +103,31 @@ BTE_AUX :=
 //==================
 
 SPE :=
-	  '\[' dataExp=DE '\]' proc=SPE procMore=SPE1?
+	  '\[' posDES=@ dataExp=DE posDEE=@ '\]' proc=SPE procMore=SPE1?
 	.procType = string {
 		return "guard"
 	}
-	| '\[\[' posS=@ name=Name posE=@ dataExpList={'\[' dataExp=DE '\]' }* ':=' dataExpAssignment=DE '\]\]' lb sp proc=SPE procMore=SPE1?
+	| '\[\[' posA=@ name=Name posB=@ dataExpList={'\[' dataExp=DE '\]' }* ':=' posC=@ dataExpAssignment=DE posD=@ '\]\]' lb sp proc=SPE procMore=SPE1?
 	.procType = string {
 		return "assignment"
 	}
-	| pos=@ 'unicast' '\(' dataExpL=DE ', ' dataExpR=DE '\)' '.' procL=SPE lb sp '>' procR=SPE procMore=SPE1?
+	| pos=@ 'unicast' '\(' posA=@ dataExpL=DE posB=@ ', ' dataExpR=DE posC=@ '\)' '.' procL=SPE lb sp '>' procR=SPE procMore=SPE1?
 	.procType = string {
 		return "unicast"
 	}
-	| pos=@ 'broadcast' '\(' dataExp=DE '\)' '.' lb sp proc=SPE procMore=SPE1?
+	| pos=@ 'broadcast' '\(' posA=@ dataExp=DE posB=@ '\)' '.' lb sp proc=SPE procMore=SPE1?
 	.procType = string {
 		return "broadcast"
 	}
-	| pos=@ 'groupcast' '\(' dataExpL=DE ', ' dataExpR=DE '\)' '.' lb sp proc=SPE procMore=SPE1?
+	| pos=@ 'groupcast' '\(' posA=@ dataExpL=DE posB=@ ', ' dataExpR=DE posC=@ '\)' '.' lb sp proc=SPE procMore=SPE1?
 	.procType = string {
 		return "groupcast"
 	}
-	| pos=@ 'send' '\(' dataExp=DE '\)' '.' lb sp proc=SPE procMore=SPE1?
+	| pos=@ 'send' '\(' posA=@ dataExp=DE posB=@ '\)' '.' lb sp proc=SPE procMore=SPE1?
 	.procType = string {
 		return "send"
 	}
-	| pos=@ 'deliver' '\(' dataExp=DE '\)' '.' lb sp proc=SPE procMore=SPE1?
+	| pos=@ 'deliver' '\(' posA=@ dataExp=DE posB=@ '\)' '.' lb sp proc=SPE procMore=SPE1?
 	.procType = string {
 		return "deliver"
 	}
@@ -158,17 +158,17 @@ SPE1 := lb sp '\+' proc=SPE procMore=SPE1?
 //===============
 
 DE :=
-	  '{' dataExp=DE '}' dataExpMore=DE1?
-	.dataExpType = string {
-		return "singleton"
-	}
-	| '{' '\(' posS=@ name=Name posE=@ ',' dataExpLeft=DE '\)' '|' dataExpRight=DE '}' dataExpMore=DE1?
+	'{' '\(' posS=@ name=Name posE=@ ',' dataExpLeft=DE '\)' '|' dataExpRight=DE '}' dataExpMore=DE1?
 	.dataExpType = string {
 		return "partial"
 	}
 	| '{' posS=@ name=Name posE=@ '|' dataExpRight=DE '}' dataExpMore=DE1?
 	.dataExpType = string {
 		return "set"
+	}
+	| '{' dataExp=DE '}' dataExpMore=DE1?
+	.dataExpType = string {
+		return "singleton"
 	}
 	| pos=@ 'lambda ' name=Name '.' dataExp=DE dataExpMore=DE1?
 	.dataExpType = string {
@@ -192,7 +192,7 @@ DE :=
 	}
 
 DE1 := 
-	  sp dataExp=DE dataExpMore=DE1?
+	  sp posA=@ dataExp=DE posB=@ dataExpMore=DE1?
 	  .dataExpType = string {
 		return "function"
 	}
@@ -212,7 +212,7 @@ DE1 :=
 	.dataExpType = string {
 		return "and"
 	}
-	| '|' dataExp=DE dataExpMore=DE1?
+	| '||' dataExp=DE dataExpMore=DE1?
 	.dataExpType = string {
 		return "or"
 	}
@@ -274,7 +274,7 @@ NameString := prefix={pre=NameChar* dot='\.' post=NameString}
 NameChar := char='[a-zA-Z0-9]' //simplified for now
 	.value = string{return char}
 
-Infix := char='[\*\+-<\=>\!\&|\\]+' //Currently "InfixOps"
+Infix := char='[\*\+-<\=>\!\&\\]+' //Currently "InfixOps"
 	.value = string{return char}
 
 ws := {sp | lb}* 						//any whitespace

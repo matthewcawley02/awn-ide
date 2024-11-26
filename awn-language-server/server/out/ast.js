@@ -64,7 +64,7 @@ function isBracketType(x) {
 }
 exports.isBracketType = isBracketType;
 class Node {
-    constructor(precedence, kind, parent) {
+    constructor(precedence, kind, parent, position) {
         this.parent = parent;
         this.precedence = precedence;
         this.kind = kind;
@@ -143,9 +143,10 @@ class Include extends Node {
 }
 exports.Include = Include;
 class Type extends Node {
-    constructor(parent, typeName) {
+    constructor(parent, typeName, position) {
         super(10, ASTKinds.Type, parent);
         this.typeName = typeName;
+        this.pos = position;
     }
 }
 exports.Type = Type;
@@ -178,15 +179,16 @@ class TE_List extends TE {
 }
 exports.TE_List = TE_List;
 class TE_Name extends TE {
-    constructor(parent, typename) {
+    constructor(parent, typename, position) {
         super(parent, 0, ASTKinds.TE_Name);
         this.typename = typename;
+        this.pos = position;
     }
 }
 exports.TE_Name = TE_Name;
 class TE_Function extends TE {
     constructor(parent, left, right) {
-        super(parent, 2, ASTKinds.TE_Function);
+        super(parent, 3, ASTKinds.TE_Function);
         if (left != null && right != null) {
             this.left = left;
             this.right = right;
@@ -196,7 +198,7 @@ class TE_Function extends TE {
 exports.TE_Function = TE_Function;
 class TE_Partial extends TE {
     constructor(parent, left, right) {
-        super(parent, 1, ASTKinds.TE_Function);
+        super(parent, 2, ASTKinds.TE_Function);
         if (left != null && right != null) {
             this.left = left;
             this.right = right;
@@ -206,7 +208,7 @@ class TE_Partial extends TE {
 exports.TE_Partial = TE_Partial;
 class TE_Product extends TE {
     constructor(parent) {
-        super(parent, 3, ASTKinds.TE_Product);
+        super(parent, 1, ASTKinds.TE_Product);
     }
 }
 exports.TE_Product = TE_Product;
@@ -223,37 +225,42 @@ class BTE_Partial extends TE {
 }
 exports.BTE_Partial = BTE_Partial;
 class Variable extends Node {
-    constructor(parent, name) {
+    constructor(parent, name, namePos) {
         super(10, ASTKinds.Variable, parent);
         this.name = name;
+        this.namePos = namePos;
     }
 }
 exports.Variable = Variable;
 class Constant extends Node {
-    constructor(parent, name) {
+    constructor(parent, name, namePos) {
         super(10, ASTKinds.Constant, parent);
         this.name = name;
+        this.namePos = namePos;
     }
 }
 exports.Constant = Constant;
 class Function_Generic extends Node {
-    constructor(parent, name) {
+    constructor(parent, name, namePos) {
         super(10, ASTKinds.Function_Generic, parent);
         this.name = name;
+        this.namePos = namePos;
     }
 }
 exports.Function_Generic = Function_Generic;
 class Function_Infix extends Node {
-    constructor(parent, name) {
+    constructor(parent, name, namePos) {
         super(10, ASTKinds.Function_Infix, parent);
         this.name = name;
+        this.namePos = namePos;
     }
 }
 exports.Function_Infix = Function_Infix;
 class Process extends Node {
-    constructor(parent, name) {
+    constructor(parent, name, namePos) {
         super(10, ASTKinds.Process, parent);
         this.name = name;
+        this.namePos = namePos;
     }
 }
 exports.Process = Process;
@@ -272,72 +279,96 @@ class Alias_Data extends Node {
 }
 exports.Alias_Data = Alias_Data;
 class SPE_Guard extends Node {
-    constructor(parent) {
-        super(0, ASTKinds.SPE_Guard, parent);
+    constructor(parent, DEStart, DEEnd) {
+        super(10, ASTKinds.SPE_Guard, parent);
+        this.DEStart = DEStart;
+        this.DEEnd = DEEnd;
     }
 }
 exports.SPE_Guard = SPE_Guard;
 class SPE_Assign extends Node {
-    constructor(parent, name) {
-        super(0, ASTKinds.SPE_Assign, parent);
+    constructor(parent, name, nameStart, varStart, listExpStart, listExpEnd, assignExpStart, end) {
+        super(10, ASTKinds.SPE_Assign, parent);
         this.name = name;
+        this.nameStart = nameStart;
+        this.varStart = varStart;
+        this.listExpStart = listExpStart;
+        this.listExpEnd = listExpEnd;
+        this.assignExpStart = assignExpStart;
+        this.end = end;
     }
 }
 exports.SPE_Assign = SPE_Assign;
 class SPE_Unicast extends Node {
-    constructor(parent) {
-        super(0, ASTKinds.SPE_Unicast, parent);
+    constructor(parent, DELstart, DELend, DERend) {
+        super(10, ASTKinds.SPE_Unicast, parent);
+        this.DELstart = DELstart;
+        this.DELend = DELend;
+        this.DERend = DERend;
     }
 }
 exports.SPE_Unicast = SPE_Unicast;
 class SPE_Broadcast extends Node {
-    constructor(parent) {
-        super(0, ASTKinds.SPE_Broadcast, parent);
+    constructor(parent, DEstart, DEend) {
+        super(10, ASTKinds.SPE_Broadcast, parent);
+        this.DEstart = DEstart;
+        this.DEend = DEend;
     }
 }
 exports.SPE_Broadcast = SPE_Broadcast;
 class SPE_Groupcast extends Node {
-    constructor(parent) {
-        super(0, ASTKinds.SPE_Groupcast, parent);
+    constructor(parent, DELstart, DELend, DERend) {
+        super(10, ASTKinds.SPE_Groupcast, parent);
+        this.DELstart = DELstart;
+        this.DELend = DELend;
+        this.DERend = DERend;
     }
 }
 exports.SPE_Groupcast = SPE_Groupcast;
 class SPE_Send extends Node {
-    constructor(parent) {
-        super(0, ASTKinds.SPE_Send, parent);
+    constructor(parent, DEstart, DEend) {
+        super(10, ASTKinds.SPE_Send, parent);
+        this.DEstart = DEstart;
+        this.DEend = DEend;
     }
 }
 exports.SPE_Send = SPE_Send;
 class SPE_Deliver extends Node {
-    constructor(parent) {
-        super(0, ASTKinds.SPE_Deliver, parent);
+    constructor(parent, DEstart, DEend) {
+        super(10, ASTKinds.SPE_Deliver, parent);
+        this.DEstart = DEstart;
+        this.DEend = DEend;
     }
 }
 exports.SPE_Deliver = SPE_Deliver;
 class SPE_Receive extends Node {
-    constructor(parent, name) {
-        super(0, ASTKinds.SPE_Receive, parent);
+    constructor(parent, name, namePos, nameEnd) {
+        super(10, ASTKinds.SPE_Receive, parent);
         this.name = name;
+        this.namePos = namePos;
+        this.nameEnd = nameEnd;
     }
 }
 exports.SPE_Receive = SPE_Receive;
 class SPE_Call extends Node {
-    constructor(parent, name) {
-        super(0, ASTKinds.SPE_Call, parent);
+    constructor(parent, name, namePos) {
+        super(10, ASTKinds.SPE_Call, parent);
         this.name = name;
+        this.namePos = namePos;
     }
 }
 exports.SPE_Call = SPE_Call;
 class SPE_Name extends Node {
-    constructor(parent, name) {
-        super(0, ASTKinds.SPE_Name, parent);
+    constructor(parent, name, namePos) {
+        super(10, ASTKinds.SPE_Name, parent);
         this.name = name;
+        this.namePos = namePos;
     }
 }
 exports.SPE_Name = SPE_Name;
 class SPE_Choice extends Node {
     constructor(parent) {
-        super(0, ASTKinds.SPE_Choice, parent);
+        super(10, ASTKinds.SPE_Choice, parent);
     }
 }
 exports.SPE_Choice = SPE_Choice;
@@ -355,37 +386,42 @@ class DE_Singleton extends DE {
 }
 exports.DE_Singleton = DE_Singleton;
 class DE_Partial extends DE {
-    constructor(parent, name) {
+    constructor(parent, name, namePos) {
         super(0, ASTKinds.DE_Partial, parent);
         this.name = name;
+        this.namePos = namePos;
     }
 }
 exports.DE_Partial = DE_Partial;
 class DE_Set extends DE {
-    constructor(parent, name) {
+    constructor(parent, name, namePos) {
         super(0, ASTKinds.DE_Set, parent);
         this.name = name;
+        this.namePos = namePos;
     }
 }
 exports.DE_Set = DE_Set;
 class DE_Lambda extends DE {
-    constructor(parent, name) {
+    constructor(parent, name, namePos) {
         super(6, ASTKinds.DE_Lambda, parent);
         this.name = name;
+        this.namePos = namePos;
     }
 }
 exports.DE_Lambda = DE_Lambda;
 class DE_Forall extends DE {
-    constructor(parent, name) {
+    constructor(parent, name, namePos) {
         super(6, ASTKinds.DE_Forall, parent);
         this.name = name;
+        this.namePos = namePos;
     }
 }
 exports.DE_Forall = DE_Forall;
 class DE_Exists extends DE {
-    constructor(parent, name) {
+    constructor(parent, name, namePos) {
         super(6, ASTKinds.DE_Exists, parent);
         this.name = name;
+        this.namePos = namePos;
     }
 }
 exports.DE_Exists = DE_Exists;
@@ -396,15 +432,19 @@ class DE_Brack extends DE {
 }
 exports.DE_Brack = DE_Brack;
 class DE_Name extends DE {
-    constructor(parent, name) {
+    constructor(parent, name, namePos) {
         super(0, ASTKinds.DE_Name, parent);
         this.name = name;
+        this.namePos = namePos;
     }
 }
 exports.DE_Name = DE_Name;
 class DE_Function extends DE {
-    constructor(parent) {
-        super(0, ASTKinds.DE_Function, parent);
+    constructor(parent, sigPos, argPos, endPos) {
+        super(1, ASTKinds.DE_Function, parent);
+        this.sigPos = sigPos;
+        this.argPos = argPos;
+        this.endPos = endPos;
     }
 }
 exports.DE_Function = DE_Function;

@@ -1,0 +1,13 @@
+CONSTANTS: MSG x
+           IP y
+
+VARIABLES: MSG var
+
+FUNCTIONS: func1: Bool->MSG
+           func2: Bool->IP
+           func3: MSG->IP
+
+proc p1(var):=
+        deliver(func3 var).
+        end
+

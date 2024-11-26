@@ -1,3 +1,7 @@
+import { Position } from 'vscode-languageserver';
+import { PosInfo } from './parser';
+import { DESTRUCTION } from 'dns';
+
 export enum ASTKinds {
     AWNRoot = "AWNRoot",
     Block_Include = "Block_Include",
@@ -64,7 +68,7 @@ export class Node {
     precedence: number;
 	kind: ASTKinds
 
-    constructor(precedence: number, kind: ASTKinds, parent: Node) {
+    constructor(precedence: number, kind: ASTKinds, parent: Node, position?: PosInfo) {
         this.parent = parent;
         this.precedence = precedence;
 		this.kind = kind;
@@ -156,10 +160,12 @@ export class Include extends Node {
 export class Type extends Node {
     typeName: string;
     typeExpr!: TE; //empty type declarations are given the TE_Name typeExpr, so this can't be null
+	pos: PosInfo
 
-	constructor(parent: Node, typeName: string) {
+	constructor(parent: Node, typeName: string, position: PosInfo) {
         super(10, ASTKinds.Type, parent);
 		this.typeName = typeName;
+		this.pos = position
     }
 }
 
@@ -200,10 +206,12 @@ export class TE_List extends TE {
 
 export class TE_Name extends TE {
 	typename: string;
+	pos: PosInfo
 
-	constructor(parent: Node, typename: string) {
+	constructor(parent: Node, typename: string, position: PosInfo) {
         super(parent, 0, ASTKinds.TE_Name);
 		this.typename = typename;
+		this.pos = position
     }
 }
 
@@ -212,7 +220,7 @@ export class TE_Function extends TE {
 	right!: TE;
 
 	constructor(parent: Node, left?: TE, right?: TE) {
-        super(parent, 2, ASTKinds.TE_Function);
+        super(parent, 3, ASTKinds.TE_Function);
 		if(left != null && right != null){
 			this.left = left; this.right = right
 		}
@@ -224,7 +232,7 @@ export class TE_Partial extends TE {
 	right!: TE;
 
 	constructor(parent: Node, left?: TE, right?: TE) {
-        super(parent, 1, ASTKinds.TE_Function);
+        super(parent, 2, ASTKinds.TE_Function);
 		if(left != null && right != null){
 			this.left = left; this.right = right
 		}
@@ -236,7 +244,7 @@ export class TE_Product extends TE {
 	right!: TE;
 
 	constructor(parent: Node) {
-        super(parent, 3, ASTKinds.TE_Product);
+        super(parent, 1, ASTKinds.TE_Product);
     }
 }
 
@@ -267,52 +275,62 @@ export type BTE_AUX = TE_Brack | TE_Pow | TE_List | TE_Name
 export class Variable extends Node {
     typeExpr!: TE;
     name: string;
+	namePos: PosInfo
 
-	constructor(parent: Node, name: string) {
+	constructor(parent: Node, name: string, namePos: PosInfo) {
         super(10, ASTKinds.Variable, parent);
 		this.name = name;
+		this.namePos = namePos
     }
 }
 
 export class Constant extends Node {
     typeExpr!: TE;
     name: string;
+	namePos: PosInfo
 
-	constructor(parent: Node, name: string) {
+	constructor(parent: Node, name: string, namePos: PosInfo) {
         super(10, ASTKinds.Constant, parent);
 		this.name = name;
+		this.namePos = namePos
     }
 }
 
 export type Function = Function_Generic | Function_Infix
 export class Function_Generic extends Node {
     name: string;
+	namePos: PosInfo
     signature!: TE;
 
-	constructor(parent: Node, name: string) {
+	constructor(parent: Node, name: string, namePos: PosInfo) {
         super(10, ASTKinds.Function_Generic, parent);
 		this.name = name;
+		this.namePos = namePos
     }
 }
 
 export class Function_Infix extends Node {
     name: string;
+	namePos: PosInfo;
     signature!: BTE;
 
-	constructor(parent: Node, name: string) {
+	constructor(parent: Node, name: string, namePos: PosInfo) {
         super(10, ASTKinds.Function_Infix, parent);
 		this.name = name;
+		this.namePos = namePos
     }
 }
 
 export class Process extends Node {
     name: string;
-	args!: string[];
+	namePos: PosInfo
+	args!: Variable[];
     proc!: SPE;
 
-	constructor(parent: Node, name: string) {
+	constructor(parent: Node, name: string, namePos: PosInfo) {
         super(10, ASTKinds.Process, parent);
 		this.name = name;
+		this.namePos = namePos
     }
 }
 
@@ -340,10 +358,13 @@ export class Alias_Data extends Node {
 export type SPE = SPE_Guard | SPE_Assign | SPE_Unicast | SPE_Broadcast | SPE_Groupcast | SPE_Send | SPE_Deliver | SPE_Receive | SPE_Call | SPE_Choice | SPE_Name;
 export class SPE_Guard extends Node {
 	dataExp!: DE;
+	DEStart: PosInfo; DEEnd: PosInfo
 	nextproc!: SPE;
 
-	constructor(parent: Node) {
-        super(0, ASTKinds.SPE_Guard, parent);
+	constructor(parent: Node, DEStart: PosInfo, DEEnd: PosInfo) {
+        super(10, ASTKinds.SPE_Guard, parent);
+		this.DEStart = DEStart
+		this.DEEnd = DEEnd
     }
 }
 
@@ -353,10 +374,17 @@ export class SPE_Assign extends Node {
 	dataExpList!: DE[];
 	dataExpAssign!: DE;
 	nextproc!: SPE;
+	nameStart: PosInfo; varStart: PosInfo; listExpStart: PosInfo; listExpEnd: PosInfo; assignExpStart: PosInfo; end: PosInfo
 
-	constructor(parent: Node, name: string) {
-        super(0, ASTKinds.SPE_Assign, parent);
+	constructor(parent: Node, name: string, nameStart: PosInfo, varStart: PosInfo, listExpStart: PosInfo, listExpEnd: PosInfo, assignExpStart: PosInfo, end: PosInfo) {
+        super(10, ASTKinds.SPE_Assign, parent);
 		this.name = name
+		this.nameStart = nameStart
+		this.varStart = varStart
+		this.listExpStart = listExpStart
+		this.listExpEnd = listExpEnd
+		this.assignExpStart = assignExpStart
+		this.end = end
     }
 }
 
@@ -365,18 +393,25 @@ export class SPE_Unicast extends Node {
     dataExpR!: DE;
     procA!: SPE;
 	procB!: SPE;
+	DELstart: PosInfo; DELend: PosInfo; DERend: PosInfo
 
-	constructor(parent: Node) {
-        super(0, ASTKinds.SPE_Unicast, parent);
+	constructor(parent: Node, DELstart: PosInfo, DELend: PosInfo, DERend: PosInfo) {
+        super(10, ASTKinds.SPE_Unicast, parent);
+		this.DELstart = DELstart
+		this.DELend = DELend
+		this.DERend = DERend
     }
 }
 
 export class SPE_Broadcast extends Node {
 	dataExp!: DE;
 	nextproc!: SPE;
+	DEstart: PosInfo; DEend: PosInfo
 
-	constructor(parent: Node) {
-        super(0, ASTKinds.SPE_Broadcast, parent);
+	constructor(parent: Node, DEstart: PosInfo, DEend: PosInfo) {
+        super(10, ASTKinds.SPE_Broadcast, parent);
+		this.DEstart = DEstart
+		this.DEend = DEend
     }
 }
 
@@ -384,58 +419,75 @@ export class SPE_Groupcast extends Node {
 	dataExpL!: DE;
     dataExpR!: DE;
 	nextproc!: SPE;
+	DELstart: PosInfo; DELend: PosInfo; DERend: PosInfo
 
-	constructor(parent: Node) {
-        super(0, ASTKinds.SPE_Groupcast, parent);
+	constructor(parent: Node, DELstart: PosInfo, DELend: PosInfo, DERend: PosInfo) {
+        super(10, ASTKinds.SPE_Groupcast, parent);
+		this.DELstart = DELstart
+		this.DELend = DELend
+		this.DERend = DERend
     }
 }
 
 export class SPE_Send extends Node {
 	dataExp!: DE;
 	nextproc!: SPE;
+	DEstart: PosInfo; DEend: PosInfo
 
-	constructor(parent: Node) {
-        super(0, ASTKinds.SPE_Send, parent);
+	constructor(parent: Node, DEstart: PosInfo, DEend: PosInfo) {
+        super(10, ASTKinds.SPE_Send, parent);
+		this.DEstart = DEstart
+		this.DEend = DEend
     }
 }
 
 export class SPE_Deliver extends Node {
 	dataExp!: DE;
 	nextproc!: SPE;
+	DEstart: PosInfo; DEend: PosInfo
 
-	constructor(parent: Node) {
-        super(0, ASTKinds.SPE_Deliver, parent);
+	constructor(parent: Node, DEstart: PosInfo, DEend: PosInfo) {
+        super(10, ASTKinds.SPE_Deliver, parent);
+		this.DEstart = DEstart
+		this.DEend = DEend
     }
 }
 
 export class SPE_Receive extends Node {
 	name: string;
+	namePos: PosInfo; nameEnd: PosInfo
 	variable!: Variable;
 	dataExps!: DE[];
 	nextproc!: SPE;
 
-	constructor(parent: Node, name: string) {
-        super(0, ASTKinds.SPE_Receive, parent);
+	constructor(parent: Node, name: string, namePos: PosInfo, nameEnd: PosInfo) {
+        super(10, ASTKinds.SPE_Receive, parent);
 		this.name = name;
+		this.namePos = namePos;
+		this.nameEnd = nameEnd;
     }
 }
 
 export class SPE_Call extends Node {
 	name: string;
+	namePos: PosInfo
 	args!: DE[];
 
-	constructor(parent: Node, name: string) {
-        super(0, ASTKinds.SPE_Call, parent);
+	constructor(parent: Node, name: string, namePos: PosInfo) {
+        super(10, ASTKinds.SPE_Call, parent);
 		this.name = name;
+		this.namePos = namePos;
     }
 }
 
 export class SPE_Name extends Node {
 	name: string;
+	namePos: PosInfo
 
-	constructor(parent: Node, name: string) {
-        super(0, ASTKinds.SPE_Name, parent);
+	constructor(parent: Node, name: string, namePos: PosInfo) {
+        super(10, ASTKinds.SPE_Name, parent);
 		this.name = name;
+		this.namePos = namePos
     }
 }
 
@@ -444,7 +496,7 @@ export class SPE_Choice extends Node {
 	right!: SPE;
 
 	constructor(parent: Node) {
-        super(0, ASTKinds.SPE_Choice, parent);
+        super(10, ASTKinds.SPE_Choice, parent);
     }
 }
 
@@ -467,52 +519,62 @@ export class DE_Singleton extends DE {
 
 export class DE_Partial extends DE {
 	name: string;
+	namePos: PosInfo
 	left!: DE;
 	right!: DE;
 
-	constructor(parent: Node, name: string) {
+	constructor(parent: Node, name: string, namePos: PosInfo) {
         super(0, ASTKinds.DE_Partial, parent);
 		this.name = name;
+		this.namePos = namePos;
     }
 }
 
 export class DE_Set extends DE {
 	name: string;
+	namePos: PosInfo
 	dataExp!: DE;
 
-	constructor(parent: Node, name: string) {
+	constructor(parent: Node, name: string, namePos: PosInfo) {
         super(0, ASTKinds.DE_Set, parent);
 		this.name = name;
+		this.namePos = namePos;
     }
 }
 
 export class DE_Lambda extends DE {
 	name: string;
+	namePos: PosInfo
 	dataExp!: DE;
 
-	constructor(parent: Node, name: string) {
+	constructor(parent: Node, name: string, namePos: PosInfo) {
         super(6, ASTKinds.DE_Lambda, parent);
 		this.name = name;
+		this.namePos = namePos;
     }
 }
 
 export class DE_Forall extends DE {
 	name: string;
+	namePos: PosInfo
 	dataExp!: DE;
 
-	constructor(parent: Node, name: string) {
+	constructor(parent: Node, name: string, namePos: PosInfo) {
         super(6, ASTKinds.DE_Forall, parent);
 		this.name = name;
+		this.namePos = namePos;
     }
 }
 
 export class DE_Exists extends DE {
 	name: string;
+	namePos: PosInfo
 	dataExp!: DE;
 
-	constructor(parent: Node, name: string) {
+	constructor(parent: Node, name: string, namePos: PosInfo) {
         super(6, ASTKinds.DE_Exists, parent);
 		this.name = name;
+		this.namePos = namePos;
     }
 }
 
@@ -526,19 +588,25 @@ export class DE_Brack extends DE {
 
 export class DE_Name extends DE {
 	name: string;
+	namePos: PosInfo
 
-	constructor(parent: Node, name: string) {
+	constructor(parent: Node, name: string, namePos: PosInfo) {
         super(0, ASTKinds.DE_Name, parent);
 		this.name = name;
+		this.namePos = namePos
     }
 }
 
 export class DE_Function extends DE {
-	left!: DE;
-	right!: DE;
+	signature!: DE;
+	arguments!: DE;
+	sigPos: PosInfo; argPos: PosInfo; endPos: PosInfo
 
-	constructor(parent: Node) {
-        super(0, ASTKinds.DE_Function, parent);
+	constructor(parent: Node, sigPos: PosInfo, argPos: PosInfo, endPos: PosInfo) {
+        super(1, ASTKinds.DE_Function, parent);
+		this.sigPos = sigPos
+		this.argPos = argPos
+		this.endPos = endPos
     }
 }
 

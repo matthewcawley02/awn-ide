@@ -208,6 +208,7 @@ async function validateTextDocument(textDocument: TextDocument): Promise<Diagnos
 	}
 	//if parsing succeeds, check for semantic errors
 	if(parseResult.ast != null){
+		console.log("original AST:\n", parseResult.ast)
 		const newast: AWNRoot = convertNewToOldAST(parseResult.ast)
 		console.log("converted AST:\n", newast)
 		const semanticErrors: Diagnostic[] = Check(newast)

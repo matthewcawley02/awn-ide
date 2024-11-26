@@ -81,9 +81,9 @@ SPE1 := lb sp '\+' SPE SPE1?
 //===============
 
 DE :=
-	  '{' DE '}' DE1?
-	| '{' '\(' Name ',' DE '\)' '|' DE '}' DE1?
+	 '{' '\(' Name ',' DE '\)' '|' DE '}' DE1?
 	| '{' Name '|' DE '}' DE1?
+	| '{' DE '}' DE1?
 	| 'lambda ' Name '.' DE DE1?
 	| 'forall ' Name '.' DE DE1?
 	| 'exists ' Name '.' DE DE1?
@@ -96,7 +96,7 @@ DE1 :=
 	| '\->' DE DE1?
 	| '<\->' DE DE1?
 	| '\&' DE DE1?
-	| '|' DE DE1?
+	| '||' DE DE1?
 	| '\=' DE DE1?
 	| '\!\=' DE DE1?
 	| '>\=' DE DE1?
@@ -124,7 +124,7 @@ NameString := {NameChar* '\.' NameString} | NameChar+
 
 NameChar := '[a-zA-Z0-9]' //simplified
 
-Infix := '[\*\+-<\=>\!\&|\\]+' //Currently "InfixOps". Also removed ":" for now (because of the "Infix :") rule, but probably possible to find a workaround for this
+Infix := '[\*\+-<\=>\!\&\\]+' //Currently "InfixOps". Also removed ":" for now (because of the "Infix :") rule, but probably possible to find a workaround for this
 
 ws := {sp | lb}* 						//any whitespace
 
