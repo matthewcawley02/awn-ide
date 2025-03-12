@@ -1,4 +1,6 @@
 FUNCTIONS: exists: MSG -> Bool
+           bool2msg: Bool -> MSG
+           binary: DATA x MSG -> DATA
 
 CONSTANTS: bool: Bool
            data: DATA
@@ -9,9 +11,13 @@ CONSTANTS: bool: Bool
 VARIABLES: var: DATA
            msgVar: MSG
 
-PROCESSES: p1(msgVar, var) :=
+proc p1(msgVar, var) :=
         [ bool ]
         [[ var := data ]]
-        send(one). end
+        send(msgVar). p1
         +
-        deliver(h). end
+        deliver(data). p1
+        +
+        send(bool2msg(bool)). p1
+        +
+        deliver(binary(var, msgVar)). p1

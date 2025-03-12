@@ -187,7 +187,6 @@ function parseProcExp(procexp: ast.SPE){
 		}
 
 		case ast.ASTKinds.SPE_Assign: { const Procexp = procexp as ast.SPE_Assign
-			parseVariable(Procexp.variable)
 			parseDataExp(Procexp.dataExpAssign)
 			parseProcExp(Procexp.nextproc)
 			break;
@@ -331,17 +330,10 @@ function parseDataExp(de: ast.DE){
 		case ast.ASTKinds.DE_Name: { const DE = de as ast.DE_Name
 			if(DE.type == null){break}
 			switch(DE.refersTo){
-				case ast.ASTKinds.Constant: {
-					pushAndUpdate(DE.posS, DE.posE, Colours.Constant, 0)
-				}
-				case ast.ASTKinds.Variable: {
-					pushAndUpdate(DE.posS, DE.posE, Colours.Variable, 0)
-				}
+				case ast.ASTKinds.Constant: pushAndUpdate(DE.posS, DE.posE, Colours.Constant, 0); break
+				case ast.ASTKinds.Variable: pushAndUpdate(DE.posS, DE.posE, Colours.Variable, 0); break
 				case ast.ASTKinds.Function_Infix:
-				case ast.ASTKinds.Function_Prefix: {
-					pushAndUpdate(DE.posS, DE.posE, Colours.Function, 0)
-				}
-				break
+				case ast.ASTKinds.Function_Prefix: pushAndUpdate(DE.posS, DE.posE, Colours.Function, 0); break
 			}
 		}
 	}

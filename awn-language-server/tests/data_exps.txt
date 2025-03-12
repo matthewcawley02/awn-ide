@@ -14,11 +14,19 @@ FUNCTIONS: funcmsg: MSG -> Bool
 
 proc p1(vardata, varmsg, varip, varbool) :=
         [ constbool ]
-        [[vardata := constip]]
         [[varmsg := constmsg]]
+        [[vardata := constip]]
+        send(constmsg).
+                p1
+        +
         [funcmsg(varmsg)]
         [funcbool(varmsg)]
         [++(constbool, varbool)]
         [++(constip, varip)]
         [[varbool := ++(constbool, funcmsg(constmsg))]]
-        end
+        [forall vardata. constbool]
+        deliver(constdata).
+                p2
+        +
+        [exists varmsg. funcmsg(constmsg)]
+        p1
