@@ -1,0 +1,24 @@
+CONSTANTS: constbool: Bool
+           constip: IP
+           constdata: DATA
+           constmsg: MSG
+
+VARIABLES: vardata: DATA
+           varmsg: MSG
+           varip: IP
+           varbool: Bool
+
+FUNCTIONS: funcmsg: MSG -> Bool
+           funcbool: Bool -> MSG
+           ++: Bool x Bool -> Bool
+
+proc p1(vardata, varmsg, varip, varbool) :=
+        [ constbool ]
+        [[vardata := constip]]
+        [[varmsg := constmsg]]
+        [funcmsg(varmsg)]
+        [funcbool(varmsg)]
+        [++(constbool, varbool)]
+        [++(constip, varip)]
+        [[varbool := ++(constbool, funcmsg(constmsg))]]
+        end

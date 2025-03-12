@@ -1,0 +1,6 @@
+TYPES:  test1=IP
+        test2=Bool -> IP -> DATA -> MSG
+        test4=IP +-> IP
+        test3=Pow(IP)
+        test6=[IP]
+        test5=(Bool x IP) -> (DATA x MSG)

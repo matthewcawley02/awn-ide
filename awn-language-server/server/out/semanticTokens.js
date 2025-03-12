@@ -1,11 +1,26 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getSemantTokens = void 0;
-const parser_1 = require("./parser");
+const ast = require("./ast");
 var tokens = [];
 var curLine = 0;
 var curOffset = 0;
-function pushAndUpdate(absoluteLine, absolutePos, length, tokenType, tokenMods) {
+//node both pushAndUpdate functions only work properly if the highlighting remains on one line
+//push and update, given a start and end position
+function pushAndUpdate(startPos, endPos, tokenType, tokenMods) {
+    const absoluteLine = startPos.line;
+    const absolutePos = startPos.offset;
+    const length = endPos.offset - startPos.offset;
+    const isNewline = (absoluteLine - 1 - curLine !== 0);
+    const token = [absoluteLine - 1 - curLine, isNewline ? absolutePos : absolutePos - curOffset, length, tokenType, tokenMods];
+    tokens.push(token);
+    curLine = absoluteLine - 1;
+    curOffset = absolutePos;
+}
+//push and update, given a start position and a highlighting length
+function pushAndUpdateGivenLength(startPos, length, tokenType, tokenMods) {
+    const absoluteLine = startPos.line;
+    const absolutePos = startPos.offset;
     const isNewline = (absoluteLine - 1 - curLine !== 0);
     const token = [absoluteLine - 1 - curLine, isNewline ? absolutePos : absolutePos - curOffset, length, tokenType, tokenMods];
     tokens.push(token);
@@ -17,7 +32,7 @@ var Colours;
     Colours[Colours["Keyword"] = 0] = "Keyword";
     Colours[Colours["Type"] = 1] = "Type";
     Colours[Colours["Function"] = 2] = "Function";
-    Colours[Colours["Variable"] = 3] = "Variable";
+    Colours[Colours["Variable"] = 6] = "Variable";
     Colours[Colours["Constant"] = 4] = "Constant";
     Colours[Colours["Number"] = 5] = "Number";
     Colours[Colours["String"] = 6] = "String";
@@ -32,393 +47,325 @@ function getSemantTokens(node) {
     tokens = [];
     curLine = 0;
     curOffset = 0;
-    for (const block of node.block) {
+    for (const block of node.blocks) {
+        if (block.kind == null) {
+            continue;
+        }
         switch (block.kind) {
-            case parser_1.ASTKinds.Block_1: { //multiple includes
-                pushAndUpdate(block.pos.line, block.pos.offset, 8, Colours.Keyword, 0);
-                for (const include of block.include) {
-                    pushAndUpdate(include.posS.line, include.posS.offset, include.posE.offset - include.posS.offset, Colours.String, 0);
+            case ast.ASTKinds.Block_Include: {
+                const Block = block;
+                pushAndUpdateGivenLength(Block.keywordPos, 8, Colours.Keyword, 0);
+                for (const include of Block.includes) {
+                    pushAndUpdate(include.posS, include.posE, Colours.String, 0);
                 }
                 break;
             }
-            case parser_1.ASTKinds.Block_2: { //singlular include
-                pushAndUpdate(block.pos.line, block.pos.offset, 7, Colours.Keyword, 0);
-                const include = block.include;
-                pushAndUpdate(include.posS.line, include.posS.offset, include.posE.offset - include.posS.offset, Colours.String, 0);
-                break;
-            }
-            case parser_1.ASTKinds.Block_3: { //types
-                pushAndUpdate(block.pos.line, block.pos.offset, 5, Colours.Keyword, 0);
-                for (const type of block.type) {
+            case ast.ASTKinds.Block_Type: {
+                const Block = block;
+                pushAndUpdateGivenLength(Block.keywordPos, 5, Colours.Keyword, 0);
+                for (const type of Block.types) {
                     parseType(type);
                 }
                 break;
             }
-            case parser_1.ASTKinds.Block_4: { //variables
-                pushAndUpdate(block.pos.line, block.pos.offset, 9, Colours.Keyword, 0);
-                for (const vari of block.var) {
-                    parseConVar(vari, true);
+            case ast.ASTKinds.Block_Variable: {
+                const Block = block;
+                pushAndUpdateGivenLength(Block.keywordPos, 9, Colours.Keyword, 0);
+                for (const vari of Block.vars) {
+                    parseVariable(vari);
                 }
                 break;
             }
-            case parser_1.ASTKinds.Block_5: { //constants
-                pushAndUpdate(block.pos.line, block.pos.offset, 9, Colours.Keyword, 0);
-                for (const con of block.const) {
-                    parseConVar(con, false);
+            case ast.ASTKinds.Block_Constant: {
+                const Block = block;
+                pushAndUpdateGivenLength(Block.keywordPos, 9, Colours.Keyword, 0);
+                for (const con of Block.consts) {
+                    parseConstant(con);
                 }
                 break;
             }
-            case parser_1.ASTKinds.Block_6: { //functions
-                pushAndUpdate(block.pos.line, block.pos.offset, 9, Colours.Keyword, 0);
-                for (const func of block.func) {
+            case ast.ASTKinds.Block_Function: {
+                const Block = block;
+                pushAndUpdateGivenLength(Block.keywordPos, 9, Colours.Keyword, 0);
+                for (const func of Block.funcs) {
                     parseFunction(func);
                 }
                 break;
             }
-            case parser_1.ASTKinds.Block_7: { //multiple processes
-                pushAndUpdate(block.pos.line, block.pos.offset, 9, Colours.Keyword, 0);
-                for (const proc of block.proc) {
+            case ast.ASTKinds.Block_Process: {
+                const Block = block;
+                if (Block.definedAsProc) {
+                    pushAndUpdateGivenLength(Block.keywordPos, 4, Colours.Keyword, 0);
+                }
+                else {
+                    pushAndUpdateGivenLength(Block.keywordPos, 9, Colours.Keyword, 0);
+                }
+                for (const proc of Block.procs) {
                     parseProcess(proc);
                 }
                 break;
             }
-            case parser_1.ASTKinds.Block_8: { //singular process
-                pushAndUpdate(block.pos.line, block.pos.offset, 4, Colours.Keyword, 0);
-                parseProcess(block.proc);
-                break;
-            }
         }
     }
+    console.log("semantic tokens", tokens);
     return tokens.flat();
 }
 exports.getSemantTokens = getSemantTokens;
 function parseType(node) {
-    pushAndUpdate(node.posS.line, node.posS.offset, node.posE.offset - node.posS.offset, Colours.Type, 0);
-    if (node.typeExprW !== null) {
-        parseTypeExpr(node.typeExprW.typeExpr);
-    }
+    pushAndUpdate(node.posS, node.posE, Colours.Type, 0);
+    parseTypeExpr(node.typeExpr);
 }
-function parseTypeExpr(node) {
-    switch (node.kind) {
-        case parser_1.ASTKinds.TE_1: { //brackets
-            parseTypeExpr(node.typeExpr);
-            if (node.typeExprMore !== null) {
-                parseTypeExpr(node.typeExprMore);
-            }
+function parseTypeExpr(te) {
+    if (te.kind == null) {
+        return;
+    }
+    switch (te.kind) {
+        case ast.ASTKinds.TE_Brack: {
+            const TE = te;
+            parseTypeExpr(TE.typeExpr);
             break;
         }
-        case parser_1.ASTKinds.TE_2: { //pow
-            pushAndUpdate(node.pos.line, node.pos.offset, 3, Colours.Type, 0);
-            parseTypeExpr(node.typeExpr);
-            if (node.typeExprMore !== null) {
-                parseTypeExpr(node.typeExprMore);
-            }
+        case ast.ASTKinds.TE_Pow: {
+            const TE = te;
+            pushAndUpdateGivenLength(TE.pos, 3, Colours.Type, 0);
+            parseTypeExpr(TE.typeExpr);
             break;
         }
-        case parser_1.ASTKinds.TE_3: { //list
-            parseTypeExpr(node.typeExpr);
-            if (node.typeExprMore !== null) {
-                parseTypeExpr(node.typeExprMore);
-            }
+        case ast.ASTKinds.TE_Array: {
+            const TE = te;
+            parseTypeExpr(TE.typeExpr);
             break;
         }
-        case parser_1.ASTKinds.TE_4: { //name
-            pushAndUpdate(node.posS.line, node.posS.offset, node.posE.offset - node.posS.offset, Colours.Type, 0);
-            if (node.typeExprMore !== null) {
-                parseTypeExpr(node.typeExprMore);
-            }
+        case ast.ASTKinds.TE_Name: {
+            const TE = te;
+            pushAndUpdate(TE.posS, TE.posE, Colours.Type, 0);
             break;
         }
-        case parser_1.ASTKinds.TE1_1: { //function
-            parseTypeExpr(node.typeExpr);
-            if (node.typeExprMore !== null) {
-                parseTypeExpr(node.typeExprMore);
-            }
+        case ast.ASTKinds.TE_FuncFull: {
+            const TE = te;
+            parseTypeExpr(TE.left);
+            parseTypeExpr(TE.right);
             break;
         }
-        case parser_1.ASTKinds.TE1_2: { //partial function
-            parseTypeExpr(node.typeExpr);
-            if (node.typeExprMore !== null) {
-                parseTypeExpr(node.typeExprMore);
-            }
+        case ast.ASTKinds.TE_FuncPart: {
+            const TE = te;
+            parseTypeExpr(TE.left);
+            parseTypeExpr(TE.right);
             break;
         }
-        case parser_1.ASTKinds.TE1_3: { //product
-            for (const child of node.products) {
-                parseTypeExpr(child.typeExpr);
-            }
-            if (node.typeExprMore !== null) {
-                parseTypeExpr(node.typeExprMore);
+        case ast.ASTKinds.TE_Product: {
+            const TE = te;
+            for (const child of TE.children) {
+                parseTypeExpr(child);
             }
             break;
         }
     }
 }
-function parseConVar(node, isVar) {
-    switch (node.kind) {
-        case parser_1.ASTKinds.ConVar_1: {
-            parseTypeExpr(node.typeExpr);
-            pushAndUpdate(node.posS.line, node.posS.offset, node.posE.offset - node.posS.offset, isVar ? Colours.Variable : Colours.Constant, 0);
-            for (const namesMore of node.namesMore) {
-                pushAndUpdate(namesMore.posS.line, namesMore.posS.offset, namesMore.posE.offset - namesMore.posS.offset, isVar ? Colours.Variable : Colours.Constant, 0);
-            }
-        }
-        case parser_1.ASTKinds.ConVar_2: {
-            pushAndUpdate(node.posS.line, node.posS.offset, node.posE.offset - node.posS.offset, isVar ? Colours.Variable : Colours.Constant, 0);
-            parseTypeExpr(node.typeExpr);
-        }
-    }
+function parseConstant(con) {
+    pushAndUpdate(con.posS, con.posE, Colours.Constant, 0);
+    parseTypeExpr(con.typeExpr);
 }
-function parseFunction(node) {
-    switch (node.kind) {
-        case parser_1.ASTKinds.Function_1: { //not infix
-            pushAndUpdate(node.posS.line, node.posS.offset, node.posE.offset - node.posS.offset, Colours.Function, 0);
-            parseTypeExpr(node.typeExpr);
-            break;
-        }
-        case parser_1.ASTKinds.Function_2: { //infix
-            //TODO add infix functionality
-            break;
-        }
-    }
+function parseVariable(vari) {
+    pushAndUpdate(vari.posS, vari.posE, Colours.Variable, 0);
+    parseTypeExpr(vari.typeExpr);
 }
-function parseProcess(node) {
-    switch (node.kind) {
-        case parser_1.ASTKinds.Process_1: {
-            pushAndUpdate(node.pos1S.line, node.pos1S.offset, node.pos1E.offset - node.pos1S.offset, Colours.Process, 0);
-            if (node.argFirst !== null) {
-                pushAndUpdate(node.pos2S.line, node.pos2S.offset, node.pos2E.offset - node.pos2S.offset, Colours.Parameter, 0);
-            }
-            for (const namesMore of node.argsMore) {
-                pushAndUpdate(namesMore.posS.line, namesMore.posS.offset, namesMore.posE.offset - namesMore.posS.offset, Colours.Parameter, 0);
-            }
-            parseProcExp(node.proc);
-            break;
-        }
-        case parser_1.ASTKinds.Process_2: {
-            pushAndUpdate(node.posS.line, node.posS.offset, node.posE.offset - node.posS.offset, Colours.Process, 0);
-            parseProcExp(node.proc);
-            break;
-        }
-    }
+function parseFunction(func) {
+    pushAndUpdate(func.posS, func.posE, Colours.Function, 0);
+    parseTypeExpr(func.sigType);
+    parseTypeExpr(func.outType);
 }
-function parseProcExp(node) {
-    switch (node.kind) {
-        case parser_1.ASTKinds.SPE_1: { //guard
-            parseDataExp(node.dataExp);
-            parseProcExp(node.proc);
-            if (node.procMore !== null) {
-                parseProcExp(node.procMore);
+function parseProcess(proc) {
+    pushAndUpdate(proc.posS, proc.posE, Colours.Process, 0);
+    for (const arg of proc.args) {
+        pushAndUpdate(arg.posS, arg.posE, Colours.Variable, 0);
+    }
+    parseProcExp(proc.proc);
+}
+function parseProcExp(procexp) {
+    if (procexp.kind == null) {
+        return;
+    }
+    switch (procexp.kind) {
+        case ast.ASTKinds.SPE_Guard: {
+            const Procexp = procexp;
+            parseDataExp(Procexp.dataExp);
+            parseProcExp(Procexp.nextproc);
+            break;
+        }
+        case ast.ASTKinds.SPE_Assign: {
+            const Procexp = procexp;
+            parseVariable(Procexp.variable);
+            parseDataExp(Procexp.dataExpAssign);
+            parseProcExp(Procexp.nextproc);
+            break;
+        }
+        case ast.ASTKinds.SPE_Unicast: {
+            const Procexp = procexp;
+            pushAndUpdateGivenLength(Procexp.start, 7, Colours.Keyword, 0);
+            parseDataExp(Procexp.dataExpL);
+            parseDataExp(Procexp.dataExpR);
+            parseProcExp(Procexp.procA);
+            parseProcExp(Procexp.procB);
+            break;
+        }
+        case ast.ASTKinds.SPE_Broadcast: {
+            const Procexp = procexp;
+            pushAndUpdateGivenLength(Procexp.start, 9, Colours.Keyword, 0);
+            parseDataExp(Procexp.dataExp);
+            parseProcExp(Procexp.nextproc);
+            break;
+        }
+        case ast.ASTKinds.SPE_Groupcast: {
+            const Procexp = procexp;
+            pushAndUpdateGivenLength(Procexp.start, 9, Colours.Keyword, 0);
+            parseDataExp(Procexp.dataExpL);
+            parseDataExp(Procexp.dataExpR);
+            parseProcExp(Procexp.nextproc);
+            break;
+        }
+        case ast.ASTKinds.SPE_Send: {
+            const Procexp = procexp;
+            pushAndUpdateGivenLength(Procexp.start, 4, Colours.Keyword, 0);
+            parseDataExp(Procexp.dataExp);
+            parseProcExp(Procexp.nextproc);
+            break;
+        }
+        case ast.ASTKinds.SPE_Deliver: {
+            const Procexp = procexp;
+            pushAndUpdateGivenLength(Procexp.start, 7, Colours.Keyword, 0);
+            parseDataExp(Procexp.dataExp);
+            parseProcExp(Procexp.nextproc);
+            break;
+        }
+        case ast.ASTKinds.SPE_Receive: {
+            const Procexp = procexp;
+            pushAndUpdateGivenLength(Procexp.start, 7, Colours.Keyword, 0);
+            pushAndUpdate(Procexp.namePos, Procexp.nameEnd, Colours.Process, 0);
+            for (const de of Procexp.dataExps) {
+                parseDataExp(de);
+            }
+            parseProcExp(Procexp.nextproc);
+            break;
+        }
+        case ast.ASTKinds.SPE_Call: {
+            const Procexp = procexp;
+            pushAndUpdate(Procexp.posS, Procexp.posE, Colours.Process, 0);
+            if (Procexp.args == null) {
+                return;
+            }
+            for (const de of Procexp.args) {
+                parseDataExp(de);
             }
             break;
         }
-        case parser_1.ASTKinds.SPE_2: {
-            pushAndUpdate(node.posA.line, node.posA.offset, node.posC.offset - node.posA.offset, Colours.Variable, 0);
-            for (const de of node.dataExpList) {
-                parseDataExp(de.dataExp);
-            }
-            parseDataExp(node.dataExpAssignment);
-            parseProcExp(node.proc);
-            if (node.procMore !== null) {
-                parseProcExp(node.procMore);
-            }
+        case ast.ASTKinds.SPE_Name: {
+            const Procexp = procexp;
+            pushAndUpdate(Procexp.posS, Procexp.posE, Colours.Process, 0);
             break;
         }
-        case parser_1.ASTKinds.SPE_3: {
-            pushAndUpdate(node.pos.line, node.pos.offset, 7, Colours.Keyword, 0);
-            parseDataExp(node.dataExpL);
-            parseDataExp(node.dataExpR);
-            parseProcExp(node.procL);
-            parseProcExp(node.procR);
-            if (node.procMore !== null) {
-                parseProcExp(node.procMore);
-            }
-            break;
-        }
-        case parser_1.ASTKinds.SPE_4: {
-            pushAndUpdate(node.pos.line, node.pos.offset, 9, Colours.Keyword, 0);
-            parseDataExp(node.dataExp);
-            parseProcExp(node.proc);
-            if (node.procMore !== null) {
-                parseProcExp(node.procMore);
-            }
-            break;
-        }
-        case parser_1.ASTKinds.SPE_5: {
-            pushAndUpdate(node.pos.line, node.pos.offset, 9, Colours.Keyword, 0);
-            parseDataExp(node.dataExpL);
-            parseDataExp(node.dataExpR);
-            parseProcExp(node.proc);
-            if (node.procMore !== null) {
-                parseProcExp(node.procMore);
-            }
-            break;
-        }
-        case parser_1.ASTKinds.SPE_6: {
-            pushAndUpdate(node.pos.line, node.pos.offset, 4, Colours.Keyword, 0);
-            parseDataExp(node.dataExp);
-            parseProcExp(node.proc);
-            if (node.procMore !== null) {
-                parseProcExp(node.procMore);
-            }
-            break;
-        }
-        case parser_1.ASTKinds.SPE_7: {
-            pushAndUpdate(node.pos.line, node.pos.offset, 7, Colours.Keyword, 0);
-            parseDataExp(node.dataExp);
-            parseProcExp(node.proc);
-            if (node.procMore !== null) {
-                parseProcExp(node.procMore);
-            }
-            break;
-        }
-        case parser_1.ASTKinds.SPE_8: {
-            pushAndUpdate(node.pos.line, node.pos.offset, 7, Colours.Keyword, 0);
-            pushAndUpdate(node.posS.line, node.posS.offset, node.posE.offset - node.posS.offset, Colours.Process, 0);
-            for (const de of node.dataExpList) {
-                parseDataExp(de.dataExp);
-            }
-            parseProcExp(node.proc);
-            if (node.procMore !== null) {
-                parseProcExp(node.procMore);
-            }
-            break;
-        }
-        case parser_1.ASTKinds.SPE_9: {
-            parseProcExp(node.proc);
-            if (node.procMore !== null) {
-                parseProcExp(node.procMore);
-            }
-            break;
-        }
-        case parser_1.ASTKinds.SPE_10: {
-            pushAndUpdate(node.posS.line, node.posS.offset, node.posE.offset - node.posS.offset, Colours.Function, 0);
-            if (node.dataExpFirst !== null) {
-                parseDataExp(node.dataExpFirst);
-            }
-            for (const de of node.dataExpW) {
-                parseDataExp(de.dataExp);
-            }
-            if (node.procMore !== null) {
-                parseProcExp(node.procMore);
-            }
-            break;
-        }
-        case parser_1.ASTKinds.SPE_11: {
-            pushAndUpdate(node.posS.line, node.posS.offset, node.posE.offset - node.posS.offset, Colours.Process, 0);
-            if (node.procMore !== null) {
-                parseProcExp(node.procMore);
-            }
-            break;
-        }
-        case parser_1.ASTKinds.SPE1: {
-            parseProcExp(node.proc);
-            if (node.procMore !== null) {
-                parseProcExp(node.procMore);
-            }
+        case ast.ASTKinds.SPE_Choice: {
+            const Procexp = procexp;
+            parseProcExp(Procexp.left);
+            parseProcExp(Procexp.right);
             break;
         }
     }
 }
-function parseDataExp(node) {
-    switch (node.kind) {
-        case parser_1.ASTKinds.DE_3: {
-            parseDataExp(node.dataExp);
-            if (node.dataExpMore !== null) {
-                parseDataExp(node.dataExpMore);
+function parseDataExp(de) {
+    //what this would be now is - if name then give colour based on type, else recursive call
+    if (de.kind == null) {
+        return;
+    }
+    switch (de.kind) {
+        case ast.ASTKinds.DE_Singleton: {
+            const DE = de;
+            parseDataExp(DE.dataExp);
+            break;
+        }
+        case ast.ASTKinds.DE_Partial: {
+            const DE = de;
+            pushAndUpdate(DE.posS, DE.posE, Colours.Parameter, 0);
+            parseDataExp(DE.left);
+            parseDataExp(DE.right);
+            break;
+        }
+        case ast.ASTKinds.DE_Set: {
+            const DE = de;
+            pushAndUpdate(DE.posS, DE.posE, Colours.Parameter, 0);
+            parseDataExp(DE.dataExp);
+            break;
+        }
+        case ast.ASTKinds.DE_Lambda: {
+            const DE = de;
+            pushAndUpdateGivenLength(DE.startPos, 6, Colours.Keyword, 0);
+            pushAndUpdateGivenLength(DE.namePos, DE.name.length, Colours.Variable, 0);
+            parseDataExp(DE.dataExp);
+            break;
+        }
+        case ast.ASTKinds.DE_Forall: {
+            const DE = de;
+            pushAndUpdateGivenLength(DE.startPos, 6, Colours.Keyword, 0);
+            pushAndUpdateGivenLength(DE.namePos, DE.name.length, Colours.Variable, 0);
+            parseDataExp(DE.dataExp);
+            break;
+        }
+        case ast.ASTKinds.DE_Exists: {
+            const DE = de;
+            pushAndUpdateGivenLength(DE.startPos, 6, Colours.Keyword, 0);
+            pushAndUpdateGivenLength(DE.namePos, DE.name.length, Colours.Variable, 0);
+            parseDataExp(DE.dataExp);
+            break;
+        }
+        case ast.ASTKinds.DE_Brack: {
+            const DE = de;
+            parseDataExp(DE.dataExp);
+            break;
+        }
+        case ast.ASTKinds.DE_Function: {
+            const DE = de;
+            pushAndUpdate(DE.sigPos, DE.argPos, Colours.Function, 0);
+            if (DE.arguments != null) {
+                parseDataExp(DE.arguments);
             }
             break;
         }
-        case parser_1.ASTKinds.DE_1: {
-            pushAndUpdate(node.posS.line, node.posS.offset, node.posE.offset - node.posS.offset, Colours.Parameter, 0);
-            parseDataExp(node.dataExpLeft);
-            parseDataExp(node.dataExpRight);
-            if (node.dataExpMore !== null) {
-                parseDataExp(node.dataExpMore);
+        case ast.ASTKinds.DE_Tuple: {
+            const DE = de;
+            if (DE.dataExps == null) {
+                return;
+            }
+            for (const param of DE.dataExps) {
+                parseDataExp(param);
             }
             break;
         }
-        case parser_1.ASTKinds.DE_2: {
-            pushAndUpdate(node.posS.line, node.posS.offset, node.posE.offset - node.posS.offset, Colours.Parameter, 0);
-            parseDataExp(node.dataExpRight);
-            if (node.dataExpMore !== null) {
-                parseDataExp(node.dataExpMore);
-            }
+        case ast.ASTKinds.DE_Infix: {
+            const DE = de;
+            parseDataExp(DE.left);
+            parseDataExp(DE.right);
             break;
         }
-        case parser_1.ASTKinds.DE_4: {
-            pushAndUpdate(node.pos.line, node.pos.offset, 6, Colours.Keyword, 0);
-            parseDataExp(node.dataExp);
-            if (node.dataExpMore !== null) {
-                parseDataExp(node.dataExpMore);
+        case ast.ASTKinds.DE_Name: {
+            const DE = de;
+            if (DE.type == null) {
+                break;
             }
-            break;
-        }
-        case parser_1.ASTKinds.DE_5: {
-            pushAndUpdate(node.pos.line, node.pos.offset, 6, Colours.Keyword, 0);
-            parseDataExp(node.dataExp);
-            if (node.dataExpMore !== null) {
-                parseDataExp(node.dataExpMore);
-            }
-            break;
-        }
-        case parser_1.ASTKinds.DE_6: {
-            pushAndUpdate(node.pos.line, node.pos.offset, 6, Colours.Keyword, 0);
-            parseDataExp(node.dataExp);
-            if (node.dataExpMore !== null) {
-                parseDataExp(node.dataExpMore);
-            }
-            break;
-        }
-        case parser_1.ASTKinds.DE_7: {
-            parseDataExp(node.dataExp);
-            if (node.dataExpMore !== null) {
-                parseDataExp(node.dataExpMore);
-            }
-            break;
-        }
-        case parser_1.ASTKinds.DE_8: {
-            if (node.dataExpMore !== null) { //temporary hacky thing so that functions are highlighted correctly (just for the sake of it looking better for a demo)
-                if (node.dataExpMore.kind == parser_1.ASTKinds.DE1_1) {
-                    pushAndUpdate(node.posS.line, node.posS.offset, node.posE.offset - node.posS.offset, Colours.Function, 0);
-                    parseDataExp(node.dataExpMore);
+            switch (DE.refersTo) {
+                case ast.ASTKinds.Constant: {
+                    pushAndUpdate(DE.posS, DE.posE, Colours.Constant, 0);
                 }
+                case ast.ASTKinds.Variable: {
+                    pushAndUpdate(DE.posS, DE.posE, Colours.Variable, 0);
+                }
+                case ast.ASTKinds.Function_Infix:
+                case ast.ASTKinds.Function_Prefix:
+                    {
+                        pushAndUpdate(DE.posS, DE.posE, Colours.Function, 0);
+                    }
+                    break;
             }
-            else {
-                pushAndUpdate(node.posS.line, node.posS.offset, node.posE.offset - node.posS.offset, Colours.Parameter, 0);
-            }
-            break;
         }
-        case parser_1.ASTKinds.DE1_1: {
-            parseDataExp(node.dataExp);
-            if (node.dataExpMore !== null) {
-                parseDataExp(node.dataExpMore);
-            }
-            break;
-        }
-        case parser_1.ASTKinds.DE1_2: {
-            for (const de of node.dataExpW) {
-                parseDataExp(de.dataExp);
-            }
-            break;
-        }
-        case parser_1.ASTKinds.DE1_3:
-        case parser_1.ASTKinds.DE1_4:
-        case parser_1.ASTKinds.DE1_5:
-        case parser_1.ASTKinds.DE1_6:
-        case parser_1.ASTKinds.DE1_7:
-        case parser_1.ASTKinds.DE1_8:
-        case parser_1.ASTKinds.DE1_9:
-        case parser_1.ASTKinds.DE1_10:
-        case parser_1.ASTKinds.DE1_11:
-        case parser_1.ASTKinds.DE1_12: {
-            parseDataExp(node.dataExp);
-            if (node.dataExpMore !== null) {
-                parseDataExp(node.dataExpMore);
-            }
-            break;
-        }
-        case parser_1.ASTKinds.DE1_13: break; //TODO add infix functionality
     }
 }
 //# sourceMappingURL=semanticTokens.js.map

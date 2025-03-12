@@ -6,45 +6,48 @@ INCLUDES: qwert
 
 TYPES:  test1
         test2=jacob
-        test4=x->y
-        test5=x+->y
-        test6=Pow(a->e)
+        test4=x -> y
+        test5=x +-> y
+        test6=Pow(a -> e)
         test7=[[[f]]]
         test8=(r)
 
 VARIABLES: int test
-        bool test1,test2,test3
-        foo: [example2->float]->int
+        bool test1, test2, test3
+        foo: [example2 -> float] -> int
         [int] setofnumbers
         variablename: float32
 
-CONSTANTS: Pow(2)->3 foo,bar
+CONSTANTS: Pow(2) -> 3 foo, bar
            bool True
            bool False
 
-FUNCTIONS: func: foo->[(bar+->example)]
-           parseInt: int->string
+FUNCTIONS: func: foo -> [(bar +-> example)]
+           parseInt: int -> string
            read: filetype
 
-ALIASES: singular:= "a&b"
-         list:= "de1,de2,de3"
+ALIASES: singular := "a & b"
+         list := "de1, de2, de3"
 
-proc qwerty(asdfgh,zxcvbnm):=
-        broadcast({qwe&rty}).
-        [[foo:=x->y]]
+proc qwerty(asdfgh, zxcvbnm) :=
+        broadcast({qwe & rty}).
+        [[ foo := x -> y ]]
         bar
 
-PROCESSES: p1(args):=
+PROCESSES: p1(args) :=
         unicast(de1, de2).proc1
         >proc2
-        +broadcast(de1).
+        +
+        broadcast(de1).
         groupcast(de1, de2).
         proc3
-        +send(de2).
+        +
+        send(de2).
         deliver(de3).
         receive(foo[de4][de5]).
         bar
-        +bar2
+        +
+        bar2
 
 PROCESSES: p1(args):=
         send({detest1}).

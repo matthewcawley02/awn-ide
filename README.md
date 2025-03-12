@@ -3,7 +3,7 @@
 ## On Remote Repository:
 
 **awn-documentation**: the material Peter gave me on AWN.  
-**awn-language-server**: language server/client for AWN, VSCode extension. This is the bulk of the project, and I intend to merge the syntax highlighter into this one later on.
+**awn-language-server**: language server/client for AWN, VSCode extension. This is the bulk of the project, and I intend to merge the syntax highlighter into this one later on. Further info in the README of this folder.
 **awn-syntax-highlighter**: AWN syntax highlighting VSCode extension, using a textmate grammar. Only does highlighting possible using regexes, no semantic parsing. Will be merged into the language server later on.
 
 ## On Local Repository:

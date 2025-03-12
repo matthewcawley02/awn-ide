@@ -32,7 +32,7 @@ import{
 
 import { convertNewToOldAST } from './convertAST';
 
-import { InitialiseCheck, Check } from './check';
+import { Initialise, Check } from './check';
 import { AWNRoot } from './ast';
 
 // Create a connection for the server, using Node's IPC as a transport.
@@ -91,7 +91,7 @@ connection.onInitialize((params: InitializeParams) => {
 //Set up listeners on initialization
 connection.onInitialized(() => {
 	console.log("Initialized connection with client");
-	InitialiseCheck()
+	Initialise()
 
 	connection.client.register(DidChangeConfigurationNotification.type, undefined);
 	connection.workspace.onDidChangeWorkspaceFolders(_event => {
@@ -156,7 +156,8 @@ connection.languages.diagnostics.on(async (params) => {
 //(this specifically does the semantic tokens, in addition,
 //validateTextDocument is called every time the document changes
 //which does parsing and semantic checking)
-//though this also parses which is inefficient so i should change that later (TODO)
+//TODO need to figure out how to make the language server ask for semantic tokens and diagnostics in the same request,
+//as currently they are separated and i have to do everything twice
 connection.onRequest("textDocument/semanticTokens/full", (params) => {
 	const document = documents.get(params.textDocument.uri);
 	if(document === undefined){
@@ -167,8 +168,9 @@ connection.onRequest("textDocument/semanticTokens/full", (params) => {
 	}
 	const parseResult: ParseResult = parse(document.getText());
 	if(parseResult.ast != null){
-		//TODO change getSemantTokens to use the new ast
-		const semanticTokens = getSemantTokens(parseResult.ast);
+		var newast = convertNewToOldAST(parseResult.ast)
+		Check(newast, false)
+		const semanticTokens = getSemantTokens(newast);
 		return{
 			data: semanticTokens
 		};
@@ -183,6 +185,7 @@ connection.onRequest("textDocument/semanticTokens/full", (params) => {
 async function validateTextDocument(textDocument: TextDocument): Promise<Diagnostic[]> {
 	const settings = await getDocumentSettings(textDocument.uri);
 
+	console.log("-------------------------- DOCUMENT CHANGE -------------------------------")
 	const text: string = textDocument.getText()	
 	const parseResult: ParseResult = parse(text)
 
@@ -211,7 +214,7 @@ async function validateTextDocument(textDocument: TextDocument): Promise<Diagnos
 		console.log("original AST:\n", parseResult.ast)
 		const newast: AWNRoot = convertNewToOldAST(parseResult.ast)
 		console.log("converted AST:\n", newast)
-		const semanticErrors: Diagnostic[] = Check(newast)
+		const semanticErrors: Diagnostic[] = Check(newast, true)
 		diagnostics.push(...semanticErrors)
 	}
 	console.log("Diagnostics:", diagnostics)

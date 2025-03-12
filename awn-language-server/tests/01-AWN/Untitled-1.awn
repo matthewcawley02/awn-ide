@@ -1,0 +1,3 @@
+proc FORWARD_TC(sigma, Gamma, msg) :=
+  [ forall lt. isElem(lt, ls) ]
+      OLSR(sigma, Gamma)

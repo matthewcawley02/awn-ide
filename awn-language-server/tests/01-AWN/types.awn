@@ -1,0 +1,150 @@
+TYPES:
+  Bool
+  TIME                  -- Moments (integers with -infinity and +infinity)
+  IP                    -- Node or router identifiers
+  MESSAGE               -- Hello and TC Messages
+  MSG   = [MESSAGE]     -- Messages, consisting of lists of Hello and TC Messages.
+  STATUS                -- Link status classifier, namely  SYMMETRIC | HEARD | LOST
+  MPR                   -- MPR classifier
+  SQN                   -- Sequence numbers (integers)
+  METRIC                -- Route quality metric (natural numbers with infinity)
+  L     = IP x TIME x TIME x TIME x Bool x Bool x Bool x Bool x METRIC x METRIC         -- Link tuples
+  N2    = IP x IP x TIME x METRIC x METRIC                                              -- 2-hop tuples
+  AR    = IP x SQN x TIME                                                               -- Advertising remote routers
+  TR    = IP x IP x TIME x METRIC                                                       -- Router topology elements
+  R     = IP x IP x METRIC                                                              -- Routes
+  P     = IP x SQN                                                                      -- Processed message records
+  RX    = IP x SQN                                                                      -- Received message records
+
+
+VARIABLES:
+  IP         ip                         -- Identifier of current node.
+  TIME       hello_time,                -- Time when next HELLO message must be sent
+             tc_time,                   -- Time when next TC message must be sent
+             send_time,                 -- Time when accumulated packet must be sent
+             hp_maxjitter,              -- Maximum jitter time for HELLO messages
+             tp_maxjitter,              -- Maximum jitter time for TC messages
+             h_hold_time,               -- Validity time for generated HELLO messages
+             t_hold_time,               -- Validity time for generated TC messages
+             l_hold_time,               -- Length that lost links should be kept for
+             hello_interval,            -- Period between HELLO message transmissions
+             tc_interval                -- Period between TC message transmissions
+  L          lt                         -- Arbitrary link tuple
+  Pow(L)     ls,                        -- Link set maintaining information about 1-hop neighbours and their statuses
+             prev_ls,                   -- Previous link set used to check for updates
+             fpmrs,                     -- Set of optimal flooding MPRs
+             rpmrs                      -- Set of optimal routing MPRs
+  Pow(N2)    2hs                        -- 2-hop set maintaining information about 2-hop neighbours
+  AR         ar                         -- Arbitrary advertising remote router tuple
+  Pow(AR)    arrs                       -- Advertising remote router set containing information about routers which have advertised links
+  Pow(TR)    rts                        -- Router topology set containing advertised links
+  Pow(R)     rs,                        -- Routing set containing shortest known routes
+             rs0                        -- Alternative routing set containing shortest known routes
+  P          p                          -- Arbitrary processed tuple
+  Pow(P)     ps                         -- Processed set identifying processed TC messages
+  RX         rx                         -- Arbitrary received set tuple
+  Pow(RX)    rxs                        -- Received set identifying TC messages received and considered for forwarding
+  SQN        sqn,                       -- Sequence number identifying a TC message
+             ansn                       -- Advertising neighbour sequence number included in TC messages
+  METRIC     in_metric                  -- Quality of incoming signal
+  MESSAGE    msg,                       -- To-be-processed HELLO or TC message
+             q                          -- Head of queue of received HELLO and TC messages
+  MSG        queue,                     -- Queue of received HELLO and TC messages
+             qs,                        -- Tail of queue of received HELLO and TC messages
+             mqueue,                    -- Queue of to-be-processed HELLO and TC messages
+             msgs,                      -- List of HELLO and TC messages
+             pkt                        -- List of HELLO and TC messages
+
+
+CONSTANTS:                              
+  MSG        emptyList                  -- Empty list
+  TIME       infinity, 1
+  SQN        1
+  STATUS     SYMMETRIC
+
+
+FUNCTIONS:
+  concat:       MSG x MSG -> MSG
+  append:       MSG x MESSAGE -> MSG
+    :   :       MESSAGE x MSG -> MSG
+  isHELL0:      MSG -> Bool
+  isTC:         MSG -> Bool
+  newHELLO:     IP x TIME x SQN x Pow(L) x TIME -> MESSAGE
+  newTC:        IP x TIME x SQN x SQN x Pow(L) x TIME -> MESSAGE
+  forward:      IP x MSG +-> MSG
+  purgeLinkSet:         Pow(L) x TIME -> Pow(L)
+  purge2HopSet:         Pow(L) x Pow(N2) x TIME -> Pow(N2)
+  purgeAdvertisingRouters: Pow(AR) x TIME -> Pow(AR)
+  purgeRouterTopology:  Pow(TR) x TIME -> Pow(RR)
+  validFMPRs:           Pow(L) x Pow(N2) x TIME -> Pow(Pow(L))
+  updateFMPRs:          Pow(L) x Pow(N2) x TIME x Pow(L) -> Pow(L)
+  validRMPRs:           Pow(L) x Pow(N2) x TIME -> Pow(Pow(L))
+  updateRMPRs:          Pow(L) x Pow(N2) x TIME x Pow(L) -> Pow(L)
+  incrementANSN:        Pow(L) x Pow(L) x SQN -> SQN
+  optimalRoutingSets:   IP x Pow(L) x Pow(TR) x TIME -> Pow(Pow(R))
+  updateRoutingSet:     IP x Pow(L) x Pow(TR) x TIME x Pow(R) x Pow(R) -> Pow(L)
+  addLinkTuple:         Pow(L) x IP x TIME x METRIC x TIME -> Pow(L)
+  updateLinkOutMetrics: IP x Pow(L) x IP x Pow(IP x METRIC) -> Pow(L)
+  updateSymmetricTime:  IP x Pow(L) x IP x TIME x Pow(IP x STATUS) x TIME x TIME -> Pow(L)
+  updateHeardTime:      Pow(L) x IP x TIME x TIME -> Pow(L)
+  updateValidityTime:   Pow(L) x IP x TIME x TIME -> Pow(L)
+  updateFMPRSelectors:  IP x Pow(L) x IP x Pow(IP x METRIC) x Pow(IP x MPR) x TIME -> Pow(L)
+  updateRMPRSelectors:  IP x Pow(L) x IP x Pow(IP x METRIC) x Pow(IP x MPR) x TIME -> Pow(L)
+  add2HopTuples:        IP x Pow(L) x Pow(N2) x IP x Pow(IP x METRIC) x TIME -> Pow(N2)
+  update2HopInMetrics:  Pow(L) x Pow(N2) x IP x Pow(IP x METRIC) x TIME -> Pow(N2)
+  update2HopOutMetrics: Pow(L) x Pow(N2) x IP x Pow(IP x METRIC) x TIME -> Pow(N2)
+  update2HopTime:       IP x Pow(L) x Pow(N2) x IP x TIME x Pow(IP x STATUS) x TIME -> Pow(N2)
+  oip:                  MSG -> IP
+  vtime:                MSG -> TIME
+  sqn:                  MSG -> SQN
+  statuses:             MSG +-> Pow(IP x STATUS)
+  mprs:                 MSG +-> Pow(IP x MPR)
+  inMetrics:            MSG +-> Pow(IP x METRIC)
+  outMetrics:           MSG +-> Pow(IP x METRIC)
+  sip:                  MSG +-> IP
+  ansn:                 MSG +-> SQN
+  dests:                MSG +-> Pow(IP x METRIC)
+  L_oip:                L -> IP
+  L_status:             L x TIME -> STATUS
+  L_fmpr_selector:      L -> Bool
+  P_oip:                P -> IP
+  P_sqn:                P -> SQN
+  RX_oip:               RX -> IP
+  RX_sqn:               RX -> SQN
+  AR_oip:               AR -> IP
+  AR_sqn:               AR -> SQN
+  addProcessedTuple:    Pow(P) x IP x SQN -> Pow(P)
+  updateAdvertisingRouters:    Pow(AR) x IP x SQN x TIME x TIME -> Pow(AR)
+  updateRouterTopology: IP x Pow(TR) x IP x TIME x Pow(IP x METRIC) x TIME -> Pow(TR)
+  addReceivedTuple:     Pow(RX) x IP x SQN -> Pow(RX)
+  updatePending:        Pow(L) x Pow(N2) x Pow(AR) x Pow(TR) x Pow(R) x SQN x Pow(L) x IP x TIME -> Bool
+  > :                   SQN x SQN -> Bool
+  + :                   TIME x TIME -> TIME
+  + :                   SQN x SQN -> SQN
+  - :                   TIME x TIME -> TIME
+  <= :                  TIME x TIME -> Bool
+
+ALIASES:
+  sigma  :=         ls, 2hs, arrs, rts, rs, ps, rxs, pkt, hello_time, tc_time, send_time, mqueue, sqn, ansn, prev_ls
+  Gamma  :=         ip, hp_maxjitter, tp_maxjitter, h_hold_time, t_hold_time, l_hold_time, hello_interval, tc_interval
+  Updated:=         !updatePending(ls, 2hs, arrs, rts, rs, ansn, prev_ls, ip, now)
+
+-- NOTATION
+-- "->"         total function
+-- "+->"        partial function (syntax taken from B and Z)
+-- "x"          cross product
+-- "Pow(Type)"  powerset over type Type
+-- "[Type]"     lists of type Type
+
+-- DEFAULT FUNCTIONS
+--  !    :           Bool -> Bool                  -- negation
+--  &    :           Bool x Bool -> Bool           -- conjunction
+--  |    :           Bool x Bool -> Bool           -- disjunction
+--  ->   :           Bool x Bool -> Bool           -- implication
+--  <->  :           Bool x Bool -> Bool           -- bi-implication
+--  =    :           Type x Type -> Bool           -- equality for type Type
+-- !=    :           Type x Type -> Bool           -- inequality
+-- isElem:           Type x Pow(Type) -> Bool      -- is an element of
+
+-- DEFAULT VARIABLE
+--  TIME       now

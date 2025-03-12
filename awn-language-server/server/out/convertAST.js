@@ -14,38 +14,38 @@ function convertNewToOldAST(oldroot) {
     for (const oldblock of oldroot.block) {
         switch (oldblock.kind) {
             case oldast.ASTKinds.Block_1: { //multiple includes
-                let newblock = new newast.Block_Include(root);
+                let newblock = new newast.Block_Include(root, oldblock.pos);
                 root.blocks.push(newblock);
                 for (const oldinclude of oldblock.include) {
-                    let ni = new newast.Include(newblock, oldinclude.name.value);
+                    let ni = new newast.Include(newblock, oldinclude.name.value, oldinclude.posS, oldinclude.posE);
                     newblock.includes.push(ni);
                 }
                 break;
             }
             case oldast.ASTKinds.Block_2: { //single include
-                let newblock = new newast.Block_Include(root);
+                let newblock = new newast.Block_Include(root, oldblock.pos);
                 root.blocks.push(newblock);
-                let ni = new newast.Include(newblock, oldblock.include.name.value);
+                let ni = new newast.Include(newblock, oldblock.include.name.value, oldblock.include.posS, oldblock.include.posE);
                 newblock.includes.push(ni);
                 break;
             }
             case oldast.ASTKinds.Block_3: { //type
-                let newblock = new newast.Block_Type(root);
+                let newblock = new newast.Block_Type(root, oldblock.pos);
                 root.blocks.push(newblock);
                 for (const oldtype of oldblock.type) {
-                    let newtype = new newast.Type(newblock, oldtype.typeName.value, oldtype.posS);
+                    let newtype = new newast.Type(newblock, oldtype.typeName.value, oldtype.posS, oldtype.posE);
                     newblock.types.push(newtype);
                     if (oldtype.typeExprW !== null) {
                         newtype.typeExpr = convertTypeExpr(oldtype.typeExprW.typeExpr, newtype);
                     }
                     else { //if not given an associated TE, give it a typename TE, otherwise what's the point of it???
-                        newtype.typeExpr = new newast.TE_Name(newtype, oldtype.typeName.value, oldtype.posS);
+                        newtype.typeExpr = new newast.TE_Name(newtype, oldtype.typeName.value, oldtype.posS, oldtype.posE);
                     }
                 }
                 break;
             }
             case oldast.ASTKinds.Block_4: { //variable
-                let newblock = new newast.Block_Variable(root);
+                let newblock = new newast.Block_Variable(root, oldblock.pos);
                 root.blocks.push(newblock);
                 for (const oldconvar of oldblock.var) {
                     let newvar = convertConVar(oldconvar, newblock, true);
@@ -54,7 +54,7 @@ function convertNewToOldAST(oldroot) {
                 break;
             }
             case oldast.ASTKinds.Block_5: { //constant
-                let newblock = new newast.Block_Constant(root);
+                let newblock = new newast.Block_Constant(root, oldblock.pos);
                 root.blocks.push(newblock);
                 for (const oldconvar of oldblock.const) {
                     let newconst = convertConVar(oldconvar, newblock, false);
@@ -63,7 +63,7 @@ function convertNewToOldAST(oldroot) {
                 break;
             }
             case oldast.ASTKinds.Block_6: { //function
-                let newblock = new newast.Block_Function(root);
+                let newblock = new newast.Block_Function(root, oldblock.pos);
                 root.blocks.push(newblock);
                 for (const oldfunc of oldblock.func) {
                     let newfunc = convertFunction(oldfunc, newblock);
@@ -72,7 +72,7 @@ function convertNewToOldAST(oldroot) {
                 break;
             }
             case oldast.ASTKinds.Block_7: { //multiple processes
-                let newblock = new newast.Block_Process(root);
+                let newblock = new newast.Block_Process(root, oldblock.pos, false);
                 root.blocks.push(newblock);
                 for (const oldproc of oldblock.proc) {
                     let newproc = convertProcess(oldproc, newblock);
@@ -81,14 +81,14 @@ function convertNewToOldAST(oldroot) {
                 break;
             }
             case oldast.ASTKinds.Block_8: { //single process
-                let newblock = new newast.Block_Process(root);
+                let newblock = new newast.Block_Process(root, oldblock.pos, true);
                 root.blocks.push(newblock);
                 let newproc = convertProcess(oldblock.proc, newblock);
                 newblock.procs.push(newproc);
                 break;
             }
             case oldast.ASTKinds.Block_9: { //alias
-                let newblock = new newast.Block_Alias(root);
+                let newblock = new newast.Block_Alias(root, oldblock.pos);
                 root.blocks.push(newblock);
                 for (const oldalias of oldblock.alias) {
                     let newalias = convertAlias(oldalias, newblock);
@@ -109,23 +109,20 @@ function convertTypeExpr(node, parent) {
         case oldast.ASTKinds.TE_1: { //brackets
             newnode = new newast.TE_Brack(parent);
             newnode.typeExpr = convertTypeExpr(node.typeExpr, newnode);
-            newnode.children.push(newnode.typeExpr);
             break;
         }
         case oldast.ASTKinds.TE_2: { //pow
-            newnode = new newast.TE_Pow(parent);
+            newnode = new newast.TE_Pow(parent, node.pos);
             newnode.typeExpr = convertTypeExpr(node.typeExpr, newnode);
-            newnode.children.push(newnode.typeExpr);
             break;
         }
-        case oldast.ASTKinds.TE_3: { //list
-            newnode = new newast.TE_List(parent);
+        case oldast.ASTKinds.TE_3: { //Array
+            newnode = new newast.TE_Array(parent);
             newnode.typeExpr = convertTypeExpr(node.typeExpr, newnode);
-            newnode.children.push(newnode.typeExpr);
             break;
         }
         case oldast.ASTKinds.TE_4: { //name
-            newnode = new newast.TE_Name(parent, node.typename.value, node.posS);
+            newnode = new newast.TE_Name(parent, node.typename.value, node.posS, node.posE);
             break;
         }
     }
@@ -142,19 +139,15 @@ function convertLRTypeExpr(node, parent) {
     var newnode;
     switch (node.kind) {
         case oldast.ASTKinds.TE1_1: { //function
-            newnode = new newast.TE_Function(parent); //(parent set temporarily, same for those below)
+            newnode = new newast.TE_FuncFull(parent); //(parent set temporarily, same for those below)
             insertLRNodeTE(newnode);
             newnode.right = convertTypeExpr(node.typeExpr, newnode);
-            newnode.children.push(newnode.left);
-            newnode.children.push(newnode.right);
             break;
         }
         case oldast.ASTKinds.TE1_2: { //partial
-            newnode = new newast.TE_Partial(parent);
+            newnode = new newast.TE_FuncPart(parent);
             insertLRNodeTE(newnode);
             newnode.right = convertTypeExpr(node.typeExpr, newnode);
-            newnode.children.push(newnode.left);
-            newnode.children.push(newnode.right);
             break;
         }
         case oldast.ASTKinds.TE1_3: { //product
@@ -188,6 +181,7 @@ function convertLRTypeExpr(node, parent) {
                     break;
                 }
             }
+            newnode.children = flattenTE(newnode);
             break;
         }
     }
@@ -212,50 +206,31 @@ function insertLRNodeTE(node) {
     //border of new node and new parent
     node.parent = newParent;
 }
-function convertBTE(node, parent) {
-    switch (node.kind) {
-        case oldast.ASTKinds.BTE_1: { //bte function
-            let b = new newast.BTE_Function(parent);
-            b.left = convertBTEAux(node.left, b);
-            b.right = convertBTEAux(node.right, b);
-            b.children.push(b.left);
-            b.children.push(b.right);
-            return b;
-        }
-        case oldast.ASTKinds.BTE_2: { //bte partial
-            let b = new newast.BTE_Partial(parent);
-            b.left = convertBTEAux(node.left, b);
-            b.right = convertBTEAux(node.right, b);
-            b.children.push(b.left);
-            b.children.push(b.right);
-            return b;
-        }
+//Turn a binary tree TE_Product node into a node with an array that obeys correct precedence rules.
+//During conversion, Products are given right precedence (i.e. a x b x c is parsed as a x (b x c))
+//This simplifies this function - we just add what is on the left at all times, then check if the right is another product.
+function flattenTE(typeExp) {
+    var children = [];
+    children.push(typeExp.left);
+    if (typeExp.right.kind == newast.ASTKinds.TE_Product) {
+        children.push(...flattenTE(typeExp.right));
     }
+    else {
+        children.push(typeExp.right);
+    }
+    return children;
 }
-function convertBTEAux(node, parent) {
-    switch (node.kind) {
-        case oldast.ASTKinds.BTE_AUX_1: { //bte name
-            return new newast.TE_Name(parent, node.name.value, node.posS);
-        }
-        case oldast.ASTKinds.BTE_AUX_2: { //bte brack
-            let b = new newast.TE_Brack(parent);
-            b.typeExpr = convertTypeExpr(node.typeExpr, b);
-            b.children.push(b.typeExpr);
-            return b;
-        }
-        case oldast.ASTKinds.BTE_AUX_3: { //bte pow
-            let b = new newast.TE_Pow(parent);
-            b.typeExpr = convertTypeExpr(node.typeExpr, b);
-            b.children.push(b.typeExpr);
-            return b;
-        }
-        case oldast.ASTKinds.BTE_AUX_4: { //bte list
-            let b = new newast.TE_List(parent);
-            b.typeExpr = convertTypeExpr(node.typeExpr, b);
-            b.children.push(b.typeExpr);
-            return b;
-        }
+//Same thing as flattenTE but for tuple DEs instead
+function flattenDE(dataExp) {
+    var children = [];
+    children.push(dataExp.left);
+    if (dataExp.right.kind == newast.ASTKinds.DE_Tuple) {
+        children.push(...flattenDE(dataExp.right));
     }
+    else {
+        children.push(dataExp.right);
+    }
+    return children;
 }
 function convertConVar(node, parent, isVar) {
     if (isVar) {
@@ -267,21 +242,21 @@ function convertConVar(node, parent, isVar) {
     switch (node.kind) {
         case oldast.ASTKinds.ConVar_1: { //list of convar (same TE)
             if (isVar) {
-                convar.push(new newast.Variable(parent, node.nameFirst.value, node.posS));
-                convar.push(...node.namesMore.map(x => new newast.Variable(parent, x.name.value, x.posS)));
+                convar.push(new newast.Variable(parent, node.nameFirst.value, node.posS, node.posE));
+                convar.push(...node.namesMore.map(x => new newast.Variable(parent, x.name.value, x.posS, x.posE)));
             }
             else {
-                convar.push(new newast.Constant(parent, node.nameFirst.value, node.posS));
-                convar.push(...node.namesMore.map(x => new newast.Constant(parent, x.name.value, x.posS)));
+                convar.push(new newast.Constant(parent, node.nameFirst.value, node.posS, node.posE));
+                convar.push(...node.namesMore.map(x => new newast.Constant(parent, x.name.value, x.posS, x.posE)));
             }
             break;
         }
         case oldast.ASTKinds.ConVar_2: { //singular convar
             if (isVar) {
-                convar = [new newast.Variable(parent, node.name.value, node.posS)];
+                convar = [new newast.Variable(parent, node.name.value, node.posS, node.posE)];
             }
             else {
-                convar = [new newast.Constant(parent, node.name.value, node.posS)];
+                convar = [new newast.Constant(parent, node.name.value, node.posS, node.posE)];
             }
             break;
         }
@@ -292,114 +267,149 @@ function convertConVar(node, parent, isVar) {
     return convar;
 }
 function convertFunction(node, parent) {
+    var func;
     switch (node.kind) {
-        case oldast.ASTKinds.Function_1: { //not infix
-            let func = new newast.Function_Generic(parent, node.name.value, node.posS);
-            func.signature = convertTypeExpr(node.typeExpr, func);
-            return func;
+        case oldast.ASTKinds.Function_1: { //function_prefix
+            func = new newast.Function_Prefix(parent, node.name.value, node.posS, node.posE);
+            break;
         }
-        case oldast.ASTKinds.Function_2: { //infix
-            let func = new newast.Function_Infix(parent, node.name.value, node.posS);
-            func.signature = convertBTE(node.binTypeExpr, func);
-            return func;
+        case oldast.ASTKinds.Function_2: { //function infix
+            func = new newast.Function_Infix(parent, node.name.value, node.posS, node.posE);
+            break;
         }
     }
+    func.type = convertTypeExpr(node.typeExpr, func);
+    return func;
 }
 function convertProcess(node, parent) {
     switch (node.kind) {
         case oldast.ASTKinds.Process_1: { //with args
             let arglist = [];
             if (node.argFirst != null) {
-                arglist.push(new newast.Variable(parent, node.argFirst.value, node.pos2S));
+                arglist.push(new newast.Variable(parent, node.argFirst.value, node.pos2S, node.pos2E));
             }
-            arglist.push(...node.argsMore.map(arg => new newast.Variable(parent, arg.name.value, arg.posS)));
-            var proc = new newast.Process(parent, node.nameFirst.value, node.pos1S);
+            arglist.push(...node.argsMore.map(arg => new newast.Variable(parent, arg.name.value, arg.posS, arg.posE)));
+            var proc = new newast.Process(parent, node.nameFirst.value, node.pos1S, node.pos1E);
             proc.args = arglist;
             proc.proc = convertProcExp(node.proc, parent);
             return proc;
         }
         case oldast.ASTKinds.Process_2: { //without args
-            var proc = new newast.Process(parent, node.name.value, node.posS);
+            var proc = new newast.Process(parent, node.name.value, node.posS, node.posE);
             proc.args = [];
             proc.proc = convertProcExp(node.proc, parent);
             return proc;
         }
     }
 }
-//NOTE that I am not checking for SPE_Choice yet (the only LR one)
-//This is just because I need to confirm what its behaviour is with Peter
-//Will be easy to add when I can. 
 function convertProcExp(node, parent) {
+    var newproc;
     switch (node.kind) {
         case oldast.ASTKinds.SPE_1: { //guard
-            let p = new newast.SPE_Guard(parent, node.posDES, node.posDEE);
-            p.dataExp = convertDataExp(node.dataExp, p);
-            p.nextproc = convertProcExp(node.proc, p);
-            return p;
+            newproc = new newast.SPE_Guard(parent, node.posDES, node.posDEE);
+            newproc.dataExp = convertDataExp(node.dataExp, newproc);
+            newproc.nextproc = convertProcExp(node.proc, newproc);
+            break;
         }
         case oldast.ASTKinds.SPE_2: { //assignment
-            let p = new newast.SPE_Assign(parent, node.name.value, node.posA, node.posB, node.posB, node.posC, node.posC, node.posD);
-            p.dataExpAssign = convertDataExp(node.dataExpAssignment, p);
-            p.dataExpList = node.dataExpList.map(x => convertDataExp(x.dataExp, p));
-            p.nextproc = convertProcExp(node.proc, p);
-            return p;
+            newproc = new newast.SPE_Assign(parent, node.name.value, node.posA, node.posC, node.posC, node.posD);
+            newproc.dataExpAssign = convertDataExp(node.dataExpAssignment, newproc);
+            newproc.nextproc = convertProcExp(node.proc, newproc);
+            break;
         }
         case oldast.ASTKinds.SPE_3: { //unicast
-            let p = new newast.SPE_Unicast(parent, node.posA, node.posB, node.posC);
-            p.dataExpL = convertDataExp(node.dataExpL, p);
-            p.dataExpR = convertDataExp(node.dataExpR, p);
-            p.procA = convertProcExp(node.procL, p);
-            p.procB = convertProcExp(node.procR, p);
-            return p;
+            newproc = new newast.SPE_Unicast(parent, node.pos, node.posA, node.posB, node.posC);
+            newproc.dataExpL = convertDataExp(node.dataExpL, newproc);
+            newproc.dataExpR = convertDataExp(node.dataExpR, newproc);
+            newproc.procA = convertProcExp(node.procL, newproc);
+            newproc.procB = convertProcExp(node.procR, newproc);
+            break;
         }
         case oldast.ASTKinds.SPE_4: { //broadcast
-            let p = new newast.SPE_Broadcast(parent, node.posA, node.posB);
-            p.dataExp = convertDataExp(node.dataExp, p);
-            p.nextproc = convertProcExp(node.proc, p);
-            return p;
+            newproc = new newast.SPE_Broadcast(parent, node.pos, node.posA, node.posB);
+            newproc.dataExp = convertDataExp(node.dataExp, newproc);
+            newproc.nextproc = convertProcExp(node.proc, newproc);
+            break;
         }
         case oldast.ASTKinds.SPE_5: { //groupcast
-            let p = new newast.SPE_Groupcast(parent, node.posA, node.posB, node.posC);
-            p.dataExpL = convertDataExp(node.dataExpL, p);
-            p.dataExpR = convertDataExp(node.dataExpR, p);
-            p.nextproc = convertProcExp(node.proc, p);
-            return p;
+            newproc = new newast.SPE_Groupcast(parent, node.pos, node.posA, node.posB, node.posC);
+            newproc.dataExpL = convertDataExp(node.dataExpL, newproc);
+            newproc.dataExpR = convertDataExp(node.dataExpR, newproc);
+            newproc.nextproc = convertProcExp(node.proc, newproc);
+            break;
         }
         case oldast.ASTKinds.SPE_6: { //send
-            let p = new newast.SPE_Send(parent, node.posA, node.posB);
-            p.dataExp = convertDataExp(node.dataExp, p);
-            p.nextproc = convertProcExp(node.proc, p);
-            return p;
+            newproc = new newast.SPE_Send(parent, node.pos, node.posA, node.posB);
+            newproc.dataExp = convertDataExp(node.dataExp, newproc);
+            newproc.nextproc = convertProcExp(node.proc, newproc);
+            break;
         }
         case oldast.ASTKinds.SPE_7: { //deliver
-            let p = new newast.SPE_Deliver(parent, node.posA, node.posB);
-            p.dataExp = convertDataExp(node.dataExp, p);
-            p.nextproc = convertProcExp(node.proc, p);
-            return p;
+            newproc = new newast.SPE_Deliver(parent, node.pos, node.posA, node.posB);
+            newproc.dataExp = convertDataExp(node.dataExp, newproc);
+            newproc.nextproc = convertProcExp(node.proc, newproc);
+            break;
         }
         case oldast.ASTKinds.SPE_8: { //receive
-            let p = new newast.SPE_Receive(parent, node.name.value, node.posS, node.posE);
-            p.dataExps = node.dataExpList.map(x => convertDataExp(x.dataExp, p));
-            p.nextproc = convertProcExp(node.proc, p);
-            return p;
+            newproc = new newast.SPE_Receive(parent, node.pos, node.name.value, node.posS, node.posE);
+            newproc.dataExps = node.dataExpList.map(x => convertDataExp(x.dataExp, newproc));
+            newproc.nextproc = convertProcExp(node.proc, newproc);
+            break;
         }
         case oldast.ASTKinds.SPE_9: { //we're ignoring brackets i guess? (not ignoring, but not including them in the AST)
-            return convertProcExp(node.proc, parent);
+            newproc = convertProcExp(node.proc, parent);
+            break;
         }
         case oldast.ASTKinds.SPE_10: { //call
-            let p = new newast.SPE_Call(parent, node.name.value, node.posS);
+            newproc = new newast.SPE_Call(parent, node.name.value, node.posS, node.posE);
             var args = [];
             if (node.dataExpFirst != null) {
-                args.push(convertDataExp(node.dataExpFirst, p));
+                args.push(convertDataExp(node.dataExpFirst, newproc));
             }
-            args.push(...node.dataExpW.map(x => convertDataExp(x.dataExp, p)));
-            return p;
+            args.push(...node.dataExpW.map(x => convertDataExp(x.dataExp, newproc)));
+            var what = newproc;
+            what.args = args; //idk why i have to do this???
+            break;
         }
         case oldast.ASTKinds.SPE_11: { //name
-            let p = new newast.SPE_Name(parent, node.name.value, node.posS);
-            return p;
+            newproc = new newast.SPE_Name(parent, node.name.value, node.posS, node.posE);
+            break;
         }
     }
+    var returnednode = newproc;
+    if (node.procMore !== null) {
+        convertLRProcExp(node.procMore, newproc);
+    }
+    while (returnednode.parent != parent) { //make sure we're returning the correct thing, as the parent may have changed
+        returnednode = returnednode.parent;
+    }
+    return returnednode;
+}
+//this is just SPE_Choice
+function convertLRProcExp(node, parent) {
+    var newnode = new newast.SPE_Choice(parent); //parent set temporarily
+    insertLRNodeSPE(newnode);
+    newnode.right = convertProcExp(node.proc, newnode);
+}
+function insertLRNodeSPE(node) {
+    var newChild = node;
+    var newParent = node.parent;
+    for (let i = 0;; i++) {
+        //the second case is escaping through a bracket on the first iteration, as in that case we aren't actually inside the bracket, just an LR child of it
+        if ((node.precedence > newParent.precedence) || (newast.isBracketType(newParent.kind) && i == 0)) {
+            newChild = newParent;
+            newParent = newParent.parent;
+        }
+        else {
+            break;
+        }
+    }
+    //border of new node and new child
+    newChild.parent = node;
+    node = node;
+    node.left = newChild;
+    //border of new node and new parent
+    node.parent = newParent;
 }
 function convertDataExp(node, parent) {
     var newnode;
@@ -407,48 +417,46 @@ function convertDataExp(node, parent) {
         case oldast.ASTKinds.DE_3: { //singleton
             newnode = new newast.DE_Singleton(parent);
             newnode.dataExp = convertDataExp(node.dataExp, newnode);
-            newnode.children.push(newnode.dataExp);
             break;
         }
         case oldast.ASTKinds.DE_1: { //partial
-            newnode = new newast.DE_Partial(parent, node.name.value, node.posS);
+            newnode = new newast.DE_Partial(parent, node.name.value, node.posS, node.posE);
             newnode.left = convertDataExp(node.dataExpLeft, newnode);
             newnode.right = convertDataExp(node.dataExpRight, newnode);
-            newnode.children.push(newnode.left, newnode.right);
             break;
         }
         case oldast.ASTKinds.DE_2: { //set
-            newnode = new newast.DE_Set(parent, node.name.value, node.posS);
+            newnode = new newast.DE_Set(parent, node.name.value, node.posS, node.posE);
             newnode.dataExp = convertDataExp(node.dataExpRight, newnode);
-            newnode.children.push(newnode.dataExp);
             break;
         }
         case oldast.ASTKinds.DE_4: { //lambda
-            newnode = new newast.DE_Lambda(parent, node.name.value, node.pos);
+            newnode = new newast.DE_Lambda(parent, node.name.value, node.posS, node.pos);
             newnode.dataExp = convertDataExp(node.dataExp, newnode);
-            newnode.children.push(newnode.dataExp);
             break;
         }
         case oldast.ASTKinds.DE_5: { //forall
-            newnode = new newast.DE_Forall(parent, node.name.value, node.pos);
+            newnode = new newast.DE_Forall(parent, node.name.value, node.posS, node.pos);
             newnode.dataExp = convertDataExp(node.dataExp, newnode);
-            newnode.children.push(newnode.dataExp);
             break;
         }
         case oldast.ASTKinds.DE_6: { //exists
-            newnode = new newast.DE_Exists(parent, node.name.value, node.pos);
+            newnode = new newast.DE_Exists(parent, node.name.value, node.posS, node.pos);
             newnode.dataExp = convertDataExp(node.dataExp, newnode);
-            newnode.children.push(newnode.dataExp);
             break;
         }
-        case oldast.ASTKinds.DE_7: { //brackets
+        case oldast.ASTKinds.DE_7: { //function
+            newnode = new newast.DE_Function_Prefix(parent, node.name.value, node.posN, node.posS, node.posE);
+            newnode.dataExp = convertDataExp(node.dataExp, newnode);
+            break;
+        }
+        case oldast.ASTKinds.DE_8: { //brackets
             newnode = new newast.DE_Brack(parent);
             newnode.dataExp = convertDataExp(node.dataExp, newnode);
-            newnode.children.push(newnode.dataExp);
             break;
         }
-        case oldast.ASTKinds.DE_8: { //name
-            newnode = new newast.DE_Name(parent, node.name.value, node.posS);
+        case oldast.ASTKinds.DE_9: { //name
+            newnode = new newast.DE_Name(parent, node.name.value, node.posS, node.posE);
             break;
         }
     }
@@ -464,92 +472,113 @@ function convertDataExp(node, parent) {
 function convertLRDataExp(node, parent) {
     var newnode;
     switch (node.kind) {
-        case oldast.ASTKinds.DE1_1: {
-            newnode = new newast.DE_Function(parent, parent.namePos, node.posA, node.posB);
+        //TODO change dummypos to actual position - why didn't i???
+        case oldast.ASTKinds.DE1_1:
+            newnode = new newast.DE_Function_Infix(parent, 6);
+            newnode.function = new newast.Function_Infix(newnode, "->", dummyPos, dummyPos);
             insertLRNodeDE(newnode);
-            newnode.arguments = convertDataExp(node.dataExp, newnode);
-            newnode.children.push(newnode.signature);
-            newnode.children.push(newnode.arguments);
+            newnode.right = convertDataExp(node.dataExp, newnode);
             break;
-        }
-        case oldast.ASTKinds.DE1_2: {
+        case oldast.ASTKinds.DE1_2:
+            newnode = new newast.DE_Function_Infix(parent, 6);
+            newnode.function = new newast.Function_Infix(newnode, "<->", dummyPos, dummyPos);
+            insertLRNodeDE(newnode);
+            newnode.right = convertDataExp(node.dataExp, newnode);
+            break;
+        case oldast.ASTKinds.DE1_3:
+            newnode = new newast.DE_Function_Infix(parent, 6);
+            newnode.function = new newast.Function_Infix(newnode, "&", dummyPos, dummyPos);
+            insertLRNodeDE(newnode);
+            newnode.right = convertDataExp(node.dataExp, newnode);
+            break;
+        case oldast.ASTKinds.DE1_4:
+            newnode = new newast.DE_Function_Infix(parent, 6);
+            newnode.function = new newast.Function_Infix(newnode, "|", dummyPos, dummyPos);
+            insertLRNodeDE(newnode);
+            newnode.right = convertDataExp(node.dataExp, newnode);
+            break;
+        case oldast.ASTKinds.DE1_5:
+            newnode = new newast.DE_Function_Infix(parent, 6);
+            newnode.function = new newast.Function_Infix(newnode, "=", dummyPos, dummyPos);
+            insertLRNodeDE(newnode);
+            newnode.right = convertDataExp(node.dataExp, newnode);
+            break;
+        case oldast.ASTKinds.DE1_6:
+            newnode = new newast.DE_Function_Infix(parent, 6);
+            newnode.function = new newast.Function_Infix(newnode, "!=", dummyPos, dummyPos);
+            insertLRNodeDE(newnode);
+            newnode.right = convertDataExp(node.dataExp, newnode);
+            break;
+        case oldast.ASTKinds.DE1_7:
+            newnode = new newast.DE_Function_Infix(parent, 6);
+            newnode.function = new newast.Function_Infix(newnode, ">=", dummyPos, dummyPos);
+            insertLRNodeDE(newnode);
+            newnode.right = convertDataExp(node.dataExp, newnode);
+            break;
+        case oldast.ASTKinds.DE1_8:
+            newnode = new newast.DE_Function_Infix(parent, 6);
+            newnode.function = new newast.Function_Infix(newnode, "<=", dummyPos, dummyPos);
+            insertLRNodeDE(newnode);
+            newnode.right = convertDataExp(node.dataExp, newnode);
+            break;
+        case oldast.ASTKinds.DE1_9:
+            newnode = new newast.DE_Function_Infix(parent, 6);
+            newnode.function = new newast.Function_Infix(newnode, ">", dummyPos, dummyPos);
+            insertLRNodeDE(newnode);
+            newnode.right = convertDataExp(node.dataExp, newnode);
+            break;
+        case oldast.ASTKinds.DE1_10:
+            newnode = new newast.DE_Function_Infix(parent, 6);
+            newnode.function = new newast.Function_Infix(newnode, "<", dummyPos, dummyPos);
+            insertLRNodeDE(newnode);
+            newnode.right = convertDataExp(node.dataExp, newnode);
+            break;
+        case oldast.ASTKinds.DE1_11:
+            newnode = new newast.DE_Function_Infix(parent, 6);
+            newnode.function = new newast.Function_Infix(newnode, ":", dummyPos, dummyPos);
+            insertLRNodeDE(newnode);
+            newnode.right = convertDataExp(node.dataExp, newnode);
+            break;
+        case oldast.ASTKinds.DE1_12:
+            newnode = new newast.DE_Function_Infix(parent, 6);
+            newnode.function = new newast.Function_Infix(newnode, node.func.value, dummyPos, dummyPos);
+            insertLRNodeDE(newnode);
+            newnode.right = convertDataExp(node.dataExp, newnode);
+            break;
+        case oldast.ASTKinds.DE1_13: {
             newnode = new newast.DE_Tuple(parent);
             insertLRNodeDE(newnode);
-            newnode.dataExps = node.dataExpW.map(x => convertDataExp(x.dataExp, parent));
-            newnode.children.push(...newnode.dataExps);
+            switch (node.objects.length) {
+                case 1: {
+                    newnode.right = convertDataExp(node.objects[0].dataExp, newnode);
+                    break;
+                }
+                case 2: {
+                    newnode.right = new newast.DE_Tuple(newnode);
+                    var child = newnode.right;
+                    child.left = convertDataExp(node.objects[1].dataExp, child);
+                    child.left = convertDataExp(node.objects[2].dataExp, child);
+                    break;
+                }
+                default: {
+                    newnode.right = new newast.DE_Tuple(newnode);
+                    var curnode = newnode.right;
+                    for (let i = 1;; i++) {
+                        curnode.left = convertDataExp(node.objects[i].dataExp, curnode);
+                        //on the second last chlid, set right to the last child instead of being another TE_Product
+                        if (i == node.objects.length - 2) {
+                            curnode.right = convertDataExp(node.objects[i + 1].dataExp, curnode);
+                            break;
+                        }
+                        curnode.right = new newast.DE_Tuple(curnode);
+                        curnode = curnode.right;
+                    }
+                    break;
+                }
+            }
+            newnode.dataExps = flattenDE(newnode);
             break;
         }
-        case oldast.ASTKinds.DE1_3:
-            newnode = new newast.DE_Binary(parent, 6);
-            newnode.function = new newast.Function_Infix(newnode, "->", dummyPos);
-            insertLRNodeDE(newnode);
-            newnode.right = convertDataExp(node.dataExp, newnode);
-            newnode.children.push(newnode.left);
-            newnode.children.push(newnode.right);
-        case oldast.ASTKinds.DE1_4:
-            newnode = new newast.DE_Binary(parent, 6);
-            newnode.function = new newast.Function_Infix(newnode, "<->", dummyPos);
-            insertLRNodeDE(newnode);
-            newnode.right = convertDataExp(node.dataExp, newnode);
-            newnode.children.push(newnode.left);
-            newnode.children.push(newnode.right);
-        case oldast.ASTKinds.DE1_5:
-            newnode = new newast.DE_Binary(parent, 6);
-            newnode.function = new newast.Function_Infix(newnode, "&", dummyPos);
-            insertLRNodeDE(newnode);
-            newnode.right = convertDataExp(node.dataExp, newnode);
-            newnode.children.push(newnode.left);
-            newnode.children.push(newnode.right);
-        case oldast.ASTKinds.DE1_6:
-            newnode = new newast.DE_Binary(parent, 6);
-            newnode.function = new newast.Function_Infix(newnode, "|", dummyPos);
-            insertLRNodeDE(newnode);
-            newnode.right = convertDataExp(node.dataExp, newnode);
-            newnode.children.push(newnode.left);
-            newnode.children.push(newnode.right);
-        case oldast.ASTKinds.DE1_7:
-            newnode = new newast.DE_Binary(parent, 6);
-            newnode.function = new newast.Function_Infix(newnode, "=", dummyPos);
-            insertLRNodeDE(newnode);
-            newnode.right = convertDataExp(node.dataExp, newnode);
-            newnode.children.push(newnode.left);
-            newnode.children.push(newnode.right);
-        case oldast.ASTKinds.DE1_8:
-            newnode = new newast.DE_Binary(parent, 6);
-            newnode.function = new newast.Function_Infix(newnode, "!=", dummyPos);
-            insertLRNodeDE(newnode);
-            newnode.right = convertDataExp(node.dataExp, newnode);
-            newnode.children.push(newnode.left);
-            newnode.children.push(newnode.right);
-        case oldast.ASTKinds.DE1_9:
-            newnode = new newast.DE_Binary(parent, 6);
-            newnode.function = new newast.Function_Infix(newnode, ">=", dummyPos);
-            insertLRNodeDE(newnode);
-            newnode.right = convertDataExp(node.dataExp, newnode);
-            newnode.children.push(newnode.left);
-            newnode.children.push(newnode.right);
-        case oldast.ASTKinds.DE1_10:
-            newnode = new newast.DE_Binary(parent, 6);
-            newnode.function = new newast.Function_Infix(newnode, "<=", dummyPos);
-            insertLRNodeDE(newnode);
-            newnode.right = convertDataExp(node.dataExp, newnode);
-            newnode.children.push(newnode.left);
-            newnode.children.push(newnode.right);
-        case oldast.ASTKinds.DE1_11:
-            newnode = new newast.DE_Binary(parent, 6);
-            newnode.function = new newast.Function_Infix(newnode, ">", dummyPos);
-            insertLRNodeDE(newnode);
-            newnode.right = convertDataExp(node.dataExp, newnode);
-            newnode.children.push(newnode.left);
-            newnode.children.push(newnode.right);
-        case oldast.ASTKinds.DE1_12:
-            newnode = new newast.DE_Binary(parent, 6);
-            newnode.function = new newast.Function_Infix(newnode, "<", dummyPos);
-            insertLRNodeDE(newnode);
-            newnode.right = convertDataExp(node.dataExp, newnode);
-            newnode.children.push(newnode.left);
-            newnode.children.push(newnode.right);
-        case oldast.ASTKinds.DE1_13: break; //TODO add custom infix functionality
     }
 }
 function insertLRNodeDE(node) {
@@ -571,13 +600,9 @@ function insertLRNodeDE(node) {
     switch (node.kind) {
         case newast.ASTKinds.DE_Tuple: {
             node = node;
-            node.dataExps.push(newChild);
+            node.left = newChild;
         }
-        case newast.ASTKinds.DE_Function: {
-            node = node;
-            node.signature = newChild;
-        }
-        case newast.ASTKinds.DE_Binary:
+        case newast.ASTKinds.DE_Infix:
             node = node;
             node.left = newChild;
     }
@@ -587,17 +612,17 @@ function insertLRNodeDE(node) {
 function convertAlias(node, parent) {
     switch (node.kind) {
         case oldast.ASTKinds.Alias_1: { //alias list
-            let newnode = new newast.Alias_List(parent, node.nameFirst.value);
+            let newnode = new newast.Alias_List(parent, node.nameFirst.value, node.pos1E, node.pos1S);
             let arglist = [];
             if (node.argFirst != null) {
                 arglist.push(node.argFirst.value);
             }
             arglist.push(...node.argsMore.map(arg => arg.name.value));
-            newnode.args = arglist;
+            newnode.argNames = arglist;
             return newnode;
         }
         case oldast.ASTKinds.Alias_2: { //alias data
-            let newnode = new newast.Alias_Data(parent, node.name.value);
+            let newnode = new newast.Alias_Data(parent, node.name.value, node.posS, node.posE);
             newnode.dataExp = convertDataExp(node.dataExp, newnode);
             return newnode;
         }

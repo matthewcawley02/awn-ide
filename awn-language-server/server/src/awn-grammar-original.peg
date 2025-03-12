@@ -113,7 +113,7 @@ Name := NameString | '\!'| '\[\]'
 
 NameString := {NameChar* '\.' NameString} | NameChar+
 
-NameChar := ='[a-zA-Z0-9]' //simplified for now
+NameChar := ='[a-zA-Z0-9_]'
 
 Infix := '[\*\+-<\=>\!\&|\\]+' //Currently "InfixOps". Also removed ":" for now (because of the "Infix :") rule, but probably possible to find a workaround for this
 

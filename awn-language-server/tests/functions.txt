@@ -1,0 +1,9 @@
+TYPES:  product=Bool x Bool
+        f=IP -> IP
+
+FUNCTIONS:  func: MSG x DATA
+            func2: product -> Bool
+            **: f
+            ++: Bool x Bool -> DATA
+            *+=-<>!&\!: product -> DATA
+

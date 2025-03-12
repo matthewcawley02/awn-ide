@@ -1,0 +1,17 @@
+FUNCTIONS: exists: MSG -> Bool
+
+CONSTANTS: bool: Bool
+           data: DATA
+           ip: IP
+           msg: MSG
+           powip: Pow(IP)
+
+VARIABLES: var: DATA
+           msgVar: MSG
+
+PROCESSES: p1(msgVar, var) :=
+        [ bool ]
+        [[ var := data ]]
+        send(one). end
+        +
+        deliver(h). end
