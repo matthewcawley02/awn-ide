@@ -1,3 +1,5 @@
+include types.awn
+
 proc OLSR(sigma, Gamma) :=
   receive(msgs).
       [[ mqueue := concat(mqueue, msgs) ]]

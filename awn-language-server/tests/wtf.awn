@@ -1,0 +1,4 @@
+proc PROCESS_TC() :=
+  [ !(true & isElem(true, true))]
+  PROCESS_TC
+

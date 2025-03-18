@@ -66,7 +66,7 @@ CONSTANTS:
 FUNCTIONS:
   concat:       MSG x MSG -> MSG
   append:       MSG x MESSAGE -> MSG
-    :   :       MESSAGE x MSG -> MSG
+--    :   :       MESSAGE x MSG -> MSG
   isHELL0:      MSG -> Bool
   isTC:         MSG -> Bool
   newHELLO:     IP x TIME x SQN x Pow(L) x TIME -> MESSAGE
@@ -127,7 +127,7 @@ FUNCTIONS:
 ALIASES:
   sigma  :=         ls, 2hs, arrs, rts, rs, ps, rxs, pkt, hello_time, tc_time, send_time, mqueue, sqn, ansn, prev_ls
   Gamma  :=         ip, hp_maxjitter, tp_maxjitter, h_hold_time, t_hold_time, l_hold_time, hello_interval, tc_interval
-  Updated:=         !updatePending(ls, 2hs, arrs, rts, rs, ansn, prev_ls, ip, now)
+  Updated:=         !(updatePending(ls, 2hs, arrs, rts, rs, ansn, prev_ls, ip, now))
 
 -- NOTATION
 -- "->"         total function

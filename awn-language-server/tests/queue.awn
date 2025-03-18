@@ -1,3 +1,5 @@
+include types.awn
+
 proc QUEUE(queue) :=
   receive(pkt). QUEUE(append(queue,pkt))
   +

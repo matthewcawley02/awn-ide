@@ -1,7 +1,7 @@
 TYPES:  product=Bool x Bool
         f=IP -> IP
 
-FUNCTIONS:  func: MSG x DATA
+FUNCTIONS:  func: MESSAGE x DATA
             func2: product -> Bool
             **: f
             ++: Bool x Bool -> DATA

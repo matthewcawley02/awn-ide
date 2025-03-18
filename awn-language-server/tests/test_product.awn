@@ -1,2 +1,2 @@
-TYPES:  test1=IP->int x (bool->IP)
-
+TYPES:
+  Bool

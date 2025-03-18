@@ -1,0 +1,3 @@
+CONSTANTS: constbool: Bool
+--           constip: IP
+           constmsg: MSG

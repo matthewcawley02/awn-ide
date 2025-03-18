@@ -38,9 +38,6 @@ function convertNewToOldAST(oldroot) {
                     if (oldtype.typeExprW !== null) {
                         newtype.typeExpr = convertTypeExpr(oldtype.typeExprW.typeExpr, newtype);
                     }
-                    else { //if not given an associated TE, give it a typename TE, otherwise what's the point of it???
-                        newtype.typeExpr = new newast.TE_Name(newtype, oldtype.typeName.value, oldtype.posS, oldtype.posE);
-                    }
                 }
                 break;
             }
@@ -263,6 +260,7 @@ function convertConVar(node, parent, isVar) {
     }
     for (var c of convar) {
         c.typeExpr = convertTypeExpr(node.typeExpr, c); //TODO currently inefficient, convertTE is called every iteration
+        c.typeDeclaredFirst = node.typeDeclaredFirst;
     }
     return convar;
 }
@@ -312,7 +310,7 @@ function convertProcExp(node, parent) {
             break;
         }
         case oldast.ASTKinds.SPE_2: { //assignment
-            newproc = new newast.SPE_Assign(parent, node.name.value, node.posA, node.posC, node.posC, node.posD);
+            newproc = new newast.SPE_Assign(parent, node.name.value, node.posA, node.posB, node.posC, node.posD);
             newproc.dataExpAssign = convertDataExp(node.dataExpAssignment, newproc);
             newproc.nextproc = convertProcExp(node.proc, newproc);
             break;
@@ -612,12 +610,16 @@ function insertLRNodeDE(node) {
 function convertAlias(node, parent) {
     switch (node.kind) {
         case oldast.ASTKinds.Alias_1: { //alias list
-            let newnode = new newast.Alias_List(parent, node.nameFirst.value, node.pos1E, node.pos1S);
+            let newnode = new newast.Alias_List(parent, node.nameFirst.value, node.pos1S, node.pos1E);
             let arglist = [];
             if (node.argFirst != null) {
                 arglist.push(node.argFirst.value);
+                newnode.argsPosS.push(node.pos2S);
+                newnode.argsPosE.push(node.pos2E);
             }
             arglist.push(...node.argsMore.map(arg => arg.name.value));
+            newnode.argsPosS.push(...node.argsMore.map(arg => arg.posS));
+            newnode.argsPosE.push(...node.argsMore.map(arg => arg.posE));
             newnode.argNames = arglist;
             return newnode;
         }

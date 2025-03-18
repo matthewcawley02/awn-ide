@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.DE_Name = exports.DE_Brack = exports.DE_Exists = exports.DE_Forall = exports.DE_Lambda = exports.DE_Partial = exports.DE_Set = exports.DE_Singleton = exports.DE = exports.SPE_Choice = exports.SPE_Name = exports.SPE_Call = exports.SPE_Receive = exports.SPE_Deliver = exports.SPE_Send = exports.SPE_Groupcast = exports.SPE_Broadcast = exports.SPE_Unicast = exports.SPE_Assign = exports.SPE_Guard = exports.Alias_Data = exports.Alias_List = exports.Process = exports.Function_Infix = exports.Function_Prefix = exports.Function = exports.Constant = exports.Variable = exports.TE_Product = exports.TE_FuncPart = exports.TE_FuncFull = exports.TE_Function = exports.TE_RootType = exports.TE_Name = exports.TE_Array = exports.TE_Pow = exports.TE_Brack = exports.Type = exports.Include = exports.Block_Alias = exports.Block_Process = exports.Block_Function = exports.Block_Constant = exports.Block_Variable = exports.Block_Type = exports.Block_Include = exports.AWNRoot = exports.Node = exports.isBracketType = exports.ASTKinds = void 0;
-exports.DE_Function_Infix = exports.DE_Function_Prefix = exports.DE_Tuple = void 0;
+exports.DE_Brack = exports.DE_Exists = exports.DE_Forall = exports.DE_Lambda = exports.DE_Partial = exports.DE_Set = exports.DE_Singleton = exports.DE = exports.SPE_Choice = exports.SPE_Name = exports.SPE_Call = exports.SPE_Receive = exports.SPE_Deliver = exports.SPE_Send = exports.SPE_Groupcast = exports.SPE_Broadcast = exports.SPE_Unicast = exports.SPE_Assign = exports.SPE_Guard = exports.Alias_Data = exports.Alias_List = exports.Process = exports.Function_Infix = exports.Function_Prefix = exports.Function = exports.Constant = exports.Variable = exports.TE_Any = exports.TE_Product = exports.TE_FuncPart = exports.TE_FuncFull = exports.TE_Function = exports.TE_RootType = exports.TE_Name = exports.TE_Array = exports.TE_Pow = exports.TE_Brack = exports.Type = exports.Include = exports.Block_Alias = exports.Block_Process = exports.Block_Function = exports.Block_Constant = exports.Block_Variable = exports.Block_Type = exports.Block_Include = exports.AWNRoot = exports.Node = exports.isBracketType = exports.ASTKinds = void 0;
+exports.DE_Function_Infix = exports.DE_Function_Prefix = exports.DE_Tuple = exports.DE_Name = void 0;
 var ASTKinds;
 (function (ASTKinds) {
     ASTKinds["AWNRoot"] = "AWNRoot";
@@ -30,6 +30,7 @@ var ASTKinds;
     ASTKinds["TE_FuncPart"] = "TE_FuncPart";
     ASTKinds["TE_FuncFull"] = "TE_FuncFull";
     ASTKinds["TE_Product"] = "TE_Product";
+    ASTKinds["TE_Any"] = "TE_Any";
     ASTKinds["SPE_Guard"] = "SPE_Guard";
     ASTKinds["SPE_Unicast"] = "SPE_Unicast";
     ASTKinds["SPE_Broadcast"] = "SPE_Broadcast";
@@ -238,9 +239,16 @@ class TE_Product extends Node {
     }
 }
 exports.TE_Product = TE_Product;
+class TE_Any extends Node {
+    constructor(parent) {
+        super(0, ASTKinds.TE_Any, parent);
+    }
+}
+exports.TE_Any = TE_Any;
 class Variable extends Node {
     constructor(parent, name, posS, posE) {
         super(10, ASTKinds.Variable, parent);
+        this.typeDeclaredFirst = false; //needed for syntax highlighting
         this.name = name;
         this.posS = posS;
         this.posE = posE;
@@ -250,6 +258,7 @@ exports.Variable = Variable;
 class Constant extends Node {
     constructor(parent, name, posS, posE) {
         super(10, ASTKinds.Constant, parent);
+        this.typeDeclaredFirst = false; //needed for syntax highlighting
         this.name = name;
         this.posS = posS;
         this.posE = posE;
@@ -290,6 +299,9 @@ exports.Process = Process;
 class Alias_List extends Node {
     constructor(parent, name, posS, posE) {
         super(10, ASTKinds.Alias_List, parent);
+        this.args = [];
+        this.argsPosS = [];
+        this.argsPosE = [];
         this.name = name;
         this.posS = posS;
         this.posE = posE;

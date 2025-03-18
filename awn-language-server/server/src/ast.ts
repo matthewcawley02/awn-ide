@@ -27,6 +27,7 @@ export enum ASTKinds {
     TE_FuncPart = "TE_FuncPart",
     TE_FuncFull = "TE_FuncFull",
     TE_Product = "TE_Product",
+	TE_Any = "TE_Any",
 	SPE_Guard = "SPE_Guard",
 	SPE_Unicast = "SPE_Unicast",
 	SPE_Broadcast = "SPE_Broadcast",
@@ -196,7 +197,7 @@ export class Type extends Node {
     }
 }
 
-export type TE = TE_Brack | TE_Pow | TE_Array | TE_Name | TE_Function | TE_Product | TE_RootType
+export type TE = TE_Brack | TE_Pow | TE_Array | TE_Name | TE_Function | TE_Product | TE_RootType | TE_Any
 
 export class TE_Brack extends Node {
 	typeExpr!: TE;
@@ -303,10 +304,18 @@ export class TE_Product extends Node {
     }
 }
 
+export class TE_Any extends Node {
+
+	constructor(parent: Node) {
+        super(0, ASTKinds.TE_Any, parent);
+    }
+}
+
 export class Variable extends Node {
     name: string
 	typeExpr!: TE
 
+	typeDeclaredFirst: boolean = false //needed for syntax highlighting
 	posS: PosInfo //before the name
 	posE: PosInfo //after the name
 
@@ -321,6 +330,7 @@ export class Constant extends Node {
     name: string	
 	typeExpr!: TE
 
+	typeDeclaredFirst: boolean = false //needed for syntax highlighting
 	posS: PosInfo //before the name
 	posE: PosInfo //after the name
 
@@ -383,9 +393,10 @@ export class Alias_List extends Node {
 	name: string;
 	argNames!: string[]
 
-	args!: Variable[]
+	args: (Variable | Alias_List)[] = []
 
 	posS: PosInfo; posE: PosInfo
+	argsPosS: PosInfo[] = []; argsPosE: PosInfo[] = []
 
 	constructor(parent: Node, name: string, posS: PosInfo, posE: PosInfo) {
         super(10, ASTKinds.Alias_List, parent);

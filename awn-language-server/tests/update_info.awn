@@ -1,3 +1,5 @@
+include types.awn
+
 proc UPDATE_INFO(sigma, Gamma) :=
   [[ ls := purgeLinkSet(ls, now) ]]
   [[ 2hs := purge2HopSet(ls, 2hs, now) ]]

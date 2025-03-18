@@ -14,14 +14,14 @@ TYPES:  test1
         test8=(r)
 
 VARIABLES: int test
-        bool test1,test2,test3
+        Bool test1,test2,test3
         foo: [example2->float]->int
-        [int] setofnumbers
+        [MESSAGE] setofnumbers
         variablename: float32
 
 CONSTANTS: Pow(2)->3 foo,bar
-           bool True
-           bool False
+           Bool True
+           Bool False
 
 FUNCTIONS: func: foo->[(bar+->example)]
            parseInt: int->string
@@ -33,18 +33,21 @@ proc qwerty(asdfgh,zxcvbnm):=
         bar
 
 PROCESSES: p1(args):=
-        unicast(de1, de2).proc1
+        unicast(de1; de2).proc1
         >proc2
-        +broadcast(de1).
-        groupcast(de1, de2).
+        +
+        broadcast(de1).
+        groupcast(de1; de2).
         proc3
-        +send(de2).
+        +
+        send(de2).
         deliver(de3).
         receive(foo[de4][de5]).
         bar
-        +bar2
+        +
+        bar2
 
-PROCESSES: p1(args):=
+PROCESSES: p2(args):=
         send({detest1}).
         send((name,de1)>de2).
         send(name!=de).

@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.removeComments = void 0;
 const node_1 = require("vscode-languageserver/node");
 const vscode_languageserver_textdocument_1 = require("vscode-languageserver-textdocument");
 const parser_1 = require("./parser");
@@ -12,6 +13,7 @@ const connection = (0, node_1.createConnection)(node_1.ProposedFeatures.all);
 // Create a simple text document manager.
 const documents = new node_1.TextDocuments(vscode_languageserver_textdocument_1.TextDocument);
 var diagnostics = [];
+var semanticTokens = [];
 /* Handler for connection initialisation
    Client gives its capabilities through "InitializeParams"
    Server then returns its list of capabilities to the client */
@@ -44,7 +46,8 @@ connection.onInitialize((params) => {
             },
             semanticTokensProvider: {
                 legend: {
-                    tokenTypes: ['keyword', 'type', 'function', 'variable', 'variable', 'number', 'string', 'parameter', 'number'],
+                    tokenTypes: ['keyword', 'type', 'function', 'variable', 'variable', 'string', 'number', 'string'],
+                    //			  keyword    type    function    constant    variable    string    process    alias
                     tokenModifiers: []
                 },
                 full: true
@@ -106,43 +109,27 @@ connection.languages.diagnostics.on(async (params) => {
     }
 });
 //Request occurs every time the document changes
-//(this specifically does the semantic tokens, in addition,
-//validateTextDocument is called every time the document changes
-//which does parsing and semantic checking)
-//TODO need to figure out how to make the language server ask for semantic tokens and diagnostics in the same request,
-//as currently they are separated and i have to do everything twice
+//Through testing, this is sent AFTER validateTextDocument returns,
+//which makes it safe to just use the global semanticTokens variable that it sets
 connection.onRequest("textDocument/semanticTokens/full", (params) => {
-    const document = documents.get(params.textDocument.uri);
-    if (document === undefined) {
-        console.log("document undefined idk");
-        return {
-            data: []
-        };
-    }
-    const parseResult = (0, parser_1.parse)(document.getText());
-    if (parseResult.ast != null) {
-        var newast = (0, convertAST_1.convertNewToOldAST)(parseResult.ast);
-        (0, check_1.Check)(newast, false);
-        const semanticTokens = (0, semanticTokens_1.getSemantTokens)(newast);
-        return {
-            data: semanticTokens
-        };
-    }
-    else {
-        return {
-            data: []
-        };
-    }
+    //console.log(semanticTokens)
+    return {
+        data: semanticTokens.flat()
+    };
 });
 //called whenever there is a change in the document. parses and checks for semantic errors
+//also sets semantic tokens, as the semantic tokens request occurs after this one
 async function validateTextDocument(textDocument) {
     const settings = await getDocumentSettings(textDocument.uri);
     console.log("-------------------------- DOCUMENT CHANGE -------------------------------");
-    const text = textDocument.getText();
-    const parseResult = (0, parser_1.parse)(text);
     let problems = 0;
     diagnostics = [];
-    //if parsing itself fails
+    semanticTokens = [];
+    (0, semanticTokens_1.resetSemanticTokens)();
+    var text = textDocument.getText();
+    text = removeComments(text);
+    const parseResult = (0, parser_1.parse)(text);
+    //if parsing itself fails, return syntax error diagnostics from parser.js
     if (parseResult.errs.length > 0) {
         while (problems < settings.maxNumberOfProblems && problems < parseResult.errs.length) {
             const problem = parseResult.errs[problems];
@@ -164,11 +151,71 @@ async function validateTextDocument(textDocument) {
         console.log("original AST:\n", parseResult.ast);
         const newast = (0, convertAST_1.convertNewToOldAST)(parseResult.ast);
         console.log("converted AST:\n", newast);
-        const semanticErrors = (0, check_1.Check)(newast, true);
-        diagnostics.push(...semanticErrors);
+        (0, check_1.InitialiseCheck)();
+        diagnostics = (0, check_1.Check)(newast, true);
+        semanticTokens = (0, semanticTokens_1.getSemantTokens)(newast);
     }
     console.log("Diagnostics:", diagnostics);
+    console.log("Semantic Tokens", semanticTokens);
     return diagnostics;
+}
+//TODO finish
+function removeComments(doc) {
+    var output = "";
+    var row = 1;
+    var col = 0;
+    for (let i = 0; i < doc.length; i++) {
+        if (i + 1 == doc.length) { //automatically stop on the last character, a comment cannot start here
+            output += doc[i];
+            break;
+        }
+        if (doc[i] == "-" && doc[i + 1] == "-") {
+            const length = getLengthOfSingleComment(i, doc);
+            //doesn't allow negative line deltas, so have to figure out a workaround
+            //	pushAndUpdateGivenLength({
+            //		overallPos: i, line: row, offset: col
+            //	}, length, 3, 0)
+            output += "\n";
+            i += length;
+        }
+        else if (doc[i] == "{" && doc[i + 1] == "-") {
+            //remove multiline
+        }
+        else if (doc[i] == "\n") { //todo probably check for \r\n as well
+            row++;
+            col = 0;
+            output += "\n";
+        }
+        else {
+            col++;
+            output += doc[i];
+        }
+    }
+    return output;
+}
+exports.removeComments = removeComments;
+function getLengthOfSingleComment(startchar, doc) {
+    for (let i = startchar; i < doc.length; i++) {
+        if (i + 1 == doc.length || doc[i] == "\n") {
+            return i - startchar;
+        }
+    }
+    return 0;
+}
+function getRowsInMultiComment(startchar, doc) {
+    var numrows = 0;
+    for (let i = startchar; i < doc.length; i++) {
+        if (i + 1 == doc.length) {
+            return numrows + 1;
+        }
+        if (doc[i] == "-" && doc[i + 1] == "}") {
+            return numrows + 1;
+        }
+        else if (doc[i] == "\n") {
+            numrows++;
+        }
+    }
+    return 0;
 }
 connection.onDidChangeWatchedFiles(_change => {
     // Monitored files have change in VSCode

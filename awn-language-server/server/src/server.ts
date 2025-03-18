@@ -27,12 +27,14 @@ import{
 } from './parser';
 
 import{
-	getSemantTokens
+	getSemantTokens,
+	pushAndUpdateGivenLength,
+	resetSemanticTokens
 } from './semanticTokens'
 
 import { convertNewToOldAST } from './convertAST';
 
-import { Initialise, Check } from './check';
+import { Initialise, Check, InitialiseCheck } from './check';
 import { AWNRoot } from './ast';
 
 // Create a connection for the server, using Node's IPC as a transport.
@@ -43,6 +45,8 @@ const connection = createConnection(ProposedFeatures.all);
 const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
 
 var diagnostics: Diagnostic[] = []
+
+var semanticTokens: number[][] = []
 
 /* Handler for connection initialisation
    Client gives its capabilities through "InitializeParams"
@@ -78,7 +82,8 @@ connection.onInitialize((params: InitializeParams) => {
 			},
 			semanticTokensProvider: {
 				legend: {
-					tokenTypes: ['keyword', 'type', 'function', 'variable', 'variable', 'number', 'string', 'parameter', 'number'],
+					tokenTypes: ['keyword', 'type', 'function', 'variable', 'variable', 'string', 'number', 'string'],
+					//			  keyword    type    function    constant    variable    string    process    alias
 					tokenModifiers: []
 				},
 				full: true
@@ -153,46 +158,32 @@ connection.languages.diagnostics.on(async (params) => {
 });
 
 //Request occurs every time the document changes
-//(this specifically does the semantic tokens, in addition,
-//validateTextDocument is called every time the document changes
-//which does parsing and semantic checking)
-//TODO need to figure out how to make the language server ask for semantic tokens and diagnostics in the same request,
-//as currently they are separated and i have to do everything twice
+//Through testing, this is sent AFTER validateTextDocument returns,
+//which makes it safe to just use the global semanticTokens variable that it sets
 connection.onRequest("textDocument/semanticTokens/full", (params) => {
-	const document = documents.get(params.textDocument.uri);
-	if(document === undefined){
-		console.log("document undefined idk");
-		return{
-			data: []
-		};
-	}
-	const parseResult: ParseResult = parse(document.getText());
-	if(parseResult.ast != null){
-		var newast = convertNewToOldAST(parseResult.ast)
-		Check(newast, false)
-		const semanticTokens = getSemantTokens(newast);
-		return{
-			data: semanticTokens
-		};
-	}else{
-		return{
-			data: []
-		}
+	//console.log(semanticTokens)
+	return {
+		data: semanticTokens.flat()
 	}
 });
 
 //called whenever there is a change in the document. parses and checks for semantic errors
+//also sets semantic tokens, as the semantic tokens request occurs after this one
 async function validateTextDocument(textDocument: TextDocument): Promise<Diagnostic[]> {
 	const settings = await getDocumentSettings(textDocument.uri);
 
 	console.log("-------------------------- DOCUMENT CHANGE -------------------------------")
-	const text: string = textDocument.getText()	
-	const parseResult: ParseResult = parse(text)
-
 	let problems = 0
 	diagnostics = []
+	semanticTokens = []
+	resetSemanticTokens()
 
-	//if parsing itself fails
+	var text: string = textDocument.getText()	
+	text = removeComments(text)
+	const parseResult: ParseResult = parse(text)
+
+
+	//if parsing itself fails, return syntax error diagnostics from parser.js
 	if(parseResult.errs.length > 0){
 		while(problems < settings.maxNumberOfProblems && problems < parseResult.errs.length){
 			const problem = parseResult.errs[problems];
@@ -209,16 +200,85 @@ async function validateTextDocument(textDocument: TextDocument): Promise<Diagnos
 		}
 		return diagnostics
 	}
+
 	//if parsing succeeds, check for semantic errors
 	if(parseResult.ast != null){
 		console.log("original AST:\n", parseResult.ast)
 		const newast: AWNRoot = convertNewToOldAST(parseResult.ast)
 		console.log("converted AST:\n", newast)
-		const semanticErrors: Diagnostic[] = Check(newast, true)
-		diagnostics.push(...semanticErrors)
+
+		InitialiseCheck()
+		diagnostics = Check(newast, true)
+		semanticTokens = getSemantTokens(newast)
 	}
 	console.log("Diagnostics:", diagnostics)
+	console.log("Semantic Tokens", semanticTokens)
 	return diagnostics
+}
+
+//TODO finish
+export function removeComments(doc: string): string{
+	var output = ""
+	var row = 1; var col = 0
+	for(let i = 0; i < doc.length; i++){
+
+		if(i+1 == doc.length){ //automatically stop on the last character, a comment cannot start here
+			output += doc[i]
+			break
+		}
+
+		if(doc[i] == "-" && doc[i+1] == "-"){
+			const length = getLengthOfSingleComment(i, doc)
+			//doesn't allow negative line deltas, so have to figure out a workaround
+		//	pushAndUpdateGivenLength({
+		//		overallPos: i, line: row, offset: col
+		//	}, length, 3, 0)
+			output += "\n"
+			i += length
+		}
+
+		else if(doc[i] == "{" && doc[i+1] == "-"){
+			//remove multiline
+		}
+
+		else if(doc[i] == "\n"){ //todo probably check for \r\n as well
+			row++
+			col = 0
+			output += "\n"
+		}
+		else{
+			col++
+			output += doc[i]
+		}
+	}
+	return output
+}
+
+function getLengthOfSingleComment(startchar: number, doc: string): number{
+	for(let i = startchar; i < doc.length; i++){
+		if(i+1 == doc.length || doc[i] == "\n"){
+			return i-startchar
+		}
+	}
+	return 0
+}
+
+function getRowsInMultiComment(startchar: number, doc: string): number{
+	var numrows = 0
+	for(let i = startchar; i < doc.length; i++){
+		if(i+1 == doc.length){
+			return numrows+1
+		}
+		
+		if(doc[i] == "-" && doc[i+1] == "}"){
+			return numrows+1
+		}
+
+		else if(doc[i] == "\n"){
+			numrows++
+		}
+	}
+	return 0
 }
 
 connection.onDidChangeWatchedFiles(_change => {

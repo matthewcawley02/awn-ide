@@ -1,5 +1,8 @@
+include types.awn
+include olsr.awn
+
 proc FORWARD_TC(sigma, Gamma, msg) :=
-  [ forall lt. (isElem(lt, ls) -> (L_oip(lt) != sip(msg) | L_status(lt, now) != SYMMETRIC)) ]
+  [ forall lt. (isElem(lt, ls) +-> (L_oip(lt) != sip(msg) | L_status(lt, now) != SYMMETRIC)) ]
        OLSR(sigma, Gamma)
   +
   [ !(forall lt. (isElem(lt, ls) -> (L_oip(lt) != sip(msg) | L_status(lt, now) != SYMMETRIC))) ]

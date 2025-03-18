@@ -7,7 +7,7 @@ var curLine = 0; var curOffset = 0;
 
 //node both pushAndUpdate functions only work properly if the highlighting remains on one line
 //push and update, given a start and end position
-function pushAndUpdate(startPos: PosInfo, endPos: PosInfo, tokenType: number, tokenMods: number){
+export function pushAndUpdate(startPos: PosInfo, endPos: PosInfo, tokenType: number, tokenMods: number){
 	const absoluteLine = startPos.line; const absolutePos = startPos.offset
 	const length = endPos.offset - startPos.offset
 	const isNewline = (absoluteLine-1-curLine !== 0)
@@ -17,7 +17,7 @@ function pushAndUpdate(startPos: PosInfo, endPos: PosInfo, tokenType: number, to
 }
 
 //push and update, given a start position and a highlighting length
-function pushAndUpdateGivenLength(startPos: PosInfo, length: number, tokenType: number, tokenMods: number){
+export function pushAndUpdateGivenLength(startPos: PosInfo, length: number, tokenType: number, tokenMods: number){
 	const absoluteLine = startPos.line; const absolutePos = startPos.offset
 	const isNewline = (absoluteLine-1-curLine !== 0)
 	const token = [absoluteLine-1-curLine, isNewline? absolutePos: absolutePos-curOffset, length, tokenType, tokenMods]
@@ -25,16 +25,20 @@ function pushAndUpdateGivenLength(startPos: PosInfo, length: number, tokenType: 
 	curLine = absoluteLine-1; curOffset = absolutePos
 }
 
+export function resetSemanticTokens(){
+	tokens = []; curOffset = 0; curLine = 0
+}
+
+//colours defined in "onInitialize" in server.ts
 enum Colours {
-	Keyword = 0,
-	Type = 1,
-	Function = 2,
-	Variable = 6,
-	Constant = 4,
-	Number = 5,
-	String = 6,
-	Parameter = 7,
-	Process = 8
+	Keyword = 0, 	//purple
+	Type = 1,		//teal
+	Function = 2,	//light yellow
+	Constant = 3,	//light blue
+	Variable = 4,	//light blue
+	String = 5,		//orange
+	Process = 6,	//green
+	Alias = 7		//orange
 }
 
 //semantic tokens documentation:
@@ -43,9 +47,7 @@ enum Colours {
 //NOTES:
 //the correct offset may be +/- 1 from block.pos.offset, have to experiment bc idk what block.pos.offset's behaviour is
 
-export function getSemantTokens(node: ast.AWNRoot): number[]{
-	tokens = []
-	curLine = 0; curOffset = 0;
+export function getSemantTokens(node: ast.AWNRoot): number[][]{
 	for(const block of node.blocks){
 		if(block.kind == null) {continue}
 		switch(block.kind){
@@ -97,10 +99,26 @@ export function getSemantTokens(node: ast.AWNRoot): number[]{
 				}
 				break;
 			}
+
+			case ast.ASTKinds.Block_Alias: {const Block = block as ast.Block_Alias
+				pushAndUpdateGivenLength(Block.keywordPos, 7, Colours.Keyword, 0)
+				for(const alias of Block.aliases){
+					switch(alias.kind){
+						case ast.ASTKinds.Alias_Data: { const Alias = alias as ast.Alias_Data
+							parseAliasData(Alias)
+							break
+						}
+						case ast.ASTKinds.Alias_List: { const Alias = alias as ast.Alias_List
+							parseAliasList(Alias)
+							break
+						}
+					}
+				}
+				break
+			}
 		}
 	}
-	console.log("semantic tokens", tokens)
-	return tokens.flat()
+	return tokens
 }
 
 function parseType(node: ast.Type){
@@ -109,7 +127,7 @@ function parseType(node: ast.Type){
 }
 
 function parseTypeExpr(te: ast.TE){
-	if(te.kind == null){return}
+	if(te == null){return}
 	switch(te.kind){
 
 		case ast.ASTKinds.TE_Brack: { const TE = te as ast.TE_Brack
@@ -153,13 +171,23 @@ function parseTypeExpr(te: ast.TE){
 }
 
 function parseConstant(con: ast.Constant){
-	pushAndUpdate(con.posS, con.posE, Colours.Constant, 0)
-	parseTypeExpr(con.typeExpr)
+	if(con.typeDeclaredFirst){
+		parseTypeExpr(con.typeExpr)
+		pushAndUpdate(con.posS, con.posE, Colours.Constant, 0)
+	} else {
+		pushAndUpdate(con.posS, con.posE, Colours.Constant, 0)
+		parseTypeExpr(con.typeExpr)
+	}
 }
 
 function parseVariable(vari: ast.Variable){
-	pushAndUpdate(vari.posS, vari.posE, Colours.Variable, 0)
-	parseTypeExpr(vari.typeExpr)
+	if(vari.typeDeclaredFirst){
+		parseTypeExpr(vari.typeExpr)
+		pushAndUpdate(vari.posS, vari.posE, Colours.Variable, 0)
+	} else {
+		pushAndUpdate(vari.posS, vari.posE, Colours.Variable, 0)
+		parseTypeExpr(vari.typeExpr)
+	}	
 }
 
 function parseFunction(func: ast.Function){
@@ -187,6 +215,7 @@ function parseProcExp(procexp: ast.SPE){
 		}
 
 		case ast.ASTKinds.SPE_Assign: { const Procexp = procexp as ast.SPE_Assign
+			pushAndUpdate(Procexp.nameStart, Procexp.varStart, Colours.Variable, 0)
 			parseDataExp(Procexp.dataExpAssign)
 			parseProcExp(Procexp.nextproc)
 			break;
@@ -271,14 +300,14 @@ function parseDataExp(de: ast.DE){
 		}
 
 		case ast.ASTKinds.DE_Partial: { const DE = de as ast.DE_Partial
-			pushAndUpdate(DE.posS, DE.posE, Colours.Parameter, 0)
+			pushAndUpdate(DE.posS, DE.posE, Colours.Variable, 0)
 			parseDataExp(DE.left)
 			parseDataExp(DE.right)
 			break;
 		}
 
 		case ast.ASTKinds.DE_Set: { const DE = de as ast.DE_Set
-			pushAndUpdate(DE.posS, DE.posE, Colours.Parameter, 0)
+			pushAndUpdate(DE.posS, DE.posE, Colours.Variable, 0)
 			parseDataExp(DE.dataExp)
 			break;
 		}
@@ -310,6 +339,8 @@ function parseDataExp(de: ast.DE){
 			pushAndUpdate(DE.sigPos, DE.argPos, Colours.Function, 0)
 			if(DE.arguments != null){
 				parseDataExp(DE.arguments)
+			}else{ //if there was a problem in parsing, use DE.dataExp as a backup
+				parseDataExp(DE.dataExp)
 			}
 			break
 		}
@@ -334,7 +365,21 @@ function parseDataExp(de: ast.DE){
 				case ast.ASTKinds.Variable: pushAndUpdate(DE.posS, DE.posE, Colours.Variable, 0); break
 				case ast.ASTKinds.Function_Infix:
 				case ast.ASTKinds.Function_Prefix: pushAndUpdate(DE.posS, DE.posE, Colours.Function, 0); break
+				case ast.ASTKinds.Alias_Data:
+				case ast.ASTKinds.Alias_List: pushAndUpdate(DE.posS, DE.posE, Colours.Alias, 0); break
 			}
 		}
+	}
+}
+
+function parseAliasData(alias: ast.Alias_Data){
+	pushAndUpdate(alias.posS, alias.posE, Colours.Alias, 0)
+	parseDataExp(alias.dataExp)
+}
+
+function parseAliasList(alias: ast.Alias_List){
+	pushAndUpdate(alias.posS, alias.posE, Colours.Alias, 0)
+	for(var i = 0; i < alias.argsPosE.length; i++){
+		pushAndUpdate(alias.argsPosS[i], alias.argsPosE[i], Colours.Variable, 0)
 	}
 }

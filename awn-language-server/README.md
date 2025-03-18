@@ -11,7 +11,7 @@ The language server consists of two parts (which are each their own node.js pack
 
 The language server as a whole is also a node.js package.
 
-# How syntax highlighting works
+# How syntax highlighting and semantic checking works, at a very high level
 
 This section explains the steps for how the "server" part of the language server works for syntax highlighting.
 
@@ -57,4 +57,4 @@ If there is a syntax or semantic error, an error message is sent to the terminal
 - Run `npm install` in this folder. This installs all necessary npm modules in both the client and server folder.
 - Press ▷ to run the launch config (F5), creating a new instance of VSCode that runs this extension.
 - In this new instance of VSCode, open a .awn file inside `\tests`, for example.
-- (If the language server crashes quickly a few times, it will need to be restarted with Ctrl+R. There is a bug in `tests\test_all.awn` currently, so be aware of that)
+- If the language server crashes quickly a few times, it will need to be restarted with Ctrl+R.

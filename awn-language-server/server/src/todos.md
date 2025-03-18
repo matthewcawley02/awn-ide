@@ -18,9 +18,19 @@ Syntax highlighing
 
 
 
-TODO
+TODO after today
 - DE set constructions (partial and "set")
-- SPE variable expressions and variable checking in SPE_Call
-- Comments
-- Imports
-- two small known glitches: SPE_Choice can escape out of SPE_Brack, and functions inside functions don't highlight properly
+- variable binding rules in processes
+- multiline comments and having all comments highlighted green
+- in general make syntax highlighting more reliable when there are syntactical/semantic errors in the code
+- the default functions isElem, =, !=
+- known glitches: 
+	- SPE_Choice can escape out of SPE_Brack
+	- functions inside functions don't highlight properly
+	- when changing document, doesn't change highlighting to this doc automatically (you need to cause a change for it to switch)
+
+TODO order today
+1. finish alias properly - semantically and syntax highlighting
+2. check the arguments in process calls for validity and repetition
+3. variable assignment in processes
+4. import
