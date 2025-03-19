@@ -14,11 +14,15 @@ import {
 	DocumentDiagnosticReportKind,
 	SemanticTokensOptions,
 	type DocumentDiagnosticReport,	
-	SemanticTokenTypes
+	SemanticTokenTypes,
+	Hover,
+	MarkupKind,
 } from 'vscode-languageserver/node';
 
 import {
-	TextDocument
+	TextDocument,
+	Range,
+	Position
 } from 'vscode-languageserver-textdocument';
 
 import{
@@ -34,7 +38,7 @@ import{
 
 import { convertNewToOldAST } from './convertAST';
 
-import { Initialise, Check, InitialiseCheck } from './check';
+import { Initialise, Check, InitialiseCheck, getHoverInformation } from './check';
 import { AWNRoot } from './ast';
 
 // Create a connection for the server, using Node's IPC as a transport.
@@ -68,6 +72,7 @@ connection.onInitialize((params: InitializeParams) => {
 	const result: InitializeResult = {
 		capabilities: {
 			textDocumentSync: TextDocumentSyncKind.Incremental,
+			hoverProvider: true,
 			completionProvider: {
 				resolveProvider: true
 			},
@@ -161,7 +166,6 @@ connection.languages.diagnostics.on(async (params) => {
 //Through testing, this is sent AFTER validateTextDocument returns,
 //which makes it safe to just use the global semanticTokens variable that it sets
 connection.onRequest("textDocument/semanticTokens/full", (params) => {
-	//console.log(semanticTokens)
 	return {
 		data: semanticTokens.flat()
 	}
@@ -279,6 +283,45 @@ function getRowsInMultiComment(startchar: number, doc: string): number{
 		}
 	}
 	return 0
+}
+
+connection.onHover((params: TextDocumentPositionParams): Hover | null => {
+    const { textDocument, position } = params
+    const document = documents.get(textDocument.uri)
+    if (!document) return null
+
+    const wordRange = getWordAtPosition(document, position)
+    if (!wordRange) return null
+
+    const word = document.getText(wordRange)
+	console.log(wordRange, word)
+	const info = getHoverInformation(word)
+	if(!info) return null
+
+    return {
+        contents: {
+            kind: MarkupKind.Markdown,
+            value: info
+        }
+    }
+})
+
+function getWordAtPosition(document: TextDocument, position: Position): Range | null {
+    const text = document.getText();
+    const offset = document.offsetAt(position);
+    
+    const match = text.slice(offset).match(/^[\w&|<>!-=]+/);
+    const beforeMatch = text.slice(0, offset).match(/[\w&|<>!-=]+$/);
+
+    if (!match && !beforeMatch) return null;
+
+    const startOffset = beforeMatch ? offset - beforeMatch[0].length : offset;
+    const endOffset = match ? offset + match[0].length : offset;
+
+    return {
+        start: document.positionAt(startOffset),
+        end: document.positionAt(endOffset)
+    };
 }
 
 connection.onDidChangeWatchedFiles(_change => {

@@ -336,7 +336,7 @@ function parseDataExp(de: ast.DE){
 		}
 
 		case ast.ASTKinds.DE_Function: { const DE = de as ast.DE_Function_Prefix
-			pushAndUpdate(DE.sigPos, DE.argPos, Colours.Function, 0)
+			pushAndUpdate(DE.sigStart, DE.sigEnd, Colours.Function, 0)
 			if(DE.arguments != null){
 				parseDataExp(DE.arguments)
 			}else{ //if there was a problem in parsing, use DE.dataExp as a backup

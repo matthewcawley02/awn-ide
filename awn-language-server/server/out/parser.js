@@ -465,10 +465,11 @@ class DE_6 {
 }
 exports.DE_6 = DE_6;
 class DE_7 {
-    constructor(posN, name, posS, dataExp, posE, dataExpMore) {
+    constructor(posN, name, posNEnd, posS, dataExp, posE, dataExpMore) {
         this.kind = ASTKinds.DE_7;
         this.posN = posN;
         this.name = name;
+        this.posNEnd = posNEnd;
         this.posS = posS;
         this.dataExp = dataExp;
         this.posE = posE;
@@ -504,8 +505,10 @@ class DE_9 {
 }
 exports.DE_9 = DE_9;
 class DE1_1 {
-    constructor(dataExp, dataExpMore) {
+    constructor(posS, posE, dataExp, dataExpMore) {
         this.kind = ASTKinds.DE1_1;
+        this.posS = posS;
+        this.posE = posE;
         this.dataExp = dataExp;
         this.dataExpMore = dataExpMore;
         this.dataExpType = (() => {
@@ -515,8 +518,10 @@ class DE1_1 {
 }
 exports.DE1_1 = DE1_1;
 class DE1_2 {
-    constructor(dataExp, dataExpMore) {
+    constructor(posS, posE, dataExp, dataExpMore) {
         this.kind = ASTKinds.DE1_2;
+        this.posS = posS;
+        this.posE = posE;
         this.dataExp = dataExp;
         this.dataExpMore = dataExpMore;
         this.dataExpType = (() => {
@@ -526,8 +531,10 @@ class DE1_2 {
 }
 exports.DE1_2 = DE1_2;
 class DE1_3 {
-    constructor(dataExp, dataExpMore) {
+    constructor(posS, posE, dataExp, dataExpMore) {
         this.kind = ASTKinds.DE1_3;
+        this.posS = posS;
+        this.posE = posE;
         this.dataExp = dataExp;
         this.dataExpMore = dataExpMore;
         this.dataExpType = (() => {
@@ -537,8 +544,10 @@ class DE1_3 {
 }
 exports.DE1_3 = DE1_3;
 class DE1_4 {
-    constructor(dataExp, dataExpMore) {
+    constructor(posS, posE, dataExp, dataExpMore) {
         this.kind = ASTKinds.DE1_4;
+        this.posS = posS;
+        this.posE = posE;
         this.dataExp = dataExp;
         this.dataExpMore = dataExpMore;
         this.dataExpType = (() => {
@@ -548,8 +557,10 @@ class DE1_4 {
 }
 exports.DE1_4 = DE1_4;
 class DE1_5 {
-    constructor(dataExp, dataExpMore) {
+    constructor(posS, posE, dataExp, dataExpMore) {
         this.kind = ASTKinds.DE1_5;
+        this.posS = posS;
+        this.posE = posE;
         this.dataExp = dataExp;
         this.dataExpMore = dataExpMore;
         this.dataExpType = (() => {
@@ -559,8 +570,10 @@ class DE1_5 {
 }
 exports.DE1_5 = DE1_5;
 class DE1_6 {
-    constructor(dataExp, dataExpMore) {
+    constructor(posS, posE, dataExp, dataExpMore) {
         this.kind = ASTKinds.DE1_6;
+        this.posS = posS;
+        this.posE = posE;
         this.dataExp = dataExp;
         this.dataExpMore = dataExpMore;
         this.dataExpType = (() => {
@@ -570,8 +583,10 @@ class DE1_6 {
 }
 exports.DE1_6 = DE1_6;
 class DE1_7 {
-    constructor(dataExp, dataExpMore) {
+    constructor(posS, posE, dataExp, dataExpMore) {
         this.kind = ASTKinds.DE1_7;
+        this.posS = posS;
+        this.posE = posE;
         this.dataExp = dataExp;
         this.dataExpMore = dataExpMore;
         this.dataExpType = (() => {
@@ -581,8 +596,10 @@ class DE1_7 {
 }
 exports.DE1_7 = DE1_7;
 class DE1_8 {
-    constructor(dataExp, dataExpMore) {
+    constructor(posS, posE, dataExp, dataExpMore) {
         this.kind = ASTKinds.DE1_8;
+        this.posS = posS;
+        this.posE = posE;
         this.dataExp = dataExp;
         this.dataExpMore = dataExpMore;
         this.dataExpType = (() => {
@@ -592,8 +609,10 @@ class DE1_8 {
 }
 exports.DE1_8 = DE1_8;
 class DE1_9 {
-    constructor(dataExp, dataExpMore) {
+    constructor(posS, posE, dataExp, dataExpMore) {
         this.kind = ASTKinds.DE1_9;
+        this.posS = posS;
+        this.posE = posE;
         this.dataExp = dataExp;
         this.dataExpMore = dataExpMore;
         this.dataExpType = (() => {
@@ -603,8 +622,10 @@ class DE1_9 {
 }
 exports.DE1_9 = DE1_9;
 class DE1_10 {
-    constructor(dataExp, dataExpMore) {
+    constructor(posS, posE, dataExp, dataExpMore) {
         this.kind = ASTKinds.DE1_10;
+        this.posS = posS;
+        this.posE = posE;
         this.dataExp = dataExp;
         this.dataExpMore = dataExpMore;
         this.dataExpType = (() => {
@@ -614,8 +635,10 @@ class DE1_10 {
 }
 exports.DE1_10 = DE1_10;
 class DE1_11 {
-    constructor(dataExp, dataExpMore) {
+    constructor(posS, posE, dataExp, dataExpMore) {
         this.kind = ASTKinds.DE1_11;
+        this.posS = posS;
+        this.posE = posE;
         this.dataExp = dataExp;
         this.dataExpMore = dataExpMore;
         this.dataExpType = (() => {
@@ -625,9 +648,11 @@ class DE1_11 {
 }
 exports.DE1_11 = DE1_11;
 class DE1_12 {
-    constructor(func, dataExp, dataExpMore) {
+    constructor(posS, func, posE, dataExp, dataExpMore) {
         this.kind = ASTKinds.DE1_12;
+        this.posS = posS;
         this.func = func;
+        this.posE = posE;
         this.dataExp = dataExp;
         this.dataExpMore = dataExpMore;
         this.dataExpType = (() => {
@@ -1879,6 +1904,7 @@ class Parser {
         return this.run($$dpth, () => {
             let $scope$posN;
             let $scope$name;
+            let $scope$posNEnd;
             let $scope$posS;
             let $scope$dataExp;
             let $scope$posE;
@@ -1887,6 +1913,7 @@ class Parser {
             if (true
                 && ($scope$posN = this.mark()) !== null
                 && ($scope$name = this.matchDE_$0($$dpth + 1, $$cr)) !== null
+                && ($scope$posNEnd = this.mark()) !== null
                 && this.regexAccept(String.raw `(?:\()`, "", $$dpth + 1, $$cr) !== null
                 && this.matchos($$dpth + 1, $$cr) !== null
                 && ($scope$posS = this.mark()) !== null
@@ -1895,7 +1922,7 @@ class Parser {
                 && this.matchos($$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?:\))`, "", $$dpth + 1, $$cr) !== null
                 && (($scope$dataExpMore = this.matchDE1($$dpth + 1, $$cr)) || true)) {
-                $$res = new DE_7($scope$posN, $scope$name, $scope$posS, $scope$dataExp, $scope$posE, $scope$dataExpMore);
+                $$res = new DE_7($scope$posN, $scope$name, $scope$posNEnd, $scope$posS, $scope$dataExp, $scope$posE, $scope$dataExpMore);
             }
             return $$res;
         });
@@ -1989,193 +2016,241 @@ class Parser {
     }
     matchDE1_1($$dpth, $$cr) {
         return this.run($$dpth, () => {
+            let $scope$posS;
+            let $scope$posE;
             let $scope$dataExp;
             let $scope$dataExpMore;
             let $$res = null;
             if (true
                 && this.matchos($$dpth + 1, $$cr) !== null
+                && ($scope$posS = this.mark()) !== null
                 && this.regexAccept(String.raw `(?:\->)`, "", $$dpth + 1, $$cr) !== null
+                && ($scope$posE = this.mark()) !== null
                 && this.matchos($$dpth + 1, $$cr) !== null
                 && ($scope$dataExp = this.matchDE($$dpth + 1, $$cr)) !== null
                 && (($scope$dataExpMore = this.matchDE1($$dpth + 1, $$cr)) || true)) {
-                $$res = new DE1_1($scope$dataExp, $scope$dataExpMore);
+                $$res = new DE1_1($scope$posS, $scope$posE, $scope$dataExp, $scope$dataExpMore);
             }
             return $$res;
         });
     }
     matchDE1_2($$dpth, $$cr) {
         return this.run($$dpth, () => {
+            let $scope$posS;
+            let $scope$posE;
             let $scope$dataExp;
             let $scope$dataExpMore;
             let $$res = null;
             if (true
                 && this.matchos($$dpth + 1, $$cr) !== null
+                && ($scope$posS = this.mark()) !== null
                 && this.regexAccept(String.raw `(?:<\->)`, "", $$dpth + 1, $$cr) !== null
+                && ($scope$posE = this.mark()) !== null
                 && this.matchos($$dpth + 1, $$cr) !== null
                 && ($scope$dataExp = this.matchDE($$dpth + 1, $$cr)) !== null
                 && (($scope$dataExpMore = this.matchDE1($$dpth + 1, $$cr)) || true)) {
-                $$res = new DE1_2($scope$dataExp, $scope$dataExpMore);
+                $$res = new DE1_2($scope$posS, $scope$posE, $scope$dataExp, $scope$dataExpMore);
             }
             return $$res;
         });
     }
     matchDE1_3($$dpth, $$cr) {
         return this.run($$dpth, () => {
+            let $scope$posS;
+            let $scope$posE;
             let $scope$dataExp;
             let $scope$dataExpMore;
             let $$res = null;
             if (true
                 && this.matchos($$dpth + 1, $$cr) !== null
+                && ($scope$posS = this.mark()) !== null
                 && this.regexAccept(String.raw `(?:\&)`, "", $$dpth + 1, $$cr) !== null
+                && ($scope$posE = this.mark()) !== null
                 && this.matchos($$dpth + 1, $$cr) !== null
                 && ($scope$dataExp = this.matchDE($$dpth + 1, $$cr)) !== null
                 && (($scope$dataExpMore = this.matchDE1($$dpth + 1, $$cr)) || true)) {
-                $$res = new DE1_3($scope$dataExp, $scope$dataExpMore);
+                $$res = new DE1_3($scope$posS, $scope$posE, $scope$dataExp, $scope$dataExpMore);
             }
             return $$res;
         });
     }
     matchDE1_4($$dpth, $$cr) {
         return this.run($$dpth, () => {
+            let $scope$posS;
+            let $scope$posE;
             let $scope$dataExp;
             let $scope$dataExpMore;
             let $$res = null;
             if (true
                 && this.matchos($$dpth + 1, $$cr) !== null
+                && ($scope$posS = this.mark()) !== null
                 && this.regexAccept(String.raw `(?:||)`, "", $$dpth + 1, $$cr) !== null
+                && ($scope$posE = this.mark()) !== null
                 && this.matchos($$dpth + 1, $$cr) !== null
                 && ($scope$dataExp = this.matchDE($$dpth + 1, $$cr)) !== null
                 && (($scope$dataExpMore = this.matchDE1($$dpth + 1, $$cr)) || true)) {
-                $$res = new DE1_4($scope$dataExp, $scope$dataExpMore);
+                $$res = new DE1_4($scope$posS, $scope$posE, $scope$dataExp, $scope$dataExpMore);
             }
             return $$res;
         });
     }
     matchDE1_5($$dpth, $$cr) {
         return this.run($$dpth, () => {
+            let $scope$posS;
+            let $scope$posE;
             let $scope$dataExp;
             let $scope$dataExpMore;
             let $$res = null;
             if (true
                 && this.matchos($$dpth + 1, $$cr) !== null
+                && ($scope$posS = this.mark()) !== null
                 && this.regexAccept(String.raw `(?:\=)`, "", $$dpth + 1, $$cr) !== null
+                && ($scope$posE = this.mark()) !== null
                 && this.matchos($$dpth + 1, $$cr) !== null
                 && ($scope$dataExp = this.matchDE($$dpth + 1, $$cr)) !== null
                 && (($scope$dataExpMore = this.matchDE1($$dpth + 1, $$cr)) || true)) {
-                $$res = new DE1_5($scope$dataExp, $scope$dataExpMore);
+                $$res = new DE1_5($scope$posS, $scope$posE, $scope$dataExp, $scope$dataExpMore);
             }
             return $$res;
         });
     }
     matchDE1_6($$dpth, $$cr) {
         return this.run($$dpth, () => {
+            let $scope$posS;
+            let $scope$posE;
             let $scope$dataExp;
             let $scope$dataExpMore;
             let $$res = null;
             if (true
                 && this.matchos($$dpth + 1, $$cr) !== null
+                && ($scope$posS = this.mark()) !== null
                 && this.regexAccept(String.raw `(?:\!\=)`, "", $$dpth + 1, $$cr) !== null
+                && ($scope$posE = this.mark()) !== null
                 && this.matchos($$dpth + 1, $$cr) !== null
                 && ($scope$dataExp = this.matchDE($$dpth + 1, $$cr)) !== null
                 && (($scope$dataExpMore = this.matchDE1($$dpth + 1, $$cr)) || true)) {
-                $$res = new DE1_6($scope$dataExp, $scope$dataExpMore);
+                $$res = new DE1_6($scope$posS, $scope$posE, $scope$dataExp, $scope$dataExpMore);
             }
             return $$res;
         });
     }
     matchDE1_7($$dpth, $$cr) {
         return this.run($$dpth, () => {
+            let $scope$posS;
+            let $scope$posE;
             let $scope$dataExp;
             let $scope$dataExpMore;
             let $$res = null;
             if (true
                 && this.matchos($$dpth + 1, $$cr) !== null
+                && ($scope$posS = this.mark()) !== null
                 && this.regexAccept(String.raw `(?:>\=)`, "", $$dpth + 1, $$cr) !== null
+                && ($scope$posE = this.mark()) !== null
                 && this.matchos($$dpth + 1, $$cr) !== null
                 && ($scope$dataExp = this.matchDE($$dpth + 1, $$cr)) !== null
                 && (($scope$dataExpMore = this.matchDE1($$dpth + 1, $$cr)) || true)) {
-                $$res = new DE1_7($scope$dataExp, $scope$dataExpMore);
+                $$res = new DE1_7($scope$posS, $scope$posE, $scope$dataExp, $scope$dataExpMore);
             }
             return $$res;
         });
     }
     matchDE1_8($$dpth, $$cr) {
         return this.run($$dpth, () => {
+            let $scope$posS;
+            let $scope$posE;
             let $scope$dataExp;
             let $scope$dataExpMore;
             let $$res = null;
             if (true
                 && this.matchos($$dpth + 1, $$cr) !== null
+                && ($scope$posS = this.mark()) !== null
                 && this.regexAccept(String.raw `(?:<\=)`, "", $$dpth + 1, $$cr) !== null
+                && ($scope$posE = this.mark()) !== null
                 && this.matchos($$dpth + 1, $$cr) !== null
                 && ($scope$dataExp = this.matchDE($$dpth + 1, $$cr)) !== null
                 && (($scope$dataExpMore = this.matchDE1($$dpth + 1, $$cr)) || true)) {
-                $$res = new DE1_8($scope$dataExp, $scope$dataExpMore);
+                $$res = new DE1_8($scope$posS, $scope$posE, $scope$dataExp, $scope$dataExpMore);
             }
             return $$res;
         });
     }
     matchDE1_9($$dpth, $$cr) {
         return this.run($$dpth, () => {
+            let $scope$posS;
+            let $scope$posE;
             let $scope$dataExp;
             let $scope$dataExpMore;
             let $$res = null;
             if (true
                 && this.matchos($$dpth + 1, $$cr) !== null
+                && ($scope$posS = this.mark()) !== null
                 && this.regexAccept(String.raw `(?:>)`, "", $$dpth + 1, $$cr) !== null
+                && ($scope$posE = this.mark()) !== null
                 && this.matchos($$dpth + 1, $$cr) !== null
                 && ($scope$dataExp = this.matchDE($$dpth + 1, $$cr)) !== null
                 && (($scope$dataExpMore = this.matchDE1($$dpth + 1, $$cr)) || true)) {
-                $$res = new DE1_9($scope$dataExp, $scope$dataExpMore);
+                $$res = new DE1_9($scope$posS, $scope$posE, $scope$dataExp, $scope$dataExpMore);
             }
             return $$res;
         });
     }
     matchDE1_10($$dpth, $$cr) {
         return this.run($$dpth, () => {
+            let $scope$posS;
+            let $scope$posE;
             let $scope$dataExp;
             let $scope$dataExpMore;
             let $$res = null;
             if (true
                 && this.matchos($$dpth + 1, $$cr) !== null
+                && ($scope$posS = this.mark()) !== null
                 && this.regexAccept(String.raw `(?:<)`, "", $$dpth + 1, $$cr) !== null
+                && ($scope$posE = this.mark()) !== null
                 && this.matchos($$dpth + 1, $$cr) !== null
                 && ($scope$dataExp = this.matchDE($$dpth + 1, $$cr)) !== null
                 && (($scope$dataExpMore = this.matchDE1($$dpth + 1, $$cr)) || true)) {
-                $$res = new DE1_10($scope$dataExp, $scope$dataExpMore);
+                $$res = new DE1_10($scope$posS, $scope$posE, $scope$dataExp, $scope$dataExpMore);
             }
             return $$res;
         });
     }
     matchDE1_11($$dpth, $$cr) {
         return this.run($$dpth, () => {
+            let $scope$posS;
+            let $scope$posE;
             let $scope$dataExp;
             let $scope$dataExpMore;
             let $$res = null;
             if (true
                 && this.matchos($$dpth + 1, $$cr) !== null
+                && ($scope$posS = this.mark()) !== null
                 && this.regexAccept(String.raw `(?:\:)`, "", $$dpth + 1, $$cr) !== null
+                && ($scope$posE = this.mark()) !== null
                 && this.matchos($$dpth + 1, $$cr) !== null
                 && ($scope$dataExp = this.matchDE($$dpth + 1, $$cr)) !== null
                 && (($scope$dataExpMore = this.matchDE1($$dpth + 1, $$cr)) || true)) {
-                $$res = new DE1_11($scope$dataExp, $scope$dataExpMore);
+                $$res = new DE1_11($scope$posS, $scope$posE, $scope$dataExp, $scope$dataExpMore);
             }
             return $$res;
         });
     }
     matchDE1_12($$dpth, $$cr) {
         return this.run($$dpth, () => {
+            let $scope$posS;
             let $scope$func;
+            let $scope$posE;
             let $scope$dataExp;
             let $scope$dataExpMore;
             let $$res = null;
             if (true
                 && this.matchos($$dpth + 1, $$cr) !== null
+                && ($scope$posS = this.mark()) !== null
                 && ($scope$func = this.matchInfix($$dpth + 1, $$cr)) !== null
+                && ($scope$posE = this.mark()) !== null
                 && this.matchos($$dpth + 1, $$cr) !== null
                 && ($scope$dataExp = this.matchDE($$dpth + 1, $$cr)) !== null
                 && (($scope$dataExpMore = this.matchDE1($$dpth + 1, $$cr)) || true)) {
-                $$res = new DE1_12($scope$func, $scope$dataExp, $scope$dataExpMore);
+                $$res = new DE1_12($scope$posS, $scope$func, $scope$posE, $scope$dataExp, $scope$dataExpMore);
             }
             return $$res;
         });

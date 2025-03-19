@@ -354,8 +354,9 @@ function convertProcExp(node, parent) {
             newproc.nextproc = convertProcExp(node.proc, newproc);
             break;
         }
-        case oldast.ASTKinds.SPE_9: { //we're ignoring brackets i guess? (not ignoring, but not including them in the AST)
-            newproc = convertProcExp(node.proc, parent);
+        case oldast.ASTKinds.SPE_9: { //bracket
+            newproc = new newast.SPE_Brack(parent);
+            newproc.proc = convertProcExp(node.proc, parent);
             break;
         }
         case oldast.ASTKinds.SPE_10: { //call
@@ -444,7 +445,7 @@ function convertDataExp(node, parent) {
             break;
         }
         case oldast.ASTKinds.DE_7: { //function
-            newnode = new newast.DE_Function_Prefix(parent, node.name.value, node.posN, node.posS, node.posE);
+            newnode = new newast.DE_Function_Prefix(parent, node.name.value, node.posN, node.posNEnd, node.posS, node.posE);
             newnode.dataExp = convertDataExp(node.dataExp, newnode);
             break;
         }
@@ -470,75 +471,74 @@ function convertDataExp(node, parent) {
 function convertLRDataExp(node, parent) {
     var newnode;
     switch (node.kind) {
-        //TODO change dummypos to actual position - why didn't i???
         case oldast.ASTKinds.DE1_1:
-            newnode = new newast.DE_Function_Infix(parent, 6);
+            newnode = new newast.DE_Function_Infix(parent, 6, node.posS, node.posE);
             newnode.function = new newast.Function_Infix(newnode, "->", dummyPos, dummyPos);
             insertLRNodeDE(newnode);
             newnode.right = convertDataExp(node.dataExp, newnode);
             break;
         case oldast.ASTKinds.DE1_2:
-            newnode = new newast.DE_Function_Infix(parent, 6);
+            newnode = new newast.DE_Function_Infix(parent, 6, node.posS, node.posE);
             newnode.function = new newast.Function_Infix(newnode, "<->", dummyPos, dummyPos);
             insertLRNodeDE(newnode);
             newnode.right = convertDataExp(node.dataExp, newnode);
             break;
         case oldast.ASTKinds.DE1_3:
-            newnode = new newast.DE_Function_Infix(parent, 6);
+            newnode = new newast.DE_Function_Infix(parent, 6, node.posS, node.posE);
             newnode.function = new newast.Function_Infix(newnode, "&", dummyPos, dummyPos);
             insertLRNodeDE(newnode);
             newnode.right = convertDataExp(node.dataExp, newnode);
             break;
         case oldast.ASTKinds.DE1_4:
-            newnode = new newast.DE_Function_Infix(parent, 6);
+            newnode = new newast.DE_Function_Infix(parent, 6, node.posS, node.posE);
             newnode.function = new newast.Function_Infix(newnode, "|", dummyPos, dummyPos);
             insertLRNodeDE(newnode);
             newnode.right = convertDataExp(node.dataExp, newnode);
             break;
         case oldast.ASTKinds.DE1_5:
-            newnode = new newast.DE_Function_Infix(parent, 6);
+            newnode = new newast.DE_Function_Infix(parent, 6, node.posS, node.posE);
             newnode.function = new newast.Function_Infix(newnode, "=", dummyPos, dummyPos);
             insertLRNodeDE(newnode);
             newnode.right = convertDataExp(node.dataExp, newnode);
             break;
         case oldast.ASTKinds.DE1_6:
-            newnode = new newast.DE_Function_Infix(parent, 6);
+            newnode = new newast.DE_Function_Infix(parent, 6, node.posS, node.posE);
             newnode.function = new newast.Function_Infix(newnode, "!=", dummyPos, dummyPos);
             insertLRNodeDE(newnode);
             newnode.right = convertDataExp(node.dataExp, newnode);
             break;
         case oldast.ASTKinds.DE1_7:
-            newnode = new newast.DE_Function_Infix(parent, 6);
+            newnode = new newast.DE_Function_Infix(parent, 6, node.posS, node.posE);
             newnode.function = new newast.Function_Infix(newnode, ">=", dummyPos, dummyPos);
             insertLRNodeDE(newnode);
             newnode.right = convertDataExp(node.dataExp, newnode);
             break;
         case oldast.ASTKinds.DE1_8:
-            newnode = new newast.DE_Function_Infix(parent, 6);
+            newnode = new newast.DE_Function_Infix(parent, 6, node.posS, node.posE);
             newnode.function = new newast.Function_Infix(newnode, "<=", dummyPos, dummyPos);
             insertLRNodeDE(newnode);
             newnode.right = convertDataExp(node.dataExp, newnode);
             break;
         case oldast.ASTKinds.DE1_9:
-            newnode = new newast.DE_Function_Infix(parent, 6);
+            newnode = new newast.DE_Function_Infix(parent, 6, node.posS, node.posE);
             newnode.function = new newast.Function_Infix(newnode, ">", dummyPos, dummyPos);
             insertLRNodeDE(newnode);
             newnode.right = convertDataExp(node.dataExp, newnode);
             break;
         case oldast.ASTKinds.DE1_10:
-            newnode = new newast.DE_Function_Infix(parent, 6);
+            newnode = new newast.DE_Function_Infix(parent, 6, node.posS, node.posE);
             newnode.function = new newast.Function_Infix(newnode, "<", dummyPos, dummyPos);
             insertLRNodeDE(newnode);
             newnode.right = convertDataExp(node.dataExp, newnode);
             break;
         case oldast.ASTKinds.DE1_11:
-            newnode = new newast.DE_Function_Infix(parent, 6);
+            newnode = new newast.DE_Function_Infix(parent, 6, node.posS, node.posE);
             newnode.function = new newast.Function_Infix(newnode, ":", dummyPos, dummyPos);
             insertLRNodeDE(newnode);
             newnode.right = convertDataExp(node.dataExp, newnode);
             break;
         case oldast.ASTKinds.DE1_12:
-            newnode = new newast.DE_Function_Infix(parent, 6);
+            newnode = new newast.DE_Function_Infix(parent, 6, node.posS, node.posE);
             newnode.function = new newast.Function_Infix(newnode, node.func.value, dummyPos, dummyPos);
             insertLRNodeDE(newnode);
             newnode.right = convertDataExp(node.dataExp, newnode);

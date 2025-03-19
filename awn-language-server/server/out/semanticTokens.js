@@ -359,7 +359,7 @@ function parseDataExp(de) {
         }
         case ast.ASTKinds.DE_Function: {
             const DE = de;
-            pushAndUpdate(DE.sigPos, DE.argPos, Colours.Function, 0);
+            pushAndUpdate(DE.sigStart, DE.sigEnd, Colours.Function, 0);
             if (DE.arguments != null) {
                 parseDataExp(DE.arguments);
             }

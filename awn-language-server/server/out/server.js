@@ -32,6 +32,7 @@ connection.onInitialize((params) => {
     const result = {
         capabilities: {
             textDocumentSync: node_1.TextDocumentSyncKind.Incremental,
+            hoverProvider: true,
             completionProvider: {
                 resolveProvider: true
             },
@@ -112,7 +113,6 @@ connection.languages.diagnostics.on(async (params) => {
 //Through testing, this is sent AFTER validateTextDocument returns,
 //which makes it safe to just use the global semanticTokens variable that it sets
 connection.onRequest("textDocument/semanticTokens/full", (params) => {
-    //console.log(semanticTokens)
     return {
         data: semanticTokens.flat()
     };
@@ -216,6 +216,40 @@ function getRowsInMultiComment(startchar, doc) {
         }
     }
     return 0;
+}
+connection.onHover((params) => {
+    const { textDocument, position } = params;
+    const document = documents.get(textDocument.uri);
+    if (!document)
+        return null;
+    const wordRange = getWordAtPosition(document, position);
+    if (!wordRange)
+        return null;
+    const word = document.getText(wordRange);
+    console.log(wordRange, word);
+    const info = (0, check_1.getHoverInformation)(word);
+    if (!info)
+        return null;
+    return {
+        contents: {
+            kind: node_1.MarkupKind.Markdown,
+            value: info
+        }
+    };
+});
+function getWordAtPosition(document, position) {
+    const text = document.getText();
+    const offset = document.offsetAt(position);
+    const match = text.slice(offset).match(/^[\w&|<>!-=]+/);
+    const beforeMatch = text.slice(0, offset).match(/[\w&|<>!-=]+$/);
+    if (!match && !beforeMatch)
+        return null;
+    const startOffset = beforeMatch ? offset - beforeMatch[0].length : offset;
+    const endOffset = match ? offset + match[0].length : offset;
+    return {
+        start: document.positionAt(startOffset),
+        end: document.positionAt(endOffset)
+    };
 }
 connection.onDidChangeWatchedFiles(_change => {
     // Monitored files have change in VSCode

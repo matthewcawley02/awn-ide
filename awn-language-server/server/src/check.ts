@@ -58,14 +58,43 @@ export function Initialise(): void{ //sets up default objects
 	types.push(...[boolType, dataType, msgType, ipType, timeType])
 	variables.push(nowVar)
 	constants.push(...[trueCon, falseCon])
-	functions.push(...[not, and, imp, iff, newpkt, eq, neq, iselem])
+	functions.push(...[not, or, and, imp, iff, newpkt, eq, neq, iselem])
 	return
 }
 
 export function InitialiseCheck(): void{
 	//reset to only default objects
-	types = types.slice(0, 5); variables = variables.slice(0, 1); constants = constants.slice(0, 2); functions = functions.slice(0, 8); processes = []; aliasesSingle = []; aliasesList = []; invalidTypes = []; invalidVariables = []; invalidConstants = []; invalidFunctions = []; invalidProcesses = []; invalidAliasesSingle = []; invalidAliasesList = []
+	types = types.slice(0, 5); variables = variables.slice(0, 1); constants = constants.slice(0, 2); functions = functions.slice(0, 9); processes = []; aliasesSingle = []; aliasesList = []; invalidTypes = []; invalidVariables = []; invalidConstants = []; invalidFunctions = []; invalidProcesses = []; invalidAliasesSingle = []; invalidAliasesList = []
 	errors = []; warnings = []
+}
+
+export function getHoverInformation(word: string): string | null {
+	const t = getType(word, false, dpos)
+	if(t != null){
+		return `\`\`\`typescript\n${word}: ${TypeAsString(t)}`
+	}
+	const v = getVariable(word, false, dpos)
+	if(v != null){
+		return `\`\`\`typescript\n${word}: ${TypeAsString(v.typeExpr)}`
+	}
+	const c = getConstant(word, false, dpos)
+	if(c != null){
+		return `\`\`\`typescript\n${word}: ${TypeAsString(c.typeExpr)}`
+	}
+	const f = getFunction(word, false, dpos)
+	if(f != null){
+		return `\`\`\`typescript\n${word}: ${TypeAsString(f.sigType)} -> ${TypeAsString(f.outType)}`
+	}
+	const p = getProcess(word, false, dpos)
+	if(p != null){
+		var arglist = ''
+		for(const arg of p.args){
+			arglist += arg.name + ', '
+		}
+		return `\`\`\`typescript\n${word}(${arglist})`
+	}
+	//todo aliases
+	return null
 }
 
 export function Check(root: ast.AWNRoot, printOutput: boolean): Diagnostic[]{
@@ -75,7 +104,6 @@ export function Check(root: ast.AWNRoot, printOutput: boolean): Diagnostic[]{
 			
 			case ast.ASTKinds.Block_Include: { const block = Block as ast.Block_Include
 				for(const include of block.includes){
-					console.log(process.cwd())
 					if (!fs.existsSync("./" + include.name)) {
 						createErrorMessage(`Could not find "${include.name}".`, include.posS.line, include.posS.offset)
 						continue
@@ -89,7 +117,7 @@ export function Check(root: ast.AWNRoot, printOutput: boolean): Diagnostic[]{
 						continue
 					}
 					const newast: ast.AWNRoot = convertNewToOldAST(parseResult.ast)
-					Check(newast, false) //don't use diagnostics from this, i reckon we don't need to print them out?
+					Check(newast, false) //don't use diagnostics from this, i reckon we don't need to print them out
 					errors = []; warnings = []
 				}
 				break
@@ -199,7 +227,11 @@ export function Check(root: ast.AWNRoot, printOutput: boolean): Diagnostic[]{
 				for (const alias of block.aliases){
 					switch(alias.kind){
 						case ast.ASTKinds.Alias_Data: { const Alias = alias as ast.Alias_Data
-							CheckDataExpression(Alias.dataExp)
+							if(CheckDataExpression(Alias.dataExp)){
+								aliasesSingle.push(Alias)
+							}else{
+								invalidAliasesSingle.push(Alias.name)
+							}
 							break
 						}
 
@@ -803,10 +835,11 @@ function CheckDataExpression(de: ast.DE): boolean{
 			// Name(DE)
 			success = true
 			//make sure name refers to a function
-			const f = getFunction(DE.name, true, DE.sigPos)
+			const f = getFunction(DE.name, true, DE.sigStart)
 			if(f != null){
 				DE.function = f
 			}else{
+				createErrorMessage(`Function "${DE.name}" not found`, DE.sigStart.line, DE.sigStart.offset)
 				success = false
 			}
 
@@ -831,7 +864,7 @@ function CheckDataExpression(de: ast.DE): boolean{
 
 			//check that arguments match signature
 			if(!AreIdenticalTypes(DE.function.sigType, DE.arguments.type)){
-				createErrorMessage(`Function ${DE.name}'s signature has type "${TypeAsString(DE.function.sigType)}" while its arguments have type "${TypeAsString(DE.arguments.type)}".`, DE.argPos.line, DE.argPos.offset)
+				createErrorMessage(`Function ${DE.name}'s signature has type "${TypeAsString(DE.function.sigType)}" while its arguments have type "${TypeAsString(DE.arguments.type)}".`, DE.sigStart.line, DE.sigStart.offset)
 				return false
 			}
 			DE.type = DE.function.outType
@@ -839,38 +872,47 @@ function CheckDataExpression(de: ast.DE): boolean{
 		}
 
 		case ast.ASTKinds.DE_Infix: {const DE = (de as ast.DE_Function_Infix)
+			//DE Infix DE
 			var l = CheckDataExpression(DE.left)
 			var r = CheckDataExpression(DE.right)
 			if(!(l && r)){return false}
-			const f = getFunction(DE.function.name, true, DE.function.posS)
+
+			//retrieve function
+			const f = getFunction(DE.function.name, true, DE.sigStart)
 			if(f != null){
 				DE.function = f
 			}else{
-				createErrorMessage(`Function "${DE.function.name}" not found`, DE.function.posS.line, DE.function.posS.offset)
+				createErrorMessage(`Function "${DE.function.name}" not found`, DE.sigStart.line, DE.sigStart.offset)
 				return false
 			}
-			//stuff below here is a bit hacky and should be done better, i just don't have time rn
-			//TODO because i should probably separate function_infix from function_prefix arrays
+			//TODO improvement because i should probably separate function_infix from function_prefix arrays so this can't happen
 			if(DE.function.kind != ast.ASTKinds.Function_Infix){
-				createErrorMessage(`Retrieved function not infix (TODO improvement honestly)`, DE.function.posS.line, DE.function.posS.offset)
+				createErrorMessage(`Retrieved function not infix (TODO improvement honestly)`, DE.sigStart.line, DE.sigStart.offset)
 				return false
 			}
+
 			//ensure function signature matches
 			DE.function = DE.function as ast.Function_Infix
 			if(!AreIdenticalTypes(DE.function.sigType.children[0], DE.left.type) || !AreIdenticalTypes(DE.function.sigType.children[1], DE.right.type)){
-				createErrorMessage(`Function "${DE.function.name}" requires type ${TypeAsString(DE.function.sigType)}, got ${TypeAsString(DE.left.type)} x ${TypeAsString(DE.right.type)}`, DE.function.posS.line, DE.function.posS.offset)
+				createErrorMessage(`Function "${DE.function.name}" requires type ${TypeAsString(DE.function.sigType)}, got ${TypeAsString(DE.left.type)} x ${TypeAsString(DE.right.type)}`, DE.sigStart.line, DE.sigStart.offset)
 				return false
 			}
-			//for special predefined ones, make sure arguments match each other
+
+			//for special predefined ones (=, !=, isElem), make sure arguments match each other in the right way
 			if(DE.function.name == "=" || DE.function.name == "!="){
 				if(!AreIdenticalTypes(DE.left.type, DE.right.type)){
-					createErrorMessage(`"${DE.function.name}" requires that left and right types are identical. Got ${TypeAsString(DE.left.type)} x ${TypeAsString(DE.right.type)}`, DE.function.posS.line, DE.function.posS.offset)
+					createErrorMessage(`"${DE.function.name}" requires that left and right types are identical. Got ${TypeAsString(DE.left.type)} x ${TypeAsString(DE.right.type)}`, DE.sigStart.line, DE.sigStart.offset)
 					return false
 				}
 			}
 			if(DE.function.name == "isElem"){
-				//TODO make sure DEs are of type A x Pow(A)
+				const powofleft = new ast.TE_Pow(dpar, dpos, DE.left.type)
+				if(!AreIdenticalTypes(powofleft, DE.right.type)){
+					createErrorMessage(`"${DE.function.name}" requires a type signature of style T x Pow(T). Got ${TypeAsString(DE.left.type)} x ${TypeAsString(DE.right.type)}`, DE.sigStart.line, DE.sigStart.offset)
+					return false
+				}
 			}
+
 			DE.type = f.outType
 			return true
 		}
@@ -907,7 +949,6 @@ function CheckListAlias(alias: ast.Alias_List): boolean{
 		argsSoFar.push(vari)
 		var v = getVariable(vari, true, alias.argsPosS[i])
 		if(v == null){success = false; i++; continue}
-		console.log(v)
 		alias.args.push(v); i++
 	}
 	if(success){

@@ -43,7 +43,12 @@
 					"description": "Traces the communication between VS Code and the language server."
 				}
 			}
-		}
+		},
+		"semanticTokenTypes": [
+			{
+				"id": "process", "description": "process"
+			}
+		]
 	},
 	"scripts": {
 		"vscode:prepublish": "npm run compile",

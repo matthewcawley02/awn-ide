@@ -153,7 +153,7 @@ DE :=
 	.dataExpType = string {
 		return "exists"
 	}
-	| posN=@ name={Name | Infix} '\(' os posS=@ dataExp=DE posE=@ os '\)' dataExpMore=DE1?
+	| posN=@ name={Name | Infix} posNEnd=@ '\(' os posS=@ dataExp=DE posE=@ os '\)' dataExpMore=DE1?
 	.dataExpType = string {
 		return "function"
 	}
@@ -167,51 +167,51 @@ DE :=
 	}
 
 DE1 := 
-	os '\->' os dataExp=DE dataExpMore=DE1?
+	os posS=@ '\->' posE=@ os dataExp=DE dataExpMore=DE1?
 	.dataExpType = string {
 		return "implicates"
 	}
-	| os '<\->' os dataExp=DE dataExpMore=DE1?
+	| os posS=@ '<\->' posE=@ os dataExp=DE dataExpMore=DE1?
 	.dataExpType = string {
 		return "iff"
 	}
-	| os '\&' os dataExp=DE dataExpMore=DE1?
+	| os posS=@ '\&' posE=@ os dataExp=DE dataExpMore=DE1?
 	.dataExpType = string {
 		return "and"
 	}
-	| os '||' os dataExp=DE dataExpMore=DE1?
+	| os posS=@ '||' posE=@ os dataExp=DE dataExpMore=DE1?
 	.dataExpType = string {
 		return "or"
 	}
-	| os '\=' os dataExp=DE dataExpMore=DE1?
+	| os posS=@ '\=' posE=@ os dataExp=DE dataExpMore=DE1?
 	.dataExpType = string {
 		return "eq"
 	}
-	| os '\!\=' os dataExp=DE dataExpMore=DE1?
+	| os posS=@ '\!\=' posE=@ os dataExp=DE dataExpMore=DE1?
 	.dataExpType = string {
 		return "neq"
 	}
-	| os '>\=' os dataExp=DE dataExpMore=DE1?
+	| os posS=@ '>\=' posE=@ os dataExp=DE dataExpMore=DE1?
 	.dataExpType = string {
 		return "gtreq"
 	}
-	| os '<\=' os dataExp=DE dataExpMore=DE1?
+	| os posS=@ '<\=' posE=@ os dataExp=DE dataExpMore=DE1?
 	.dataExpType = string {
 		return "leseq"
 	}
-	| os '>' os dataExp=DE dataExpMore=DE1?
+	| os posS=@ '>' posE=@ os dataExp=DE dataExpMore=DE1?
 	.dataExpType = string {
 		return "gtr"
 	}
-	| os '<' os dataExp=DE dataExpMore=DE1?
+	| os posS=@ '<' posE=@ os dataExp=DE dataExpMore=DE1?
 	.dataExpType = string {
 		return "les"
 	}
-	| os '\:' os dataExp=DE dataExpMore=DE1?
+	| os posS=@ '\:' posE=@ os dataExp=DE dataExpMore=DE1?
 	.dataExpType = string {
 		return "col"
 	}
-	| os func=Infix os dataExp=DE dataExpMore=DE1?
+	| os posS=@ func=Infix posE=@ os dataExp=DE dataExpMore=DE1?
 	.dataExpType = string {
 		return "infix"
 	}

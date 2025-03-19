@@ -419,7 +419,7 @@ export class Alias_Data extends Node {
     }
 }
 
-export type SPE = SPE_Guard | SPE_Assign | SPE_Unicast | SPE_Broadcast | SPE_Groupcast | SPE_Send | SPE_Deliver | SPE_Receive | SPE_Call | SPE_Choice | SPE_Name;
+export type SPE = SPE_Guard | SPE_Assign | SPE_Unicast | SPE_Broadcast | SPE_Groupcast | SPE_Send | SPE_Deliver | SPE_Receive | SPE_Call | SPE_Choice | SPE_Name | SPE_Brack;
 export class SPE_Guard extends Node {
 	dataExp!: DE;
 	DEStart: PosInfo; DEEnd: PosInfo
@@ -581,6 +581,14 @@ export class SPE_Choice extends Node {
     }
 }
 
+export class SPE_Brack extends Node {
+	proc!: SPE;
+
+	constructor(parent: Node) {
+        super(10, ASTKinds.SPE_Brack, parent);
+    }
+}
+
 export class DE extends Node{
 	type!: TE
 
@@ -720,12 +728,13 @@ export class DE_Function_Prefix extends DE {
 	function!: Function_Prefix
 	arguments!: DE_Tuple
 
-	sigPos: PosInfo; argPos: PosInfo; endPos: PosInfo
+	sigStart: PosInfo; sigEnd: PosInfo; argPos: PosInfo; endPos: PosInfo
 	
-	constructor(parent: Node, name: string, sigPos: PosInfo, argPos: PosInfo, endPos: PosInfo) {
+	constructor(parent: Node, name: string, sigStart: PosInfo, sigEnd: PosInfo, argPos: PosInfo, endPos: PosInfo) {
         super(10, ASTKinds.DE_Function, parent);
 		this.name = name
-		this.sigPos = sigPos
+		this.sigStart= sigStart
+		this.sigEnd = sigEnd
 		this.argPos = argPos
 		this.endPos = endPos
     }
@@ -736,8 +745,12 @@ export class DE_Function_Infix extends DE {
 	left!: DE;
 	right!: DE;
 
-	constructor(parent: Node, precedence: number) {
+	sigStart: PosInfo; sigEnd: PosInfo
+
+	constructor(parent: Node, precedence: number, sigStart: PosInfo, sigEnd: PosInfo) {
         super(precedence, ASTKinds.DE_Infix, parent);
+		this.sigStart = sigStart
+		this.sigEnd = sigEnd
     }
 }
 
