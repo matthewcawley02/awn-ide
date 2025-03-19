@@ -240,8 +240,9 @@ connection.onHover((params) => {
 function getWordAtPosition(document, position) {
     const text = document.getText();
     const offset = document.offsetAt(position);
-    const match = text.slice(offset).match(/^[\w&|<>!-=]+/);
-    const beforeMatch = text.slice(0, offset).match(/[\w&|<>!-=]+$/);
+    // (/^[\w&|<>!-=]+/)
+    const match = text.slice(offset).match(/^[\w&|<>\-!=]+/);
+    const beforeMatch = text.slice(0, offset).match(/[\w&|<>\-!=]+$/);
     if (!match && !beforeMatch)
         return null;
     const startOffset = beforeMatch ? offset - beforeMatch[0].length : offset;

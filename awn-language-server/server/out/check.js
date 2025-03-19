@@ -100,6 +100,7 @@ function InitialiseCheck() {
 }
 exports.InitialiseCheck = InitialiseCheck;
 function getHoverInformation(word) {
+    console.log(word);
     const t = getType(word, false, dpos);
     if (t != null) {
         return `\`\`\`typescript\n${word}: ${TypeAsString(t)}`;

@@ -69,6 +69,7 @@ export function InitialiseCheck(): void{
 }
 
 export function getHoverInformation(word: string): string | null {
+	console.log(word)
 	const t = getType(word, false, dpos)
 	if(t != null){
 		return `\`\`\`typescript\n${word}: ${TypeAsString(t)}`

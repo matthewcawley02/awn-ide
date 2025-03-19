@@ -310,8 +310,10 @@ function getWordAtPosition(document: TextDocument, position: Position): Range | 
     const text = document.getText();
     const offset = document.offsetAt(position);
     
-    const match = text.slice(offset).match(/^[\w&|<>!-=]+/);
-    const beforeMatch = text.slice(0, offset).match(/[\w&|<>!-=]+$/);
+	// (/^[\w&|<>!-=]+/)
+	
+	const match = text.slice(offset).match(/^[\w&|<>\-!=]+/);
+    const beforeMatch = text.slice(0, offset).match(/[\w&|<>\-!=]+$/);
 
     if (!match && !beforeMatch) return null;
 
