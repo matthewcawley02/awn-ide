@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Infix = exports.NameChar = exports.NameString_2 = exports.NameString_1 = exports.Name = exports.TypeName = exports.DE1_13 = exports.DE1_12 = exports.DE1_11 = exports.DE1_10 = exports.DE1_9 = exports.DE1_8 = exports.DE1_7 = exports.DE1_6 = exports.DE1_5 = exports.DE1_4 = exports.DE1_3 = exports.DE1_2 = exports.DE1_1 = exports.DE_9 = exports.DE_8 = exports.DE_7 = exports.DE_6 = exports.DE_5 = exports.DE_4 = exports.DE_3 = exports.DE_2 = exports.DE_1 = exports.SPE1 = exports.SPE_11 = exports.SPE_10 = exports.SPE_9 = exports.SPE_8 = exports.SPE_7 = exports.SPE_6 = exports.SPE_5 = exports.SPE_4 = exports.SPE_3 = exports.SPE_2 = exports.SPE_1 = exports.TE1_3 = exports.TE1_2 = exports.TE1_1 = exports.TE_4 = exports.TE_3 = exports.TE_2 = exports.TE_1 = exports.ConVar_2 = exports.ConVar_1 = exports.ASTKinds = void 0;
-exports.SyntaxErr = exports.parse = exports.Parser = void 0;
+exports.Parser = exports.Infix = exports.NameChar = exports.NameString_2 = exports.NameString_1 = exports.Name = exports.TypeName = exports.DE1_13 = exports.DE1_12 = exports.DE1_11 = exports.DE1_10 = exports.DE1_9 = exports.DE1_8 = exports.DE1_7 = exports.DE1_6 = exports.DE1_5 = exports.DE1_4 = exports.DE1_3 = exports.DE1_2 = exports.DE1_1 = exports.DE_9 = exports.DE_8 = exports.DE_7 = exports.DE_6 = exports.DE_5 = exports.DE_4 = exports.DE_3 = exports.DE_2 = exports.DE_1 = exports.SPE1 = exports.SPE_10 = exports.SPE_9 = exports.SPE_8 = exports.SPE_7 = exports.SPE_6 = exports.SPE_5 = exports.SPE_4 = exports.SPE_3 = exports.SPE_2 = exports.SPE_1 = exports.TE1_3 = exports.TE1_2 = exports.TE1_1 = exports.TE_4 = exports.TE_3 = exports.TE_2 = exports.TE_1 = exports.ConVar_2 = exports.ConVar_1 = exports.ASTKinds = void 0;
+exports.SyntaxErr = exports.parse = void 0;
 var ASTKinds;
 (function (ASTKinds) {
     ASTKinds["AWNRoot"] = "AWNRoot";
@@ -46,7 +46,6 @@ var ASTKinds;
     ASTKinds["SPE_8"] = "SPE_8";
     ASTKinds["SPE_9"] = "SPE_9";
     ASTKinds["SPE_10"] = "SPE_10";
-    ASTKinds["SPE_11"] = "SPE_11";
     ASTKinds["SPE_$0"] = "SPE_$0";
     ASTKinds["SPE_$1"] = "SPE_$1";
     ASTKinds["SPE1"] = "SPE1";
@@ -358,19 +357,6 @@ class SPE_10 {
     }
 }
 exports.SPE_10 = SPE_10;
-class SPE_11 {
-    constructor(posS, name, posE, procMore) {
-        this.kind = ASTKinds.SPE_11;
-        this.posS = posS;
-        this.name = name;
-        this.posE = posE;
-        this.procMore = procMore;
-        this.procType = (() => {
-            return "name";
-        })();
-    }
-}
-exports.SPE_11 = SPE_11;
 class SPE1 {
     constructor(proc, procMore) {
         this.kind = ASTKinds.SPE1;
@@ -1417,7 +1403,6 @@ class Parser {
             () => this.matchSPE_8($$dpth + 1, $$cr),
             () => this.matchSPE_9($$dpth + 1, $$cr),
             () => this.matchSPE_10($$dpth + 1, $$cr),
-            () => this.matchSPE_11($$dpth + 1, $$cr),
         ]);
     }
     matchSPE_1($$dpth, $$cr) {
@@ -1695,23 +1680,6 @@ class Parser {
                 && this.regexAccept(String.raw `(?:\))`, "", $$dpth + 1, $$cr) !== null
                 && (($scope$procMore = this.matchSPE1($$dpth + 1, $$cr)) || true)) {
                 $$res = new SPE_10($scope$posS, $scope$name, $scope$posE, $scope$dataExpFirst, $scope$dataExpW, $scope$procMore);
-            }
-            return $$res;
-        });
-    }
-    matchSPE_11($$dpth, $$cr) {
-        return this.run($$dpth, () => {
-            let $scope$posS;
-            let $scope$name;
-            let $scope$posE;
-            let $scope$procMore;
-            let $$res = null;
-            if (true
-                && ($scope$posS = this.mark()) !== null
-                && ($scope$name = this.matchName($$dpth + 1, $$cr)) !== null
-                && ($scope$posE = this.mark()) !== null
-                && (($scope$procMore = this.matchSPE1($$dpth + 1, $$cr)) || true)) {
-                $$res = new SPE_11($scope$posS, $scope$name, $scope$posE, $scope$procMore);
             }
             return $$res;
         });
@@ -2084,7 +2052,7 @@ class Parser {
             if (true
                 && this.matchos($$dpth + 1, $$cr) !== null
                 && ($scope$posS = this.mark()) !== null
-                && this.regexAccept(String.raw `(?:||)`, "", $$dpth + 1, $$cr) !== null
+                && this.regexAccept(String.raw `(?:\|)`, "", $$dpth + 1, $$cr) !== null
                 && ($scope$posE = this.mark()) !== null
                 && this.matchos($$dpth + 1, $$cr) !== null
                 && ($scope$dataExp = this.matchDE($$dpth + 1, $$cr)) !== null

@@ -2,8 +2,8 @@ TYPES:
   Bool
   TIME                  -- Moments (integers with -infinity and +infinity)
   IP                    -- Node or router identifiers
-  MESSAGE               -- Hello and TC Messages
-  MSG   = [MESSAGE]     -- Messages, consisting of lists of Hello and TC Messages.
+  MSG              -- Hello and TC Messages
+  MSGS   = [MSG]     -- Messages, consisting of lists of Hello and TC Messages.
   STATUS                -- Link status classifier, namely  SYMMETRIC | HEARD | LOST
   MPR                   -- MPR classifier
   SQN                   -- Sequence numbers (integers)

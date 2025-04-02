@@ -10,6 +10,7 @@ const convertAST_1 = require("./convertAST");
 //I'd rather use the same AST nodes, but everything requires a parent. Use a dummy parent when the parent isn't actually necessary.
 const dpar = new ast.AWNRoot();
 const dpos = { overallPos: 10000, line: 1000, offset: 0 };
+var importedFiles = [];
 var types = [];
 var variables = [];
 var constants = [];
@@ -62,6 +63,8 @@ iff.outType = boolType.typeExpr;
 const newpkt = new ast.Function_Prefix(dpar, "newpkt", dpos, dpos);
 newpkt.sigType = new ast.TE_Product(newpkt, [dataType.typeExpr, ipType.typeExpr]);
 newpkt.outType = msgType.typeExpr;
+//TE_Any ensures that any type is allowed in these functions, a separate check is performed later which makes sure
+//that if using these functions, the arguments are of correct type with regards to each other
 const eq = new ast.Function_Infix(dpar, "=", dpos, dpos);
 eq.sigType = new ast.TE_Product(eq, [new ast.TE_Any(eq.sigType), new ast.TE_Any(eq.sigType)]);
 eq.outType = boolType.typeExpr;
@@ -100,7 +103,6 @@ function InitialiseCheck() {
 }
 exports.InitialiseCheck = InitialiseCheck;
 function getHoverInformation(word) {
-    console.log(word);
     const t = getType(word, false, dpos);
     if (t != null) {
         return `\`\`\`typescript\n${word}: ${TypeAsString(t)}`;
@@ -129,7 +131,8 @@ function getHoverInformation(word) {
     return null;
 }
 exports.getHoverInformation = getHoverInformation;
-function Check(root, printOutput) {
+function Check(root, printOutput, filename) {
+    importedFiles.push(filename);
     for (const Block of root.blocks) {
         switch (Block.kind) {
             case ast.ASTKinds.Block_Include: {
@@ -147,14 +150,14 @@ function Check(root, printOutput) {
                         continue;
                     }
                     const newast = (0, convertAST_1.convertNewToOldAST)(parseResult.ast);
-                    Check(newast, false); //don't use diagnostics from this, i reckon we don't need to print them out
+                    Check(newast, false, include.name); //don't use diagnostics from this, i reckon we don't need to print them out
                     errors = [];
                     warnings = [];
                 }
                 break;
             }
             case ast.ASTKinds.Block_Type: {
-                const block = Block; //this seems to be necessary annoyingly
+                const block = Block;
                 for (const typedec of block.types) {
                     //empty type declarations (those given without an accompanying TE) are given rootType
                     if (typedec.typeExpr == null) {
@@ -290,13 +293,39 @@ function Check(root, printOutput) {
                         createErrorMessage(`Name "${proc.name}" already defined previously.`, proc.posS.line, proc.posS.offset);
                         continue;
                     }
-                    //TODO expand out list aliases and check for duplicated
-                    for (const vari of proc.args) {
-                        if (!(variables.map(x => x.name)).concat(invalidVariables).includes(vari.name) && !(aliasesList.map(x => x.name)).concat(invalidAliasesList).includes(vari.name)) {
-                            createErrorMessage(`Invalid variable/list alias "${vari.name}" referenced.`, vari.posS.line, vari.posS.offset);
+                    //expand out argument list and check for duplicates
+                    for (const procarg of proc.argInfo) {
+                        if (variables.map(x => x.name).concat(invalidVariables).includes(procarg.name)) {
+                            const vari = getVariable(procarg.name, false, dpos);
+                            if (vari == null) {
+                                continue;
+                            } //note this is impossible
+                            if (proc.args.map(v => v.name).includes(vari.name)) {
+                                createErrorMessage(`Duplicated variable "${vari.name}".`, procarg.posS.line, procarg.posS.offset);
+                            }
+                            else {
+                                proc.args.push(vari);
+                                procarg.argType = ast.ASTKinds.Variable;
+                            }
+                        }
+                        else if (aliasesList.map(x => x.name).concat(invalidAliasesList).includes(procarg.name)) {
+                            const alias = getAliasList(procarg.name, false, dpos);
+                            if (alias == null) {
+                                continue;
+                            } //note this is impossible
+                            const vars = expandAlistList(alias);
+                            for (const vari of vars) {
+                                if (proc.args.map(v => v.name).includes(vari.name)) {
+                                    createErrorMessage(`Duplicated variable "${vari.name}" inside list alias ${procarg.name}.`, procarg.posS.line, procarg.posS.offset);
+                                }
+                                else {
+                                    proc.args.push(vari);
+                                }
+                            }
+                            procarg.argType = ast.ASTKinds.Alias_List;
                         }
                     }
-                    if (CheckSPE(proc.proc, proc)) {
+                    if (CheckSPE(proc.proc)) {
                         processes.push(proc);
                     }
                     else {
@@ -428,6 +457,21 @@ function getAliasList(aliasName, produceError, pos) {
     }
     return null;
 }
+//given a list alias, returns the full list of variables it expands out to
+function expandAlistList(aliaslist) {
+    var result = [];
+    for (const vari of aliaslist.args) {
+        if (vari.kind == ast.ASTKinds.Variable) {
+            const Vari = vari;
+            result.push(Vari);
+        }
+        else if (vari.kind == ast.ASTKinds.Alias_List) {
+            const Vari = vari;
+            result.push(...expandAlistList(Vari));
+        }
+    }
+    return result;
+}
 //Expands out a TE by replacing typenames with equivalents.
 //If processing Type nodes (those found in a type block), include typeName so we can
 //check for circular definitions.
@@ -495,80 +539,80 @@ function expandTypeExpressionHelper(typeExp, typeName) {
     }
 }
 //Checks an SPE - more accurately, a sequence of SPEs - as this includes any other SPEs attached to it.
-function CheckSPE(proc, curProcIn) {
+function CheckSPE(proc) {
     switch (proc.kind) {
         case ast.ASTKinds.SPE_Guard: {
             const Proc = proc;
             if (!CheckDEFull(Proc.dataExp)) {
-                CheckSPE(Proc.nextproc, curProcIn);
+                CheckSPE(Proc.nextproc);
                 return false;
             }
             const DEType = Proc.dataExp.type;
             //guard DE must be bool
             if (!(AreIdenticalTypes(DEType, boolType.typeExpr))) {
                 createErrorMessage(`Guard requires type "Bool" but got "${TypeAsString(DEType)}" instead.`, Proc.DEStart.line, Proc.DEStart.offset, Proc.DEEnd.line, Proc.DEEnd.offset);
-                CheckSPE(Proc.nextproc, curProcIn);
+                CheckSPE(Proc.nextproc);
                 return false;
             }
-            return CheckSPE(Proc.nextproc, curProcIn);
+            return CheckSPE(Proc.nextproc);
         }
         case ast.ASTKinds.SPE_Assign: {
             const Proc = proc;
             const v = getVariable(Proc.name, true, Proc.nameStart);
             if (v == null) {
-                CheckSPE(Proc.nextproc, curProcIn);
+                CheckSPE(Proc.nextproc);
                 return false;
             }
             else {
                 Proc.variable = v;
             }
             if (!CheckDEFull(Proc.dataExpAssign)) {
-                CheckSPE(Proc.nextproc, curProcIn);
+                CheckSPE(Proc.nextproc);
                 return false;
             }
             if (!AreIdenticalTypes(Proc.variable.typeExpr, Proc.dataExpAssign.type)) {
                 createErrorMessage(`Data expression and variable must have the same type. DE has type "${TypeAsString(Proc.dataExpAssign.type)}", var has type "${TypeAsString(Proc.variable.typeExpr)}"`, Proc.nameStart.line, Proc.nameStart.offset, Proc.end.line, Proc.end.offset);
-                CheckSPE(Proc.nextproc, curProcIn);
+                CheckSPE(Proc.nextproc);
                 return false;
             }
-            return CheckSPE(Proc.nextproc, curProcIn);
+            return CheckSPE(Proc.nextproc);
         }
         case ast.ASTKinds.SPE_Unicast: {
             const Proc = proc;
             if (!CheckDEFull(Proc.dataExpL)) {
-                CheckSPE(Proc.procA, curProcIn);
-                CheckSPE(Proc.procB, curProcIn);
+                CheckSPE(Proc.procA);
+                CheckSPE(Proc.procB);
                 return false;
             }
             if (!CheckDEFull(Proc.dataExpR)) {
-                CheckSPE(Proc.procA, curProcIn);
-                CheckSPE(Proc.procB, curProcIn);
+                CheckSPE(Proc.procA);
+                CheckSPE(Proc.procB);
                 return false;
             }
             const DELType = Proc.dataExpL.type;
             const DERType = Proc.dataExpR.type;
             if (!AreIdenticalTypes(DELType, ipType.typeExpr)) {
                 createErrorMessage(`Expected type "IP" but got "${TypeAsString(DELType)}" instead.`, Proc.DELstart.line, Proc.DELstart.offset, Proc.DELend.line, Proc.DELend.offset);
-                CheckSPE(Proc.procA, curProcIn);
-                CheckSPE(Proc.procB, curProcIn);
+                CheckSPE(Proc.procA);
+                CheckSPE(Proc.procB);
                 return false;
             }
             if (!AreIdenticalTypes(DERType, msgType.typeExpr)) {
                 createErrorMessage(`Expected type "MSG" but got "${TypeAsString(DERType)}" instead.`, Proc.DELend.line, Proc.DELend.offset + 2, Proc.DERend.line, Proc.DERend.offset);
-                CheckSPE(Proc.procA, curProcIn);
-                CheckSPE(Proc.procB, curProcIn);
+                CheckSPE(Proc.procA);
+                CheckSPE(Proc.procB);
                 return false;
             }
-            return CheckSPE(Proc.procA, curProcIn) && CheckSPE(Proc.procB, curProcIn);
+            return CheckSPE(Proc.procA) && CheckSPE(Proc.procB);
         }
         case ast.ASTKinds.SPE_Groupcast: {
             const Proc = proc;
             if (!CheckDEFull(Proc.dataExpL)) {
-                CheckSPE(Proc.nextproc, curProcIn);
+                CheckSPE(Proc.nextproc);
                 return false;
             }
             if (!CheckDEFull(Proc.dataExpR)) {
-                CheckSPE(Proc.nextproc, curProcIn);
+                CheckSPE(Proc.nextproc);
                 return false;
             }
             const DELType = Proc.dataExpL.type;
@@ -576,63 +620,63 @@ function CheckSPE(proc, curProcIn) {
             const powIPType = new ast.TE_Pow(dpar, dpos, ipType.typeExpr);
             if (!AreIdenticalTypes(DELType, powIPType)) {
                 createErrorMessage(`Expected type "Pow(IP)" but got "${TypeAsString(DELType)}" instead.`, Proc.DELstart.line, Proc.DELstart.offset, Proc.DELend.line, Proc.DELend.offset);
-                CheckSPE(Proc.nextproc, curProcIn);
+                CheckSPE(Proc.nextproc);
                 return false;
             }
             if (!AreIdenticalTypes(DERType, msgType.typeExpr)) {
                 createErrorMessage(`Expected type "MSG" but got "${TypeAsString(DERType)}" instead.`, Proc.DELend.line, Proc.DELend.offset + 2, Proc.DERend.line, Proc.DERend.offset);
-                CheckSPE(Proc.nextproc, curProcIn);
+                CheckSPE(Proc.nextproc);
                 return false;
             }
-            return CheckSPE(Proc.nextproc, curProcIn);
+            return CheckSPE(Proc.nextproc);
         }
         case ast.ASTKinds.SPE_Broadcast: {
             const Proc = proc;
             if (!CheckDEFull(Proc.dataExp)) {
-                CheckSPE(Proc.nextproc, curProcIn);
+                CheckSPE(Proc.nextproc);
                 return false;
             }
             const DEType = Proc.dataExp.type;
             if (!AreIdenticalTypes(DEType, msgType.typeExpr)) {
                 createErrorMessage(`Expected type "MSG" but got "${TypeAsString(DEType)}" instead.`, Proc.DEstart.line, Proc.DEstart.offset, Proc.DEend.line, Proc.DEend.offset);
-                CheckSPE(Proc.nextproc, curProcIn);
+                CheckSPE(Proc.nextproc);
                 return false;
             }
-            return CheckSPE(Proc.nextproc, curProcIn);
+            return CheckSPE(Proc.nextproc);
         }
         case ast.ASTKinds.SPE_Send: {
             const Proc = proc;
             if (!CheckDEFull(Proc.dataExp)) {
-                CheckSPE(Proc.nextproc, curProcIn);
+                CheckSPE(Proc.nextproc);
                 return false;
             }
             const DEType = Proc.dataExp.type;
             if (!AreIdenticalTypes(DEType, msgType.typeExpr)) {
                 createErrorMessage(`Expected type "MSG" but got "${TypeAsString(DEType)}" instead.`, Proc.DEstart.line, Proc.DEstart.offset, Proc.DEend.line, Proc.DEend.offset);
-                CheckSPE(Proc.nextproc, curProcIn);
+                CheckSPE(Proc.nextproc);
                 return false;
             }
-            return CheckSPE(Proc.nextproc, curProcIn);
+            return CheckSPE(Proc.nextproc);
         }
         case ast.ASTKinds.SPE_Deliver: {
             const Proc = proc;
             if (!CheckDEFull(Proc.dataExp)) {
-                CheckSPE(Proc.nextproc, curProcIn);
+                CheckSPE(Proc.nextproc);
                 return false;
             }
             const DEType = Proc.dataExp.type;
             if (!AreIdenticalTypes(DEType, dataType.typeExpr)) {
                 createErrorMessage(`Expected type "DATA" but got "${TypeAsString(DEType)}" instead.`, Proc.DEstart.line, Proc.DEstart.offset, Proc.DEend.line, Proc.DEend.offset);
-                CheckSPE(Proc.nextproc, curProcIn);
+                CheckSPE(Proc.nextproc);
                 return false;
             }
-            return CheckSPE(Proc.nextproc, curProcIn);
+            return CheckSPE(Proc.nextproc);
         }
         case ast.ASTKinds.SPE_Receive: {
             const Proc = proc;
             const v = getVariable(Proc.name, true, Proc.namePos);
             if (v == null) {
-                CheckSPE(Proc.nextproc, curProcIn);
+                CheckSPE(Proc.nextproc);
                 return false;
             }
             else {
@@ -641,22 +685,22 @@ function CheckSPE(proc, curProcIn) {
             const varitype = Proc.variable.typeExpr;
             if (!AreIdenticalTypes(varitype, msgType.typeExpr)) {
                 createErrorMessage(`Expected type "MSG" but got "${TypeAsString(varitype)}" instead.`, Proc.namePos.line, Proc.namePos.offset, Proc.nameEnd.line, Proc.nameEnd.offset);
-                CheckSPE(Proc.nextproc, curProcIn);
+                CheckSPE(Proc.nextproc);
                 return false;
             }
-            return CheckSPE(Proc.nextproc, curProcIn);
+            return CheckSPE(Proc.nextproc);
         }
         case ast.ASTKinds.SPE_Choice: {
             const Proc = proc;
-            var l = CheckSPE(Proc.left, curProcIn);
-            var r = CheckSPE(Proc.right, curProcIn);
+            var l = CheckSPE(Proc.left);
+            var r = CheckSPE(Proc.right);
             return l && r;
         }
         case ast.ASTKinds.SPE_Call: {
             const Proc = proc;
             var success = true;
-            if (Proc.name == curProcIn.name) {
-                Proc.proc = curProcIn;
+            if (Proc.name == Proc.curProcIn.name) {
+                Proc.proc = Proc.curProcIn;
             }
             else {
                 var p = getProcess(Proc.name, true, Proc.posS);
@@ -673,22 +717,6 @@ function CheckSPE(proc, curProcIn) {
                 }
             }
             return success;
-        }
-        case ast.ASTKinds.SPE_Name: {
-            const Proc = proc;
-            if (Proc.name == curProcIn.name) {
-                Proc.proc = curProcIn;
-            }
-            else {
-                var p = getProcess(Proc.name, true, Proc.posS);
-                if (p != null) {
-                    Proc.proc = p;
-                }
-                else {
-                    return false;
-                }
-            }
-            return true;
         }
         default: return false;
     }

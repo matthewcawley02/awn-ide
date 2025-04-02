@@ -114,10 +114,6 @@ SPE :=
 	.procType = string {
 		return "call"
 	}
-	| posS=@ name=Name posE=@ procMore=SPE1?
-	.procType = string {
-		return "name"
-	}
 
 SPE1 := lb sp '\+' lb sp proc=SPE procMore=SPE1?
 .procType = string {
@@ -179,7 +175,7 @@ DE1 :=
 	.dataExpType = string {
 		return "and"
 	}
-	| os posS=@ '||' posE=@ os dataExp=DE dataExpMore=DE1?
+	| os posS=@ '\|' posE=@ os dataExp=DE dataExpMore=DE1?
 	.dataExpType = string {
 		return "or"
 	}

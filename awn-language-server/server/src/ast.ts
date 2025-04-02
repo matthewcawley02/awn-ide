@@ -17,6 +17,7 @@ export enum ASTKinds {
     Function_Prefix = "Function_Prefix",
 	Function_Infix = "Function_Infix",
     Process = "Process",
+	ProcArgs = "ProcArgs",
 	Alias_List = "Alias_List",
 	Alias_Data = "Alias_Data",
     TE_Brack = "TE_Brack",
@@ -64,7 +65,7 @@ export class Node {
 
     constructor(precedence: number, kind: ASTKinds, parent: Node) {
         this.parent = parent
-        this.precedence = precedence
+        this.precedence = precedence //Lower numbers actually have more precedence (i.e. they bind stronger) - this is because i thought of it the wrong way around when i set it up and haven't changed it. think about it - if something "escapes out" because it has a higher number here, that means it actually has less precedence/binding power
 		this.kind = kind
     }
 }
@@ -375,7 +376,8 @@ export class Function_Infix extends Function {
 
 export class Process extends Node {
     name: string;
-	args!: Variable[];
+	argInfo: ProcArg[] = []
+	args: Variable[] = []
     proc!: SPE;
 
 	posS: PosInfo //before the name
@@ -388,6 +390,19 @@ export class Process extends Node {
     }
 }
 
+export class ProcArg extends Node {
+	proc: Process
+	name: string
+	posS: PosInfo; posE: PosInfo
+	argType!: ASTKinds
+
+	constructor(parent: Process, name: string, posS: PosInfo, posE: PosInfo){
+		super(10, ASTKinds.ProcArgs, parent)
+		this.proc = parent
+		this.name = name
+		this.posS = posS; this.posE = posE
+	}
+}
 export type Alias = Alias_List | Alias_Data
 export class Alias_List extends Node {
 	name: string;
@@ -419,28 +434,39 @@ export class Alias_Data extends Node {
     }
 }
 
-export type SPE = SPE_Guard | SPE_Assign | SPE_Unicast | SPE_Broadcast | SPE_Groupcast | SPE_Send | SPE_Deliver | SPE_Receive | SPE_Call | SPE_Choice | SPE_Name | SPE_Brack;
-export class SPE_Guard extends Node {
+export type SPEs = SPE_Assign | SPE_Brack | SPE_Broadcast | SPE_Call | SPE_Choice | SPE_Deliver | SPE_Groupcast | SPE_Guard | SPE_Receive | SPE_Send | SPE_Unicast
+
+export class SPE extends Node {
+	curProcIn: Process;
+	boundArgs: string[] = [];
+
+	constructor(precedence: number, kind: ASTKinds, parent: Node, curProcIn: Process){
+		super(precedence, kind, parent)
+		this.curProcIn = curProcIn;
+	}
+}
+
+export class SPE_Guard extends SPE {
 	dataExp!: DE;
 	DEStart: PosInfo; DEEnd: PosInfo
 	nextproc!: SPE;
 
-	constructor(parent: Node, DEStart: PosInfo, DEEnd: PosInfo) {
-        super(9, ASTKinds.SPE_Guard, parent);
+	constructor(parent: Node, curProcIn: Process, DEStart: PosInfo, DEEnd: PosInfo) {
+        super(9, ASTKinds.SPE_Guard, parent, curProcIn)
 		this.DEStart = DEStart
 		this.DEEnd = DEEnd
     }
 }
 
-export class SPE_Assign extends Node {
+export class SPE_Assign extends SPE {
 	name: string;
 	variable!: Variable
 	dataExpAssign!: DE;
 	nextproc!: SPE;
 	nameStart: PosInfo; varStart: PosInfo; assignExpStart: PosInfo; end: PosInfo
 
-	constructor(parent: Node, name: string, nameStart: PosInfo, varStart: PosInfo, assignExpStart: PosInfo, end: PosInfo) {
-        super(9, ASTKinds.SPE_Assign, parent);
+	constructor(parent: Node, curProcIn: Process, name: string, nameStart: PosInfo, varStart: PosInfo, assignExpStart: PosInfo, end: PosInfo) {
+        super(9, ASTKinds.SPE_Assign, parent, curProcIn);
 		this.name = name
 		this.nameStart = nameStart
 		this.varStart = varStart
@@ -449,7 +475,7 @@ export class SPE_Assign extends Node {
     }
 }
 
-export class SPE_Unicast extends Node {
+export class SPE_Unicast extends SPE {
 	dataExpL!: DE;
     dataExpR!: DE;
     procA!: SPE;
@@ -457,8 +483,8 @@ export class SPE_Unicast extends Node {
 
 	start: PosInfo; DELstart: PosInfo; DELend: PosInfo; DERend: PosInfo
 
-	constructor(parent: Node, start: PosInfo, DELstart: PosInfo, DELend: PosInfo, DERend: PosInfo) {
-        super(9, ASTKinds.SPE_Unicast, parent);
+	constructor(parent: Node, curProcIn: Process, start: PosInfo, DELstart: PosInfo, DELend: PosInfo, DERend: PosInfo) {
+        super(9, ASTKinds.SPE_Unicast, parent, curProcIn);
 		this.DELstart = DELstart
 		this.DELend = DELend
 		this.DERend = DERend
@@ -466,29 +492,29 @@ export class SPE_Unicast extends Node {
     }
 }
 
-export class SPE_Broadcast extends Node {
+export class SPE_Broadcast extends SPE {
 	dataExp!: DE;
 	nextproc!: SPE;
 	
 	start: PosInfo; DEstart: PosInfo; DEend: PosInfo
 
-	constructor(parent: Node, start: PosInfo, DEstart: PosInfo, DEend: PosInfo) {
-        super(9, ASTKinds.SPE_Broadcast, parent);
+	constructor(parent: Node, curProcIn: Process, start: PosInfo, DEstart: PosInfo, DEend: PosInfo) {
+        super(9, ASTKinds.SPE_Broadcast, parent, curProcIn);
 		this.DEstart = DEstart
 		this.DEend = DEend
 		this.start = start
     }
 }
 
-export class SPE_Groupcast extends Node {
+export class SPE_Groupcast extends SPE {
 	dataExpL!: DE;
     dataExpR!: DE;
 	nextproc!: SPE;
 	
 	start: PosInfo; DELstart: PosInfo; DELend: PosInfo; DERend: PosInfo
 
-	constructor(parent: Node, start: PosInfo, DELstart: PosInfo, DELend: PosInfo, DERend: PosInfo) {
-        super(9, ASTKinds.SPE_Groupcast, parent);
+	constructor(parent: Node, curProcIn: Process, start: PosInfo, DELstart: PosInfo, DELend: PosInfo, DERend: PosInfo) {
+        super(9, ASTKinds.SPE_Groupcast, parent, curProcIn);
 		this.DELstart = DELstart
 		this.DELend = DELend
 		this.DERend = DERend
@@ -496,35 +522,35 @@ export class SPE_Groupcast extends Node {
     }
 }
 
-export class SPE_Send extends Node {
+export class SPE_Send extends SPE {
 	dataExp!: DE;
 	nextproc!: SPE;
 	
 	start: PosInfo; DEstart: PosInfo; DEend: PosInfo
 
-	constructor(parent: Node, start: PosInfo, DEstart: PosInfo, DEend: PosInfo) {
-        super(9, ASTKinds.SPE_Send, parent);
+	constructor(parent: Node, curProcIn: Process, start: PosInfo, DEstart: PosInfo, DEend: PosInfo) {
+        super(9, ASTKinds.SPE_Send, parent, curProcIn);
 		this.DEstart = DEstart
 		this.DEend = DEend
 		this.start = start
     }
 }
 
-export class SPE_Deliver extends Node {
+export class SPE_Deliver extends SPE {
 	dataExp!: DE;
 	nextproc!: SPE;
 	
 	start: PosInfo; DEstart: PosInfo; DEend: PosInfo
 
-	constructor(parent: Node, start: PosInfo, DEstart: PosInfo, DEend: PosInfo) {
-        super(9, ASTKinds.SPE_Deliver, parent);
+	constructor(parent: Node, curProcIn: Process, start: PosInfo, DEstart: PosInfo, DEend: PosInfo) {
+        super(9, ASTKinds.SPE_Deliver, parent, curProcIn);
 		this.DEstart = DEstart
 		this.DEend = DEend
 		this.start = start
     }
 }
 
-export class SPE_Receive extends Node {
+export class SPE_Receive extends SPE {
 	name: string;
 	variable!: Variable;
 	dataExps!: DE[];
@@ -532,8 +558,8 @@ export class SPE_Receive extends Node {
 
 	start: PosInfo; namePos: PosInfo; nameEnd: PosInfo
 
-	constructor(parent: Node, start: PosInfo, name: string, namePos: PosInfo, nameEnd: PosInfo) {
-        super(9, ASTKinds.SPE_Receive, parent);
+	constructor(parent: Node, curProcIn: Process, start: PosInfo, name: string, namePos: PosInfo, nameEnd: PosInfo) {
+        super(9, ASTKinds.SPE_Receive, parent, curProcIn);
 		this.name = name;
 		this.namePos = namePos;
 		this.nameEnd = nameEnd;
@@ -541,7 +567,7 @@ export class SPE_Receive extends Node {
     }
 }
 
-export class SPE_Call extends Node {
+export class SPE_Call extends SPE {
 	name: string;
 
 	proc!: Process
@@ -550,42 +576,27 @@ export class SPE_Call extends Node {
 	posS: PosInfo //before the name
 	posE: PosInfo //after the name
 
-	constructor(parent: Node, name: string, posS: PosInfo, posE: PosInfo) {
-        super(9, ASTKinds.SPE_Call, parent);
+	constructor(parent: Node, curProcIn: Process, name: string, posS: PosInfo, posE: PosInfo) {
+        super(9, ASTKinds.SPE_Call, parent, curProcIn);
 		this.name = name;
 		this.posS = posS; this.posE = posE
     }
 }
 
-export class SPE_Name extends Node {
-	name: string;
-
-	proc!: Process
-
-	posS: PosInfo //before the name
-	posE: PosInfo //after the name
-
-	constructor(parent: Node, name: string, posS: PosInfo, posE: PosInfo) {
-        super(9, ASTKinds.SPE_Name, parent);
-		this.name = name;
-		this.posS = posS; this.posE = posE
-    }
-}
-
-export class SPE_Choice extends Node {
+export class SPE_Choice extends SPE {
 	left!: SPE;
 	right!: SPE;
 
-	constructor(parent: Node) {
-        super(10, ASTKinds.SPE_Choice, parent);
+	constructor(parent: Node, curProcIn: Process) {
+        super(10, ASTKinds.SPE_Choice, parent, curProcIn);
     }
 }
 
-export class SPE_Brack extends Node {
+export class SPE_Brack extends SPE {
 	proc!: SPE;
 
-	constructor(parent: Node) {
-        super(10, ASTKinds.SPE_Brack, parent);
+	constructor(parent: Node, curProcIn: Process) {
+        super(10, ASTKinds.SPE_Brack, parent, curProcIn);
     }
 }
 
@@ -596,6 +607,32 @@ export class DE extends Node{
 		super(precedence, kind, parent)
 	}
 }
+
+/*DE Binding strengths (most binding to least)
+(DE_Function_Prefixes are listed individually)
+DE_Name					0
+DE_Singleton			0
+DE_Set					0
+DE_Partial				0
+custom infix			1
+:						2
+<=						3
+>=						3
+>						3
+<						3
+!=						3
+=						3
+|						4
+&						4
+->						5
+<->						5
+DE_Lambda				6
+DE_Forall				6
+DE_Exists				6
+DE_Tuple				7
+DE_Function_Prefix		10
+DE_Brack				10	but can't escape out of
+*/
 
 export class DE_Singleton extends DE {
 	dataExp!: DE;

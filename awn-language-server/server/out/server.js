@@ -152,7 +152,8 @@ async function validateTextDocument(textDocument) {
         const newast = (0, convertAST_1.convertNewToOldAST)(parseResult.ast);
         console.log("converted AST:\n", newast);
         (0, check_1.InitialiseCheck)();
-        diagnostics = (0, check_1.Check)(newast, true);
+        console.log(textDocument.uri);
+        diagnostics = (0, check_1.Check)(newast, true, textDocument.uri);
         semanticTokens = (0, semanticTokens_1.getSemantTokens)(newast);
     }
     console.log("Diagnostics:", diagnostics);
@@ -226,7 +227,6 @@ connection.onHover((params) => {
     if (!wordRange)
         return null;
     const word = document.getText(wordRange);
-    console.log(wordRange, word);
     const info = (0, check_1.getHoverInformation)(word);
     if (!info)
         return null;

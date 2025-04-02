@@ -212,10 +212,20 @@ function parseFunction(func) {
 }
 function parseProcess(proc) {
     pushAndUpdate(proc.posS, proc.posE, Colours.Process, 0);
-    for (const arg of proc.args) {
-        pushAndUpdate(arg.posS, arg.posE, Colours.Variable, 0);
+    for (const arg of proc.argInfo) {
+        parseProcArg(arg);
     }
     parseProcExp(proc.proc);
+}
+function parseProcArg(procarg) {
+    switch (procarg.argType) {
+        case ast.ASTKinds.Variable: {
+            pushAndUpdate(procarg.posS, procarg.posE, Colours.Variable, 0);
+        }
+        case ast.ASTKinds.Alias_List: {
+            pushAndUpdate(procarg.posS, procarg.posE, Colours.Alias, 0);
+        }
+    }
 }
 function parseProcExp(procexp) {
     if (procexp.kind == null) {
@@ -292,11 +302,6 @@ function parseProcExp(procexp) {
             for (const de of Procexp.args) {
                 parseDataExp(de);
             }
-            break;
-        }
-        case ast.ASTKinds.SPE_Name: {
-            const Procexp = procexp;
-            pushAndUpdate(Procexp.posS, Procexp.posE, Colours.Process, 0);
             break;
         }
         case ast.ASTKinds.SPE_Choice: {
@@ -386,7 +391,7 @@ function parseDataExp(de) {
         }
         case ast.ASTKinds.DE_Name: {
             const DE = de;
-            if (DE.type == null) {
+            if (DE.refersTo == null) {
                 break;
             }
             switch (DE.refersTo) {
@@ -397,10 +402,14 @@ function parseDataExp(de) {
                     pushAndUpdate(DE.posS, DE.posE, Colours.Variable, 0);
                     break;
                 case ast.ASTKinds.Function_Infix:
+                    pushAndUpdate(DE.posS, DE.posE, Colours.Function, 0);
+                    break;
                 case ast.ASTKinds.Function_Prefix:
                     pushAndUpdate(DE.posS, DE.posE, Colours.Function, 0);
                     break;
                 case ast.ASTKinds.Alias_Data:
+                    pushAndUpdate(DE.posS, DE.posE, Colours.Alias, 0);
+                    break;
                 case ast.ASTKinds.Alias_List:
                     pushAndUpdate(DE.posS, DE.posE, Colours.Alias, 0);
                     break;

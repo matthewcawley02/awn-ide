@@ -102,10 +102,6 @@
 * 	.procType = string {
 * 		return "call"
 * 	}
-* 	| posS=@ name=Name posE=@ procMore=SPE1?
-* 	.procType = string {
-* 		return "name"
-* 	}
 * SPE1 := lb sp '\+' lb sp proc=SPE procMore=SPE1?
 * .procType = string {
 * 		return "choice"
@@ -163,7 +159,7 @@
 * 	.dataExpType = string {
 * 		return "and"
 * 	}
-* 	| os posS=@ '||' posE=@ os dataExp=DE dataExpMore=DE1?
+* 	| os posS=@ '\|' posE=@ os dataExp=DE dataExpMore=DE1?
 * 	.dataExpType = string {
 * 		return "or"
 * 	}
@@ -281,7 +277,6 @@ export enum ASTKinds {
     SPE_8 = "SPE_8",
     SPE_9 = "SPE_9",
     SPE_10 = "SPE_10",
-    SPE_11 = "SPE_11",
     SPE_$0 = "SPE_$0",
     SPE_$1 = "SPE_$1",
     SPE1 = "SPE1",
@@ -611,7 +606,7 @@ export interface TE1_$0 {
     pos: PosInfo;
     typeExpr: TE;
 }
-export type SPE = SPE_1 | SPE_2 | SPE_3 | SPE_4 | SPE_5 | SPE_6 | SPE_7 | SPE_8 | SPE_9 | SPE_10 | SPE_11;
+export type SPE = SPE_1 | SPE_2 | SPE_3 | SPE_4 | SPE_5 | SPE_6 | SPE_7 | SPE_8 | SPE_9 | SPE_10;
 export class SPE_1 {
     public kind: ASTKinds.SPE_1 = ASTKinds.SPE_1;
     public posDES: PosInfo;
@@ -825,23 +820,6 @@ export class SPE_10 {
         this.procMore = procMore;
         this.procType = ((): string => {
         return "call"
-        })();
-    }
-}
-export class SPE_11 {
-    public kind: ASTKinds.SPE_11 = ASTKinds.SPE_11;
-    public posS: PosInfo;
-    public name: Name;
-    public posE: PosInfo;
-    public procMore: Nullable<SPE1>;
-    public procType: string;
-    constructor(posS: PosInfo, name: Name, posE: PosInfo, procMore: Nullable<SPE1>){
-        this.posS = posS;
-        this.name = name;
-        this.posE = posE;
-        this.procMore = procMore;
-        this.procType = ((): string => {
-        return "name"
         })();
     }
 }
@@ -2100,7 +2078,6 @@ export class Parser {
             () => this.matchSPE_8($$dpth + 1, $$cr),
             () => this.matchSPE_9($$dpth + 1, $$cr),
             () => this.matchSPE_10($$dpth + 1, $$cr),
-            () => this.matchSPE_11($$dpth + 1, $$cr),
         ]);
     }
     public matchSPE_1($$dpth: number, $$cr?: ErrorTracker): Nullable<SPE_1> {
@@ -2398,25 +2375,6 @@ export class Parser {
                     && (($scope$procMore = this.matchSPE1($$dpth + 1, $$cr)) || true)
                 ) {
                     $$res = new SPE_10($scope$posS, $scope$name, $scope$posE, $scope$dataExpFirst, $scope$dataExpW, $scope$procMore);
-                }
-                return $$res;
-            });
-    }
-    public matchSPE_11($$dpth: number, $$cr?: ErrorTracker): Nullable<SPE_11> {
-        return this.run<SPE_11>($$dpth,
-            () => {
-                let $scope$posS: Nullable<PosInfo>;
-                let $scope$name: Nullable<Name>;
-                let $scope$posE: Nullable<PosInfo>;
-                let $scope$procMore: Nullable<Nullable<SPE1>>;
-                let $$res: Nullable<SPE_11> = null;
-                if (true
-                    && ($scope$posS = this.mark()) !== null
-                    && ($scope$name = this.matchName($$dpth + 1, $$cr)) !== null
-                    && ($scope$posE = this.mark()) !== null
-                    && (($scope$procMore = this.matchSPE1($$dpth + 1, $$cr)) || true)
-                ) {
-                    $$res = new SPE_11($scope$posS, $scope$name, $scope$posE, $scope$procMore);
                 }
                 return $$res;
             });
@@ -2820,7 +2778,7 @@ export class Parser {
                 if (true
                     && this.matchos($$dpth + 1, $$cr) !== null
                     && ($scope$posS = this.mark()) !== null
-                    && this.regexAccept(String.raw`(?:||)`, "", $$dpth + 1, $$cr) !== null
+                    && this.regexAccept(String.raw`(?:\|)`, "", $$dpth + 1, $$cr) !== null
                     && ($scope$posE = this.mark()) !== null
                     && this.matchos($$dpth + 1, $$cr) !== null
                     && ($scope$dataExp = this.matchDE($$dpth + 1, $$cr)) !== null

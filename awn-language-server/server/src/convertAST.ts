@@ -275,87 +275,86 @@ function convertFunction(node: oldast.Function, parent: newast.Node): newast.Fun
 function convertProcess(node: oldast.Process, parent: newast.Node): newast.Process{
 	switch(node.kind){
 		case oldast.ASTKinds.Process_1: { //with args
-			let arglist: newast.Variable[] = []
-			if(node.argFirst != null){
-				arglist.push(new newast.Variable(parent, node.argFirst.value, node.pos2S, node.pos2E))
-			}
-			arglist.push(...node.argsMore.map(arg => new newast.Variable(parent, arg.name.value, arg.posS, arg.posE)))
 			var proc = new newast.Process(parent, node.nameFirst.value, node.pos1S, node.pos1E)
-			proc.args = arglist
-			proc.proc = convertProcExp(node.proc, parent)
+			let arglist: newast.ProcArg[] = []
+			if(node.argFirst != null){
+				arglist.push(new newast.ProcArg(proc, node.argFirst.value, node.pos2S, node.pos2E))
+			}
+			arglist.push(...node.argsMore.map(arg => new newast.ProcArg(proc, arg.name.value, arg.posS, arg.posE)))			
+			proc.argInfo = arglist
+			proc.proc = convertProcExp(node.proc, proc, parent)
 			return proc
 		}
 		case oldast.ASTKinds.Process_2: { //without args
 			var proc = new newast.Process(parent, node.name.value, node.posS, node.posE)
-			proc.args = []
-			proc.proc = convertProcExp(node.proc, parent)
+			proc.proc = convertProcExp(node.proc, proc, parent)
 			return proc
 		}
 	}
 }
 
 
-function convertProcExp(node: oldast.SPE, parent: newast.Node): newast.SPE{
-	var newproc: newast.SPE
+function convertProcExp(node: oldast.SPE, curProcIn: newast.Process, parent: newast.Node): newast.SPE{
+	var newproc: newast.SPEs
 	switch(node.kind){
 		case oldast.ASTKinds.SPE_1: { //guard
-			newproc = new newast.SPE_Guard(parent, node.posDES, node.posDEE)
+			newproc = new newast.SPE_Guard(parent, curProcIn, node.posDES, node.posDEE)
 			newproc.dataExp = convertDataExp(node.dataExp, newproc)
-			newproc.nextproc = convertProcExp(node.proc, newproc)
+			newproc.nextproc = convertProcExp(node.proc, curProcIn, newproc)
 			break
 		}
 		case oldast.ASTKinds.SPE_2: { //assignment
-			newproc = new newast.SPE_Assign(parent, node.name.value, node.posA, node.posB, node.posC, node.posD)
+			newproc = new newast.SPE_Assign(parent, curProcIn, node.name.value, node.posA, node.posB, node.posC, node.posD)
 			newproc.dataExpAssign = convertDataExp(node.dataExpAssignment, newproc)
-			newproc.nextproc = convertProcExp(node.proc, newproc)
+			newproc.nextproc = convertProcExp(node.proc, curProcIn, newproc)
 			break
 		}
 		case oldast.ASTKinds.SPE_3: { //unicast
-			newproc = new newast.SPE_Unicast(parent, node.pos, node.posA, node.posB, node.posC)
+			newproc = new newast.SPE_Unicast(parent, curProcIn, node.pos, node.posA, node.posB, node.posC)
 			newproc.dataExpL = convertDataExp(node.dataExpL, newproc)
 			newproc.dataExpR = convertDataExp(node.dataExpR, newproc)
-			newproc.procA = convertProcExp(node.procL, newproc)
-			newproc.procB = convertProcExp(node.procR, newproc)
+			newproc.procA = convertProcExp(node.procL, curProcIn, newproc)
+			newproc.procB = convertProcExp(node.procR, curProcIn, newproc)
 			break
 		}
 		case oldast.ASTKinds.SPE_4: { //broadcast
-			newproc = new newast.SPE_Broadcast(parent, node.pos, node.posA, node.posB)
+			newproc = new newast.SPE_Broadcast(parent, curProcIn, node.pos, node.posA, node.posB)
 			newproc.dataExp = convertDataExp(node.dataExp, newproc)
-			newproc.nextproc = convertProcExp(node.proc, newproc)
+			newproc.nextproc = convertProcExp(node.proc, curProcIn, newproc)
 			break
 		}
 		case oldast.ASTKinds.SPE_5: { //groupcast
-			newproc = new newast.SPE_Groupcast(parent, node.pos, node.posA, node.posB, node.posC)
+			newproc = new newast.SPE_Groupcast(parent, curProcIn, node.pos, node.posA, node.posB, node.posC)
 			newproc.dataExpL = convertDataExp(node.dataExpL, newproc)
 			newproc.dataExpR = convertDataExp(node.dataExpR, newproc)
-			newproc.nextproc = convertProcExp(node.proc, newproc)
+			newproc.nextproc = convertProcExp(node.proc, curProcIn, newproc)
 			break
 		}
 		case oldast.ASTKinds.SPE_6: { //send
-			newproc = new newast.SPE_Send(parent, node.pos, node.posA, node.posB)
+			newproc = new newast.SPE_Send(parent, curProcIn, node.pos, node.posA, node.posB)
 			newproc.dataExp = convertDataExp(node.dataExp, newproc)
-			newproc.nextproc = convertProcExp(node.proc, newproc)
+			newproc.nextproc = convertProcExp(node.proc, curProcIn, newproc)
 			break
 		}
 		case oldast.ASTKinds.SPE_7: { //deliver
-			newproc = new newast.SPE_Deliver(parent, node.pos, node.posA, node.posB)
+			newproc = new newast.SPE_Deliver(parent, curProcIn, node.pos, node.posA, node.posB)
 			newproc.dataExp = convertDataExp(node.dataExp, newproc)
-			newproc.nextproc = convertProcExp(node.proc, newproc)
+			newproc.nextproc = convertProcExp(node.proc, curProcIn, newproc)
 			break
 		}
 		case oldast.ASTKinds.SPE_8: { //receive
-			newproc = new newast.SPE_Receive(parent, node.pos, node.name.value, node.posS, node.posE)
+			newproc = new newast.SPE_Receive(parent, curProcIn, node.pos, node.name.value, node.posS, node.posE)
 			newproc.dataExps = node.dataExpList.map(x => convertDataExp(x.dataExp, newproc))
-			newproc.nextproc = convertProcExp(node.proc, newproc)
+			newproc.nextproc = convertProcExp(node.proc, curProcIn, newproc)
 			break
 		}
 		case oldast.ASTKinds.SPE_9: { //bracket
-			newproc = new newast.SPE_Brack(parent); 
-			newproc.proc = convertProcExp(node.proc, parent)
+			newproc = new newast.SPE_Brack(parent, curProcIn); 
+			newproc.proc = convertProcExp(node.proc, curProcIn, parent)
 			break
 		}
 		case oldast.ASTKinds.SPE_10: { //call
-			newproc = new newast.SPE_Call(parent, node.name.value, node.posS, node.posE)
+			newproc = new newast.SPE_Call(parent, curProcIn, node.name.value, node.posS, node.posE)
 			var args: newast.DE[] = []
 			if(node.dataExpFirst != null){
 				args.push(convertDataExp(node.dataExpFirst, newproc))
@@ -364,14 +363,10 @@ function convertProcExp(node: oldast.SPE, parent: newast.Node): newast.SPE{
 			var what = newproc as newast.SPE_Call; what.args = args //idk why i have to do this???
 			break			
 		}
-		case oldast.ASTKinds.SPE_11: { //name
-			newproc = new newast.SPE_Name(parent, node.name.value, node.posS, node.posE)
-			break			
-		}
 	}
 	var returnednode: newast.SPE = newproc as newast.SPE
 	if(node.procMore !== null){
-		convertLRProcExp(node.procMore, newproc);
+		convertLRProcExp(node.procMore, curProcIn, newproc);
 	}
 	while(returnednode.parent != parent){ //make sure we're returning the correct thing, as the parent may have changed
 		returnednode = returnednode.parent as newast.SPE
@@ -380,10 +375,10 @@ function convertProcExp(node: oldast.SPE, parent: newast.Node): newast.SPE{
 }
 
 //this is just SPE_Choice
-function convertLRProcExp(node: oldast.SPE1, parent: newast.Node): void{
-	var newnode = new newast.SPE_Choice(parent) //parent set temporarily
+function convertLRProcExp(node: oldast.SPE1, curProcIn: newast.Process, parent: newast.Node): void{
+	var newnode = new newast.SPE_Choice(parent, curProcIn) //parent set temporarily
 	insertLRNodeSPE(newnode)
-	newnode.right = convertProcExp(node.proc, newnode)
+	newnode.right = convertProcExp(node.proc, curProcIn, newnode)
 }
 
 function insertLRNodeSPE(node: newast.SPE_Choice): void{
@@ -471,18 +466,18 @@ function convertDataExp(node: oldast.DE, parent: newast.Node): newast.DE{
 function convertLRDataExp(node: oldast.DE1, parent: newast.Node): void{
 	var newnode
 	switch(node.kind){
-		case oldast.ASTKinds.DE1_1: newnode = new newast.DE_Function_Infix(parent, 6, node.posS, node.posE); newnode.function = new newast.Function_Infix(newnode, "->", dummyPos, dummyPos); insertLRNodeDE(newnode); newnode.right = convertDataExp(node.dataExp, newnode); break
-		case oldast.ASTKinds.DE1_2: newnode = new newast.DE_Function_Infix(parent, 6, node.posS, node.posE); newnode.function = new newast.Function_Infix(newnode, "<->", dummyPos, dummyPos); insertLRNodeDE(newnode); newnode.right = convertDataExp(node.dataExp, newnode); break
-		case oldast.ASTKinds.DE1_3: newnode = new newast.DE_Function_Infix(parent, 6, node.posS, node.posE); newnode.function = new newast.Function_Infix(newnode, "&", dummyPos, dummyPos); insertLRNodeDE(newnode); newnode.right = convertDataExp(node.dataExp, newnode); break
-		case oldast.ASTKinds.DE1_4: newnode = new newast.DE_Function_Infix(parent, 6, node.posS, node.posE); newnode.function = new newast.Function_Infix(newnode, "|", dummyPos, dummyPos); insertLRNodeDE(newnode); newnode.right = convertDataExp(node.dataExp, newnode); break
-		case oldast.ASTKinds.DE1_5: newnode = new newast.DE_Function_Infix(parent, 6, node.posS, node.posE); newnode.function = new newast.Function_Infix(newnode, "=", dummyPos, dummyPos); insertLRNodeDE(newnode); newnode.right = convertDataExp(node.dataExp, newnode); break
-		case oldast.ASTKinds.DE1_6: newnode = new newast.DE_Function_Infix(parent, 6, node.posS, node.posE); newnode.function = new newast.Function_Infix(newnode, "!=", dummyPos, dummyPos); insertLRNodeDE(newnode); newnode.right = convertDataExp(node.dataExp, newnode); break
-		case oldast.ASTKinds.DE1_7: newnode = new newast.DE_Function_Infix(parent, 6, node.posS, node.posE); newnode.function = new newast.Function_Infix(newnode, ">=", dummyPos, dummyPos); insertLRNodeDE(newnode); newnode.right = convertDataExp(node.dataExp, newnode); break
-		case oldast.ASTKinds.DE1_8: newnode = new newast.DE_Function_Infix(parent, 6, node.posS, node.posE); newnode.function = new newast.Function_Infix(newnode, "<=", dummyPos, dummyPos); insertLRNodeDE(newnode); newnode.right = convertDataExp(node.dataExp, newnode); break
-		case oldast.ASTKinds.DE1_9: newnode = new newast.DE_Function_Infix(parent, 6, node.posS, node.posE); newnode.function = new newast.Function_Infix(newnode, ">", dummyPos, dummyPos); insertLRNodeDE(newnode); newnode.right = convertDataExp(node.dataExp, newnode); break
-		case oldast.ASTKinds.DE1_10: newnode = new newast.DE_Function_Infix(parent, 6, node.posS, node.posE); newnode.function = new newast.Function_Infix(newnode, "<", dummyPos, dummyPos); insertLRNodeDE(newnode); newnode.right = convertDataExp(node.dataExp, newnode); break
-		case oldast.ASTKinds.DE1_11: newnode = new newast.DE_Function_Infix(parent, 6, node.posS, node.posE); newnode.function = new newast.Function_Infix(newnode, ":", dummyPos, dummyPos); insertLRNodeDE(newnode); newnode.right = convertDataExp(node.dataExp, newnode); break
-		case oldast.ASTKinds.DE1_12: newnode = new newast.DE_Function_Infix(parent, 6, node.posS, node.posE); newnode.function = new newast.Function_Infix(newnode, (node as oldast.DE1_12).func.value, dummyPos, dummyPos); insertLRNodeDE(newnode); newnode.right = convertDataExp(node.dataExp, newnode); break
+		case oldast.ASTKinds.DE1_1: newnode = new newast.DE_Function_Infix(parent, 5, node.posS, node.posE); newnode.function = new newast.Function_Infix(newnode, "->", dummyPos, dummyPos); insertLRNodeDE(newnode); newnode.right = convertDataExp(node.dataExp, newnode); break
+		case oldast.ASTKinds.DE1_2: newnode = new newast.DE_Function_Infix(parent, 5, node.posS, node.posE); newnode.function = new newast.Function_Infix(newnode, "<->", dummyPos, dummyPos); insertLRNodeDE(newnode); newnode.right = convertDataExp(node.dataExp, newnode); break
+		case oldast.ASTKinds.DE1_3: newnode = new newast.DE_Function_Infix(parent, 4, node.posS, node.posE); newnode.function = new newast.Function_Infix(newnode, "&", dummyPos, dummyPos); insertLRNodeDE(newnode); newnode.right = convertDataExp(node.dataExp, newnode); break
+		case oldast.ASTKinds.DE1_4: newnode = new newast.DE_Function_Infix(parent, 4, node.posS, node.posE); newnode.function = new newast.Function_Infix(newnode, "|", dummyPos, dummyPos); insertLRNodeDE(newnode); newnode.right = convertDataExp(node.dataExp, newnode); break
+		case oldast.ASTKinds.DE1_5: newnode = new newast.DE_Function_Infix(parent, 3, node.posS, node.posE); newnode.function = new newast.Function_Infix(newnode, "=", dummyPos, dummyPos); insertLRNodeDE(newnode); newnode.right = convertDataExp(node.dataExp, newnode); break
+		case oldast.ASTKinds.DE1_6: newnode = new newast.DE_Function_Infix(parent, 3, node.posS, node.posE); newnode.function = new newast.Function_Infix(newnode, "!=", dummyPos, dummyPos); insertLRNodeDE(newnode); newnode.right = convertDataExp(node.dataExp, newnode); break
+		case oldast.ASTKinds.DE1_7: newnode = new newast.DE_Function_Infix(parent, 3, node.posS, node.posE); newnode.function = new newast.Function_Infix(newnode, ">=", dummyPos, dummyPos); insertLRNodeDE(newnode); newnode.right = convertDataExp(node.dataExp, newnode); break
+		case oldast.ASTKinds.DE1_8: newnode = new newast.DE_Function_Infix(parent, 3, node.posS, node.posE); newnode.function = new newast.Function_Infix(newnode, "<=", dummyPos, dummyPos); insertLRNodeDE(newnode); newnode.right = convertDataExp(node.dataExp, newnode); break
+		case oldast.ASTKinds.DE1_9: newnode = new newast.DE_Function_Infix(parent, 3, node.posS, node.posE); newnode.function = new newast.Function_Infix(newnode, ">", dummyPos, dummyPos); insertLRNodeDE(newnode); newnode.right = convertDataExp(node.dataExp, newnode); break
+		case oldast.ASTKinds.DE1_10: newnode = new newast.DE_Function_Infix(parent, 3, node.posS, node.posE); newnode.function = new newast.Function_Infix(newnode, "<", dummyPos, dummyPos); insertLRNodeDE(newnode); newnode.right = convertDataExp(node.dataExp, newnode); break
+		case oldast.ASTKinds.DE1_11: newnode = new newast.DE_Function_Infix(parent, 2, node.posS, node.posE); newnode.function = new newast.Function_Infix(newnode, ":", dummyPos, dummyPos); insertLRNodeDE(newnode); newnode.right = convertDataExp(node.dataExp, newnode); break
+		case oldast.ASTKinds.DE1_12: newnode = new newast.DE_Function_Infix(parent, 1, node.posS, node.posE); newnode.function = new newast.Function_Infix(newnode, (node as oldast.DE1_12).func.value, dummyPos, dummyPos); insertLRNodeDE(newnode); newnode.right = convertDataExp(node.dataExp, newnode); break
 		case oldast.ASTKinds.DE1_13: {			
 			newnode = new newast.DE_Tuple(parent)
 			insertLRNodeDE(newnode)

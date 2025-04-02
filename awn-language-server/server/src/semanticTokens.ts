@@ -198,10 +198,21 @@ function parseFunction(func: ast.Function){
 
 function parseProcess(proc: ast.Process){
 	pushAndUpdate(proc.posS, proc.posE, Colours.Process, 0)
-	for(const arg of proc.args){
-		pushAndUpdate(arg.posS, arg.posE, Colours.Variable, 0)
+	for(const arg of proc.argInfo){
+		parseProcArg(arg)
 	}
 	parseProcExp(proc.proc)
+}
+
+function parseProcArg(procarg: ast.ProcArg){
+	switch(procarg.argType){
+		case ast.ASTKinds.Variable: {
+			pushAndUpdate(procarg.posS, procarg.posE, Colours.Variable, 0)
+		}
+		case ast.ASTKinds.Alias_List: {
+			pushAndUpdate(procarg.posS, procarg.posE, Colours.Alias, 0)
+		}
+	}
 }
 
 function parseProcExp(procexp: ast.SPE){
@@ -275,11 +286,6 @@ function parseProcExp(procexp: ast.SPE){
 			for (const de of Procexp.args){
 				parseDataExp(de)
 			}
-			break;
-		}
-
-		case ast.ASTKinds.SPE_Name: { const Procexp = procexp as ast.SPE_Name;
-			pushAndUpdate(Procexp.posS, Procexp.posE, Colours.Process, 0)
 			break;
 		}
 
@@ -359,13 +365,13 @@ function parseDataExp(de: ast.DE){
 		}
 
 		case ast.ASTKinds.DE_Name: { const DE = de as ast.DE_Name
-			if(DE.type == null){break}
+			if(DE.refersTo == null){break}
 			switch(DE.refersTo){
 				case ast.ASTKinds.Constant: pushAndUpdate(DE.posS, DE.posE, Colours.Constant, 0); break
 				case ast.ASTKinds.Variable: pushAndUpdate(DE.posS, DE.posE, Colours.Variable, 0); break
-				case ast.ASTKinds.Function_Infix:
+				case ast.ASTKinds.Function_Infix: pushAndUpdate(DE.posS, DE.posE, Colours.Function, 0); break
 				case ast.ASTKinds.Function_Prefix: pushAndUpdate(DE.posS, DE.posE, Colours.Function, 0); break
-				case ast.ASTKinds.Alias_Data:
+				case ast.ASTKinds.Alias_Data: pushAndUpdate(DE.posS, DE.posE, Colours.Alias, 0); break
 				case ast.ASTKinds.Alias_List: pushAndUpdate(DE.posS, DE.posE, Colours.Alias, 0); break
 			}
 		}

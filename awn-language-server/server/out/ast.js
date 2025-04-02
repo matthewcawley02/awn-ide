@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.DE_Exists = exports.DE_Forall = exports.DE_Lambda = exports.DE_Partial = exports.DE_Set = exports.DE_Singleton = exports.DE = exports.SPE_Brack = exports.SPE_Choice = exports.SPE_Name = exports.SPE_Call = exports.SPE_Receive = exports.SPE_Deliver = exports.SPE_Send = exports.SPE_Groupcast = exports.SPE_Broadcast = exports.SPE_Unicast = exports.SPE_Assign = exports.SPE_Guard = exports.Alias_Data = exports.Alias_List = exports.Process = exports.Function_Infix = exports.Function_Prefix = exports.Function = exports.Constant = exports.Variable = exports.TE_Any = exports.TE_Product = exports.TE_FuncPart = exports.TE_FuncFull = exports.TE_Function = exports.TE_RootType = exports.TE_Name = exports.TE_Array = exports.TE_Pow = exports.TE_Brack = exports.Type = exports.Include = exports.Block_Alias = exports.Block_Process = exports.Block_Function = exports.Block_Constant = exports.Block_Variable = exports.Block_Type = exports.Block_Include = exports.AWNRoot = exports.Node = exports.isBracketType = exports.ASTKinds = void 0;
-exports.DE_Function_Infix = exports.DE_Function_Prefix = exports.DE_Tuple = exports.DE_Name = exports.DE_Brack = void 0;
+exports.DE_Forall = exports.DE_Lambda = exports.DE_Partial = exports.DE_Set = exports.DE_Singleton = exports.DE = exports.SPE_Brack = exports.SPE_Choice = exports.SPE_Call = exports.SPE_Receive = exports.SPE_Deliver = exports.SPE_Send = exports.SPE_Groupcast = exports.SPE_Broadcast = exports.SPE_Unicast = exports.SPE_Assign = exports.SPE_Guard = exports.SPE = exports.Alias_Data = exports.Alias_List = exports.ProcArg = exports.Process = exports.Function_Infix = exports.Function_Prefix = exports.Function = exports.Constant = exports.Variable = exports.TE_Any = exports.TE_Product = exports.TE_FuncPart = exports.TE_FuncFull = exports.TE_Function = exports.TE_RootType = exports.TE_Name = exports.TE_Array = exports.TE_Pow = exports.TE_Brack = exports.Type = exports.Include = exports.Block_Alias = exports.Block_Process = exports.Block_Function = exports.Block_Constant = exports.Block_Variable = exports.Block_Type = exports.Block_Include = exports.AWNRoot = exports.Node = exports.isBracketType = exports.ASTKinds = void 0;
+exports.DE_Function_Infix = exports.DE_Function_Prefix = exports.DE_Tuple = exports.DE_Name = exports.DE_Brack = exports.DE_Exists = void 0;
 var ASTKinds;
 (function (ASTKinds) {
     ASTKinds["AWNRoot"] = "AWNRoot";
@@ -20,6 +20,7 @@ var ASTKinds;
     ASTKinds["Function_Prefix"] = "Function_Prefix";
     ASTKinds["Function_Infix"] = "Function_Infix";
     ASTKinds["Process"] = "Process";
+    ASTKinds["ProcArgs"] = "ProcArgs";
     ASTKinds["Alias_List"] = "Alias_List";
     ASTKinds["Alias_Data"] = "Alias_Data";
     ASTKinds["TE_Brack"] = "TE_Brack";
@@ -62,7 +63,7 @@ exports.isBracketType = isBracketType;
 class Node {
     constructor(precedence, kind, parent) {
         this.parent = parent;
-        this.precedence = precedence;
+        this.precedence = precedence; //Lower numbers actually have more precedence (i.e. they bind stronger) - this is because i thought of it the wrong way around when i set it up and haven't changed it. think about it - if something "escapes out" because it has a higher number here, that means it actually has less precedence/binding power
         this.kind = kind;
     }
 }
@@ -290,12 +291,24 @@ exports.Function_Infix = Function_Infix;
 class Process extends Node {
     constructor(parent, name, posS, posE) {
         super(10, ASTKinds.Process, parent);
+        this.argInfo = [];
+        this.args = [];
         this.name = name;
         this.posS = posS;
         this.posE = posE;
     }
 }
 exports.Process = Process;
+class ProcArg extends Node {
+    constructor(parent, name, posS, posE) {
+        super(10, ASTKinds.ProcArgs, parent);
+        this.proc = parent;
+        this.name = name;
+        this.posS = posS;
+        this.posE = posE;
+    }
+}
+exports.ProcArg = ProcArg;
 class Alias_List extends Node {
     constructor(parent, name, posS, posE) {
         super(10, ASTKinds.Alias_List, parent);
@@ -317,17 +330,25 @@ class Alias_Data extends Node {
     }
 }
 exports.Alias_Data = Alias_Data;
-class SPE_Guard extends Node {
-    constructor(parent, DEStart, DEEnd) {
-        super(9, ASTKinds.SPE_Guard, parent);
+class SPE extends Node {
+    constructor(precedence, kind, parent, curProcIn) {
+        super(precedence, kind, parent);
+        this.boundArgs = [];
+        this.curProcIn = curProcIn;
+    }
+}
+exports.SPE = SPE;
+class SPE_Guard extends SPE {
+    constructor(parent, curProcIn, DEStart, DEEnd) {
+        super(9, ASTKinds.SPE_Guard, parent, curProcIn);
         this.DEStart = DEStart;
         this.DEEnd = DEEnd;
     }
 }
 exports.SPE_Guard = SPE_Guard;
-class SPE_Assign extends Node {
-    constructor(parent, name, nameStart, varStart, assignExpStart, end) {
-        super(9, ASTKinds.SPE_Assign, parent);
+class SPE_Assign extends SPE {
+    constructor(parent, curProcIn, name, nameStart, varStart, assignExpStart, end) {
+        super(9, ASTKinds.SPE_Assign, parent, curProcIn);
         this.name = name;
         this.nameStart = nameStart;
         this.varStart = varStart;
@@ -336,9 +357,9 @@ class SPE_Assign extends Node {
     }
 }
 exports.SPE_Assign = SPE_Assign;
-class SPE_Unicast extends Node {
-    constructor(parent, start, DELstart, DELend, DERend) {
-        super(9, ASTKinds.SPE_Unicast, parent);
+class SPE_Unicast extends SPE {
+    constructor(parent, curProcIn, start, DELstart, DELend, DERend) {
+        super(9, ASTKinds.SPE_Unicast, parent, curProcIn);
         this.DELstart = DELstart;
         this.DELend = DELend;
         this.DERend = DERend;
@@ -346,18 +367,18 @@ class SPE_Unicast extends Node {
     }
 }
 exports.SPE_Unicast = SPE_Unicast;
-class SPE_Broadcast extends Node {
-    constructor(parent, start, DEstart, DEend) {
-        super(9, ASTKinds.SPE_Broadcast, parent);
+class SPE_Broadcast extends SPE {
+    constructor(parent, curProcIn, start, DEstart, DEend) {
+        super(9, ASTKinds.SPE_Broadcast, parent, curProcIn);
         this.DEstart = DEstart;
         this.DEend = DEend;
         this.start = start;
     }
 }
 exports.SPE_Broadcast = SPE_Broadcast;
-class SPE_Groupcast extends Node {
-    constructor(parent, start, DELstart, DELend, DERend) {
-        super(9, ASTKinds.SPE_Groupcast, parent);
+class SPE_Groupcast extends SPE {
+    constructor(parent, curProcIn, start, DELstart, DELend, DERend) {
+        super(9, ASTKinds.SPE_Groupcast, parent, curProcIn);
         this.DELstart = DELstart;
         this.DELend = DELend;
         this.DERend = DERend;
@@ -365,27 +386,27 @@ class SPE_Groupcast extends Node {
     }
 }
 exports.SPE_Groupcast = SPE_Groupcast;
-class SPE_Send extends Node {
-    constructor(parent, start, DEstart, DEend) {
-        super(9, ASTKinds.SPE_Send, parent);
+class SPE_Send extends SPE {
+    constructor(parent, curProcIn, start, DEstart, DEend) {
+        super(9, ASTKinds.SPE_Send, parent, curProcIn);
         this.DEstart = DEstart;
         this.DEend = DEend;
         this.start = start;
     }
 }
 exports.SPE_Send = SPE_Send;
-class SPE_Deliver extends Node {
-    constructor(parent, start, DEstart, DEend) {
-        super(9, ASTKinds.SPE_Deliver, parent);
+class SPE_Deliver extends SPE {
+    constructor(parent, curProcIn, start, DEstart, DEend) {
+        super(9, ASTKinds.SPE_Deliver, parent, curProcIn);
         this.DEstart = DEstart;
         this.DEend = DEend;
         this.start = start;
     }
 }
 exports.SPE_Deliver = SPE_Deliver;
-class SPE_Receive extends Node {
-    constructor(parent, start, name, namePos, nameEnd) {
-        super(9, ASTKinds.SPE_Receive, parent);
+class SPE_Receive extends SPE {
+    constructor(parent, curProcIn, start, name, namePos, nameEnd) {
+        super(9, ASTKinds.SPE_Receive, parent, curProcIn);
         this.name = name;
         this.namePos = namePos;
         this.nameEnd = nameEnd;
@@ -393,33 +414,24 @@ class SPE_Receive extends Node {
     }
 }
 exports.SPE_Receive = SPE_Receive;
-class SPE_Call extends Node {
-    constructor(parent, name, posS, posE) {
-        super(9, ASTKinds.SPE_Call, parent);
+class SPE_Call extends SPE {
+    constructor(parent, curProcIn, name, posS, posE) {
+        super(9, ASTKinds.SPE_Call, parent, curProcIn);
         this.name = name;
         this.posS = posS;
         this.posE = posE;
     }
 }
 exports.SPE_Call = SPE_Call;
-class SPE_Name extends Node {
-    constructor(parent, name, posS, posE) {
-        super(9, ASTKinds.SPE_Name, parent);
-        this.name = name;
-        this.posS = posS;
-        this.posE = posE;
-    }
-}
-exports.SPE_Name = SPE_Name;
-class SPE_Choice extends Node {
-    constructor(parent) {
-        super(10, ASTKinds.SPE_Choice, parent);
+class SPE_Choice extends SPE {
+    constructor(parent, curProcIn) {
+        super(10, ASTKinds.SPE_Choice, parent, curProcIn);
     }
 }
 exports.SPE_Choice = SPE_Choice;
-class SPE_Brack extends Node {
-    constructor(parent) {
-        super(10, ASTKinds.SPE_Brack, parent);
+class SPE_Brack extends SPE {
+    constructor(parent, curProcIn) {
+        super(10, ASTKinds.SPE_Brack, parent, curProcIn);
     }
 }
 exports.SPE_Brack = SPE_Brack;
@@ -429,6 +441,31 @@ class DE extends Node {
     }
 }
 exports.DE = DE;
+/*DE Binding strengths (most binding to least)
+(DE_Function_Prefixes are listed individually)
+DE_Name					0
+DE_Singleton			0
+DE_Set					0
+DE_Partial				0
+custom infix			1
+:						2
+<=						3
+>=						3
+>						3
+<						3
+!=						3
+=						3
+|						4
+&						4
+->						5
+<->						5
+DE_Lambda				6
+DE_Forall				6
+DE_Exists				6
+DE_Tuple				7
+DE_Function_Prefix		10
+DE_Brack				10	but can't escape out of
+*/
 class DE_Singleton extends DE {
     constructor(parent) {
         super(0, ASTKinds.DE_Singleton, parent);

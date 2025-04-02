@@ -1,9 +1,9 @@
 include types.awn
 
 proc QUEUE(queue) :=
-  receive(pkt). QUEUE(append(queue,pkt))
+  receive(msg). QUEUE(append(queue,msg))
   +
   [ queue = (q : qs) ]
     send(q). QUEUE(qs)
     +
-    receive(pkt). QUEUE(append(queue,pkt))
+    receive(msg). QUEUE(append(queue,msg))

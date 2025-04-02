@@ -210,9 +210,10 @@ async function validateTextDocument(textDocument: TextDocument): Promise<Diagnos
 		console.log("original AST:\n", parseResult.ast)
 		const newast: AWNRoot = convertNewToOldAST(parseResult.ast)
 		console.log("converted AST:\n", newast)
-
+		
 		InitialiseCheck()
-		diagnostics = Check(newast, true)
+		console.log(textDocument.uri)
+		diagnostics = Check(newast, true, textDocument.uri)
 		semanticTokens = getSemantTokens(newast)
 	}
 	console.log("Diagnostics:", diagnostics)
@@ -294,7 +295,6 @@ connection.onHover((params: TextDocumentPositionParams): Hover | null => {
     if (!wordRange) return null
 
     const word = document.getText(wordRange)
-	console.log(wordRange, word)
 	const info = getHoverInformation(word)
 	if(!info) return null
 
