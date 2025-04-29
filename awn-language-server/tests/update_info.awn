@@ -1,5 +1,5 @@
 include types.awn
-include olsr.awn
+include olsr.awn      --tjtjtjtj
 
 proc UPDATE_INFO(sigma, Gamma) :=
   [[ ls := purgeLinkSet(ls, now) ]]
@@ -13,5 +13,5 @@ proc UPDATE_INFO(sigma, Gamma) :=
   [[ ansn := incrementANSN(ls, prev_ls, ansn) ]]
   [[ prev_ls := ls ]]
   [ isElem(rs0, optimalRoutingSets(ip, ls, rts, now)) ]
-  [[ rs := updateRoutingSet(ip, ls, rts, now, rs, rs0)]]
+  [[ ls := updateRoutingSet(ip, ls, rts, now, rs, rs0)]]
   OLSR(sigma, Gamma)

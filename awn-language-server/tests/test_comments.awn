@@ -1,0 +1,6 @@
+{* include types.awn*}
+--include h.awn
+
+include h.awn --gd
+
+{* d *}include g.awn -- <- the rare case of content after multiline comment is highlighted wrong

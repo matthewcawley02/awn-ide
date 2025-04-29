@@ -32,13 +32,14 @@ import{
 
 import{
 	getSemantTokens,
-	pushAndUpdateGivenLength,
-	resetSemanticTokens
+	convertAbstoRelTokens,
+	resetSemanticTokens,
+	pushAbsGivenLength
 } from './semanticTokens'
 
 import { convertNewToOldAST } from './convertAST';
 
-import { Initialise, Check, InitialiseCheck, getHoverInformation } from './check';
+import { Initialise, Check, InitialiseCheck, getHoverInformation, getAutoComplete } from './check';
 import { AWNRoot } from './ast';
 
 // Create a connection for the server, using Node's IPC as a transport.
@@ -87,8 +88,9 @@ connection.onInitialize((params: InitializeParams) => {
 			},
 			semanticTokensProvider: {
 				legend: {
-					tokenTypes: ['keyword', 'type', 'function', 'variable', 'variable', 'string', 'number', 'string'],
-					//			  keyword    type    function    constant    variable    string    process    alias
+					tokenTypes: ['keyword', 'type', 'function', 'macro', 'variable', 'string', 'number', 'string', 'comment'],
+					//			  keyword    type    function  constant   variable    string    process    alias    comment
+					//tokenTypes: ['keyword'],
 					tokenModifiers: []
 				},
 				full: true
@@ -142,7 +144,7 @@ documents.onDidClose(e => {
 });
 
 documents.onDidChangeContent(change => {
-	validateTextDocument(change.document);
+	//validateTextDocument(change.document); //something else already triggers validateTextDocument. Not sure what, but uncommenting this makes it run twice
 });
 
 //Handler for the "document diagnostic" request from the client
@@ -172,7 +174,7 @@ connection.onRequest("textDocument/semanticTokens/full", (params) => {
 });
 
 //called whenever there is a change in the document. parses and checks for semantic errors
-//also sets semantic tokens, as the semantic tokens request occurs after this one
+//also sets semantic tokens, as the semantic tokens request occurs entirely after this one
 async function validateTextDocument(textDocument: TextDocument): Promise<Diagnostic[]> {
 	const settings = await getDocumentSettings(textDocument.uri);
 
@@ -182,10 +184,10 @@ async function validateTextDocument(textDocument: TextDocument): Promise<Diagnos
 	semanticTokens = []
 	resetSemanticTokens()
 
-	var text: string = textDocument.getText()	
-	text = removeComments(text)
-	const parseResult: ParseResult = parse(text)
-
+	var text: string = textDocument.getText()
+	text = text.split('').filter(c => c !== "\r").join('') //remove \r so we don't have to deal with it later. \r\n becomes \n
+	text = removeComments(text, true)
+	const parseResult: ParseResult = parse(text.concat("\n")) //concat "\n" is a hacky way to get around the grammar's requirement of newline at the end
 
 	//if parsing itself fails, return syntax error diagnostics from parser.js
 	if(parseResult.errs.length > 0){
@@ -212,9 +214,13 @@ async function validateTextDocument(textDocument: TextDocument): Promise<Diagnos
 		console.log("converted AST:\n", newast)
 		
 		InitialiseCheck()
-		console.log(textDocument.uri)
-		diagnostics = Check(newast, true, textDocument.uri)
-		semanticTokens = getSemantTokens(newast)
+		const filename = textDocument.uri.split('/').pop()
+		if(filename != null){ //it will never be null, btw
+			diagnostics = Check(newast, true, filename)
+		}
+
+		getSemantTokens(newast)
+		semanticTokens = convertAbstoRelTokens()
 	}
 	console.log("Diagnostics:", diagnostics)
 	console.log("Semantic Tokens", semanticTokens)
@@ -222,7 +228,7 @@ async function validateTextDocument(textDocument: TextDocument): Promise<Diagnos
 }
 
 //TODO finish
-export function removeComments(doc: string): string{
+export function removeComments(doc: string, syntaxHighlight: boolean): string{
 	var output = ""
 	var row = 1; var col = 0
 	for(let i = 0; i < doc.length; i++){
@@ -232,21 +238,34 @@ export function removeComments(doc: string): string{
 			break
 		}
 
-		if(doc[i] == "-" && doc[i+1] == "-"){
+		if(doc[i] == "-" && doc[i+1] == "-"){ //single-line comment
 			const length = getLengthOfSingleComment(i, doc)
-			//doesn't allow negative line deltas, so have to figure out a workaround
-		//	pushAndUpdateGivenLength({
-		//		overallPos: i, line: row, offset: col
-		//	}, length, 3, 0)
+			if(syntaxHighlight){
+				pushAbsGivenLength({
+					overallPos: i, line: row, offset: col
+				}, length, 8, 0)
+			}
 			output += "\n"
+			row++; col = 0
 			i += length
 		}
 
-		else if(doc[i] == "{" && doc[i+1] == "-"){
-			//remove multiline
+		else if(doc[i] == "{" && doc[i+1] == "*"){
+			const charsEachRow = getLengthOfMultiComment(i, doc)
+			if(syntaxHighlight){
+				for(let j = 0; j < charsEachRow.length; j++){
+					pushAbsGivenLength({
+						overallPos: 0, line: row+j, offset: j == 0? col : 0 //overallPos is not important, so just = 0
+					}, charsEachRow[j], 8, 0)
+				}	
+			}
+			output += new Array(charsEachRow.length-1).fill("\n").join("")
+			row += charsEachRow.length-1;
+			const totalLength = charsEachRow.reduce((acc, val) => acc + val, 0);
+			i += totalLength-1
 		}
 
-		else if(doc[i] == "\n"){ //todo probably check for \r\n as well
+		else if(doc[i] == "\n"){
 			row++
 			col = 0
 			output += "\n"
@@ -268,22 +287,30 @@ function getLengthOfSingleComment(startchar: number, doc: string): number{
 	return 0
 }
 
-function getRowsInMultiComment(startchar: number, doc: string): number{
-	var numrows = 0
+//returns the length of each row in a multiline comment as an array
+function getLengthOfMultiComment(startchar: number, doc: string): number[]{
+	var charsInRow = 0
+	var charsEachRow = []
 	for(let i = startchar; i < doc.length; i++){
-		if(i+1 == doc.length){
-			return numrows+1
+		if(i+1 == doc.length){ //reached end of doc
+			charsEachRow.push(charsInRow)
+			return charsEachRow
 		}
 		
-		if(doc[i] == "-" && doc[i+1] == "}"){
-			return numrows+1
+		else if(doc[i] == "*" && doc[i+1] == "}"){
+			charsEachRow.push(charsInRow+2) //+2 to include the "-}"
+			return charsEachRow
 		}
 
 		else if(doc[i] == "\n"){
-			numrows++
-		}
+			charsEachRow.push(charsInRow+1) //+1 to include \n
+			charsInRow = 0
+		} 
+		else{
+			charsInRow++
+		}		
 	}
-	return 0
+	return []
 }
 
 connection.onHover((params: TextDocumentPositionParams): Hover | null => {
@@ -334,111 +361,16 @@ connection.onDidChangeWatchedFiles(_change => {
 // Text completion
 connection.onCompletion(
 	(_textDocumentPosition: TextDocumentPositionParams): CompletionItem[] => {
-		// Note that the parameter includes the cursor location, can use that in the future
-		return [
-			{
-				label: 'forall',
+		const names = getAutoComplete()
+		var ci: CompletionItem[] = []
+		for(const n of names){
+			ci.push({
+				label: n,
 				kind: CompletionItemKind.Text,
-				data: 1
-			},
-			{
-				label: 'exists',
-				kind: CompletionItemKind.Text,
-				data: 2
-			},
-			{
-				label: 'lambda',
-				kind: CompletionItemKind.Text,
-				data: 3
-			},
-			{
-				label: 'include',
-				kind: CompletionItemKind.Text,
-				data: 4
-			},
-			{
-				label: 'proc',
-				kind: CompletionItemKind.Text,
-				data: 5
-			},
-			{
-				label: 'INCLUDES:',
-				kind: CompletionItemKind.Text,
-				data: 6
-			},
-			{
-				label: 'TYPES:',
-				kind: CompletionItemKind.Text,
-				data: 7
-			},
-			{
-				label: 'VARIABLES:',
-				kind: CompletionItemKind.Text,
-				data: 8
-			},
-			{
-				label: 'CONSTANTS:',
-				kind: CompletionItemKind.Text,
-				data: 9
-			},
-			{
-				label: 'FUNCTIONS:',
-				kind: CompletionItemKind.Text,
-				data: 10
-			},
-			{
-				label: 'PROCESSES:',
-				kind: CompletionItemKind.Text,
-				data: 11
-			},
-			{
-				label: 'ALIASES:',
-				kind: CompletionItemKind.Text,
-				data: 12
-			},
-			{
-				label: 'unicast',
-				kind: CompletionItemKind.Text,
-				data: 13
-			},			
-			{
-				label: 'broadcast',
-				kind: CompletionItemKind.Text,
-				data: 14
-			},
-			{
-				label: 'groupcast',
-				kind: CompletionItemKind.Text,
-				data: 15
-			},
-			{
-				label: 'send',
-				kind: CompletionItemKind.Text,
-				data: 16
-			},
-			{
-				label: 'deliver',
-				kind: CompletionItemKind.Text,
-				data: 17
-			},
-			{
-				label: 'receive:',
-				kind: CompletionItemKind.Text,
-				data: 18
-			},
-		];
-	}
-);
-
-// Additional text alongside the text completion
-connection.onCompletionResolve(
-	(item: CompletionItem): CompletionItem => {
-		switch(item.data){
-			default:
-				item.detail = 'tba';
-				item.documentation = 'tba';
-		return item;
+				insertText: n
+			})
 		}
+		return ci
 	}
 );
 

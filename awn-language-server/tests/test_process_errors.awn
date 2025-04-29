@@ -7,6 +7,6 @@ FUNCTIONS: func: Bool->MSG
 
 proc p1(varj,8):=
         send(x).
-        send(func var).
-        end
+        send(funcvar).
+        end()
 

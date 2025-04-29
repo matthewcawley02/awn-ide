@@ -81,6 +81,18 @@ var ASTKinds;
     ASTKinds["NameString_$0"] = "NameString_$0";
     ASTKinds["NameChar"] = "NameChar";
     ASTKinds["Infix"] = "Infix";
+    ASTKinds["Infix_$0_1"] = "Infix_$0_1";
+    ASTKinds["Infix_$0_2"] = "Infix_$0_2";
+    ASTKinds["Infix_$0_$0_1"] = "Infix_$0_$0_1";
+    ASTKinds["Infix_$0_$0_2"] = "Infix_$0_$0_2";
+    ASTKinds["Infix_$0_$0_3"] = "Infix_$0_$0_3";
+    ASTKinds["Infix_$0_$0_4"] = "Infix_$0_$0_4";
+    ASTKinds["Infix_$0_$0_5"] = "Infix_$0_$0_5";
+    ASTKinds["Infix_$0_$0_6"] = "Infix_$0_$0_6";
+    ASTKinds["Infix_$0_$0_7"] = "Infix_$0_$0_7";
+    ASTKinds["Infix_$0_$0_8"] = "Infix_$0_$0_8";
+    ASTKinds["Infix_$0_$0_9"] = "Infix_$0_$0_9";
+    ASTKinds["Infix_$0_$0_10"] = "Infix_$0_$0_10";
     ASTKinds["ws"] = "ws";
     ASTKinds["ws_$0_1"] = "ws_$0_1";
     ASTKinds["ws_$0_2"] = "ws_$0_2";
@@ -1421,6 +1433,7 @@ class Parser {
                 && ($scope$posDEE = this.mark()) !== null
                 && this.matchos($$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?:\])`, "", $$dpth + 1, $$cr) !== null
+                && this.matchos($$dpth + 1, $$cr) !== null
                 && this.matchlb($$dpth + 1, $$cr) !== null
                 && this.matchsp($$dpth + 1, $$cr) !== null
                 && ($scope$proc = this.matchSPE($$dpth + 1, $$cr)) !== null
@@ -1455,6 +1468,7 @@ class Parser {
                 && ($scope$posD = this.mark()) !== null
                 && this.matchos($$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?:\]\])`, "", $$dpth + 1, $$cr) !== null
+                && this.matchos($$dpth + 1, $$cr) !== null
                 && this.matchlb($$dpth + 1, $$cr) !== null
                 && this.matchsp($$dpth + 1, $$cr) !== null
                 && ($scope$proc = this.matchSPE($$dpth + 1, $$cr)) !== null
@@ -2333,11 +2347,67 @@ class Parser {
             let $scope$char;
             let $$res = null;
             if (true
-                && ($scope$char = this.loopPlus(() => this.regexAccept(String.raw `(?:[\*\+\=\-<>\!\&\\|])`, "", $$dpth + 1, $$cr))) !== null) {
+                && ($scope$char = this.matchInfix_$0($$dpth + 1, $$cr)) !== null) {
                 $$res = new Infix($scope$char);
             }
             return $$res;
         });
+    }
+    matchInfix_$0($$dpth, $$cr) {
+        return this.choice([
+            () => this.matchInfix_$0_1($$dpth + 1, $$cr),
+            () => this.matchInfix_$0_2($$dpth + 1, $$cr),
+        ]);
+    }
+    matchInfix_$0_1($$dpth, $$cr) {
+        return this.loopPlus(() => this.matchInfix_$0_$0($$dpth + 1, $$cr));
+    }
+    matchInfix_$0_2($$dpth, $$cr) {
+        return this.loop(() => this.regexAccept(String.raw `(?:\:)`, "", $$dpth + 1, $$cr), 1, 1);
+    }
+    matchInfix_$0_$0($$dpth, $$cr) {
+        return this.choice([
+            () => this.matchInfix_$0_$0_1($$dpth + 1, $$cr),
+            () => this.matchInfix_$0_$0_2($$dpth + 1, $$cr),
+            () => this.matchInfix_$0_$0_3($$dpth + 1, $$cr),
+            () => this.matchInfix_$0_$0_4($$dpth + 1, $$cr),
+            () => this.matchInfix_$0_$0_5($$dpth + 1, $$cr),
+            () => this.matchInfix_$0_$0_6($$dpth + 1, $$cr),
+            () => this.matchInfix_$0_$0_7($$dpth + 1, $$cr),
+            () => this.matchInfix_$0_$0_8($$dpth + 1, $$cr),
+            () => this.matchInfix_$0_$0_9($$dpth + 1, $$cr),
+            () => this.matchInfix_$0_$0_10($$dpth + 1, $$cr),
+        ]);
+    }
+    matchInfix_$0_$0_1($$dpth, $$cr) {
+        return this.regexAccept(String.raw `(?:\*)`, "", $$dpth + 1, $$cr);
+    }
+    matchInfix_$0_$0_2($$dpth, $$cr) {
+        return this.regexAccept(String.raw `(?:\+)`, "", $$dpth + 1, $$cr);
+    }
+    matchInfix_$0_$0_3($$dpth, $$cr) {
+        return this.regexAccept(String.raw `(?:\=)`, "", $$dpth + 1, $$cr);
+    }
+    matchInfix_$0_$0_4($$dpth, $$cr) {
+        return this.regexAccept(String.raw `(?:\-)`, "", $$dpth + 1, $$cr);
+    }
+    matchInfix_$0_$0_5($$dpth, $$cr) {
+        return this.regexAccept(String.raw `(?:<)`, "", $$dpth + 1, $$cr);
+    }
+    matchInfix_$0_$0_6($$dpth, $$cr) {
+        return this.regexAccept(String.raw `(?:>)`, "", $$dpth + 1, $$cr);
+    }
+    matchInfix_$0_$0_7($$dpth, $$cr) {
+        return this.regexAccept(String.raw `(?:\!)`, "", $$dpth + 1, $$cr);
+    }
+    matchInfix_$0_$0_8($$dpth, $$cr) {
+        return this.regexAccept(String.raw `(?:\&)`, "", $$dpth + 1, $$cr);
+    }
+    matchInfix_$0_$0_9($$dpth, $$cr) {
+        return this.regexAccept(String.raw `(?:\\)`, "", $$dpth + 1, $$cr);
+    }
+    matchInfix_$0_$0_10($$dpth, $$cr) {
+        return this.regexAccept(String.raw `(?:|)`, "", $$dpth + 1, $$cr);
     }
     matchws($$dpth, $$cr) {
         return this.loop(() => this.matchws_$0($$dpth + 1, $$cr), 0, -1);

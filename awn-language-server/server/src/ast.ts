@@ -745,6 +745,8 @@ export class DE_Name extends DE {
 }
 
 export class DE_Tuple extends DE {
+	override type!: TE_Product; //type of DE_Tuple is always TE_Product
+
 	left!: DE //leftover from rotation
 	right!: DE //leftover from rotation
 

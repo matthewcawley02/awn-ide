@@ -20,4 +20,4 @@ proc FORWARD_TC(sigma, Gamma, msg) :=
                     OLSR(sigma, Gamma)
                +
                [ !(exists lt. (isElem(lt, ls) & L_oip(lt) = sip(pkt) & L_fmpr_selector(lt))) ]
-                    OLSR(sigma, Gamma)
+                    OLSR(sigma, Gamma) --test 

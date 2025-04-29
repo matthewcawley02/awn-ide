@@ -16,7 +16,6 @@ TYPES:
   P     = IP x SQN                                                                      -- Processed message records
   RX    = IP x SQN                                                                      -- Received message records
 
-
 VARIABLES:
   IP         ip                         -- Identifier of current node.
   TIME       hello_time,                -- Time when next HELLO message must be sent
@@ -32,8 +31,8 @@ VARIABLES:
   L          lt                         -- Arbitrary link tuple
   Pow(L)     ls,                        -- Link set maintaining information about 1-hop neighbours and their statuses
              prev_ls,                   -- Previous link set used to check for updates
-             fpmrs,                     -- Set of optimal flooding MPRs
-             rpmrs                      -- Set of optimal routing MPRs
+             fmprs,                     -- Set of optimal flooding MPRs
+             rmprs                      -- Set of optimal routing MPRs
   Pow(N2)    2hs                        -- 2-hop set maintaining information about 2-hop neighbours
   AR         ar                         -- Arbitrary advertising remote router tuple
   Pow(AR)    arrs                       -- Advertising remote router set containing information about routers which have advertised links
@@ -59,15 +58,15 @@ VARIABLES:
 CONSTANTS:                              
   MSG        emptyList                  -- Empty list
   TIME       infinity, 1
-  SQN        1
+  SQN        1                          -- if i understand correctly this isn't allowed. however in olsr.awn they attempt to use both versions of '1'
   STATUS     SYMMETRIC
 
 
 FUNCTIONS:
   concat:       MSG x MSG -> MSG
   append:       MSG x MESSAGE -> MSG
---    :   :       MESSAGE x MSG -> MSG
-  isHELL0:      MSG -> Bool
+    :   :       MESSAGE x MSG -> MSG
+  isHELLO:      MSG -> Bool
   isTC:         MSG -> Bool
   newHELLO:     IP x TIME x SQN x Pow(L) x TIME -> MESSAGE
   newTC:        IP x TIME x SQN x SQN x Pow(L) x TIME -> MESSAGE
@@ -75,7 +74,7 @@ FUNCTIONS:
   purgeLinkSet:         Pow(L) x TIME -> Pow(L)
   purge2HopSet:         Pow(L) x Pow(N2) x TIME -> Pow(N2)
   purgeAdvertisingRouters: Pow(AR) x TIME -> Pow(AR)
-  purgeRouterTopology:  Pow(TR) x TIME -> Pow(RR)
+  purgeRouterTopology:  Pow(TR) x TIME -> Pow(TR)     --this used to end in Pow(RR), changed it to Pow(TR), almost certainly just a typo
   validFMPRs:           Pow(L) x Pow(N2) x TIME -> Pow(Pow(L))
   updateFMPRs:          Pow(L) x Pow(N2) x TIME x Pow(L) -> Pow(L)
   validRMPRs:           Pow(L) x Pow(N2) x TIME -> Pow(Pow(L))
@@ -88,9 +87,9 @@ FUNCTIONS:
   updateSymmetricTime:  IP x Pow(L) x IP x TIME x Pow(IP x STATUS) x TIME x TIME -> Pow(L)
   updateHeardTime:      Pow(L) x IP x TIME x TIME -> Pow(L)
   updateValidityTime:   Pow(L) x IP x TIME x TIME -> Pow(L)
-  updateFMPRSelectors:  IP x Pow(L) x IP x Pow(IP x METRIC) x Pow(IP x MPR) x TIME -> Pow(L)
-  updateRMPRSelectors:  IP x Pow(L) x IP x Pow(IP x METRIC) x Pow(IP x MPR) x TIME -> Pow(L)
-  add2HopTuples:        IP x Pow(L) x Pow(N2) x IP x Pow(IP x METRIC) x TIME -> Pow(N2)
+  updateFMPRSelectors:  IP x Pow(L) x IP x Pow(IP x STATUS) x Pow(IP x MPR) x TIME -> Pow(L)
+  updateRMPRSelectors:  IP x Pow(L) x IP x Pow(IP x STATUS) x Pow(IP x MPR) x TIME -> Pow(L)
+  add2HopTuples:        IP x Pow(L) x Pow(N2) x IP x Pow(IP x STATUS) x TIME -> Pow(N2)
   update2HopInMetrics:  Pow(L) x Pow(N2) x IP x Pow(IP x METRIC) x TIME -> Pow(N2)
   update2HopOutMetrics: Pow(L) x Pow(N2) x IP x Pow(IP x METRIC) x TIME -> Pow(N2)
   update2HopTime:       IP x Pow(L) x Pow(N2) x IP x TIME x Pow(IP x STATUS) x TIME -> Pow(N2)

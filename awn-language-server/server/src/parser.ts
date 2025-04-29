@@ -62,11 +62,11 @@
 * // SP EXPRESSIONS
 * //==================
 * SPE :=
-* 	  '\[' os posDES=@ dataExp=DE posDEE=@ os '\]' lb sp proc=SPE procMore=SPE1?
+* 	  '\[' os posDES=@ dataExp=DE posDEE=@ os '\]' os lb sp proc=SPE procMore=SPE1?
 * 	.procType = string {
 * 		return "guard"
 * 	}
-* 	| '\[\[' os posA=@ name=Name posB=@ os '\:\=' os posC=@ dataExpAssignment=DE posD=@ os '\]\]' lb sp proc=SPE procMore=SPE1?
+* 	| '\[\[' os posA=@ name=Name posB=@ os '\:\=' os posC=@ dataExpAssignment=DE posD=@ os '\]\]' os lb sp proc=SPE procMore=SPE1?
 * 	.procType = string {
 * 		return "assignment"
 * 	}
@@ -202,11 +202,6 @@
 * //=============
 * //  BASIC
 * //=============
-* // In the original grammar, some checking (through RATS functions) is done to differentiate
-* // between different kinds of Infix, and different kinds of Name. Currently, I have all infixes
-* // as 'Infix', and for Names have 'Name' and 'TypeName', which are currenlty identical. The
-* // grammar uses them for different things, so I'll keep them separate to make things easier later
-* // when I am hopefully able to split them up.
 * TypeName := name=Name
 * 	.value = string {return name.value}
 * Name := nameString=NameString 
@@ -221,11 +216,12 @@
 * 	}
 * NameChar := char='[a-zA-Z0-9_]'
 * 	.value = string{return char}
-* // their infix also allows colon ':', but this is incompatible because infix function definitions are ended with a colon 
-* Infix := char='[\*\+\=\-<>\!\&\\|]'+
+* // their infix also allows colon ':', but this is incompatible because infix function definitions are ended with a colon.
+* // I've allowed exactly 1 colon on its own to be an infix function, because they have such a function in types.awn.
+* Infix := char={{ '\*' | '\+' | '\=' | '\-' | '<' | '>' | '\!' | '\&' | '\\' | '|' }+ | '\:'[1] }
 * 	.value = string{return char.join("")}
 * ws := {sp | lb}* 						//any whitespace
-* os := {' ' | '\t' | '\v'}*				//optional spacing (within one line)
+* os := {' ' | '\t' | '\v'}*				//0 or more spaces/tabs (used for optional spacing within a line)
 * sp := {' ' | '\t' | '\v'}+				//1 or more spaces/tabs
 * lb := {'\n' | '\r\n'}+					//1 or more linebreaks 	
 */
@@ -312,6 +308,18 @@ export enum ASTKinds {
     NameString_$0 = "NameString_$0",
     NameChar = "NameChar",
     Infix = "Infix",
+    Infix_$0_1 = "Infix_$0_1",
+    Infix_$0_2 = "Infix_$0_2",
+    Infix_$0_$0_1 = "Infix_$0_$0_1",
+    Infix_$0_$0_2 = "Infix_$0_$0_2",
+    Infix_$0_$0_3 = "Infix_$0_$0_3",
+    Infix_$0_$0_4 = "Infix_$0_$0_4",
+    Infix_$0_$0_5 = "Infix_$0_$0_5",
+    Infix_$0_$0_6 = "Infix_$0_$0_6",
+    Infix_$0_$0_7 = "Infix_$0_$0_7",
+    Infix_$0_$0_8 = "Infix_$0_$0_8",
+    Infix_$0_$0_9 = "Infix_$0_$0_9",
+    Infix_$0_$0_10 = "Infix_$0_$0_10",
     ws = "ws",
     ws_$0_1 = "ws_$0_1",
     ws_$0_2 = "ws_$0_2",
@@ -1300,15 +1308,29 @@ export class NameChar {
 }
 export class Infix {
     public kind: ASTKinds.Infix = ASTKinds.Infix;
-    public char: [string, ...string[]];
+    public char: Infix_$0;
     public value: string;
-    constructor(char: [string, ...string[]]){
+    constructor(char: Infix_$0){
         this.char = char;
         this.value = ((): string => {
         return char.join("")
         })();
     }
 }
+export type Infix_$0 = Infix_$0_1 | Infix_$0_2;
+export type Infix_$0_1 = [Infix_$0_$0, ...Infix_$0_$0[]];
+export type Infix_$0_2 = string[];
+export type Infix_$0_$0 = Infix_$0_$0_1 | Infix_$0_$0_2 | Infix_$0_$0_3 | Infix_$0_$0_4 | Infix_$0_$0_5 | Infix_$0_$0_6 | Infix_$0_$0_7 | Infix_$0_$0_8 | Infix_$0_$0_9 | Infix_$0_$0_10;
+export type Infix_$0_$0_1 = string;
+export type Infix_$0_$0_2 = string;
+export type Infix_$0_$0_3 = string;
+export type Infix_$0_$0_4 = string;
+export type Infix_$0_$0_5 = string;
+export type Infix_$0_$0_6 = string;
+export type Infix_$0_$0_7 = string;
+export type Infix_$0_$0_8 = string;
+export type Infix_$0_$0_9 = string;
+export type Infix_$0_$0_10 = string;
 export type ws = ws_$0[];
 export type ws_$0 = ws_$0_1 | ws_$0_2;
 export type ws_$0_1 = sp;
@@ -2097,6 +2119,7 @@ export class Parser {
                     && ($scope$posDEE = this.mark()) !== null
                     && this.matchos($$dpth + 1, $$cr) !== null
                     && this.regexAccept(String.raw`(?:\])`, "", $$dpth + 1, $$cr) !== null
+                    && this.matchos($$dpth + 1, $$cr) !== null
                     && this.matchlb($$dpth + 1, $$cr) !== null
                     && this.matchsp($$dpth + 1, $$cr) !== null
                     && ($scope$proc = this.matchSPE($$dpth + 1, $$cr)) !== null
@@ -2133,6 +2156,7 @@ export class Parser {
                     && ($scope$posD = this.mark()) !== null
                     && this.matchos($$dpth + 1, $$cr) !== null
                     && this.regexAccept(String.raw`(?:\]\])`, "", $$dpth + 1, $$cr) !== null
+                    && this.matchos($$dpth + 1, $$cr) !== null
                     && this.matchlb($$dpth + 1, $$cr) !== null
                     && this.matchsp($$dpth + 1, $$cr) !== null
                     && ($scope$proc = this.matchSPE($$dpth + 1, $$cr)) !== null
@@ -3090,15 +3114,71 @@ export class Parser {
     public matchInfix($$dpth: number, $$cr?: ErrorTracker): Nullable<Infix> {
         return this.run<Infix>($$dpth,
             () => {
-                let $scope$char: Nullable<[string, ...string[]]>;
+                let $scope$char: Nullable<Infix_$0>;
                 let $$res: Nullable<Infix> = null;
                 if (true
-                    && ($scope$char = this.loopPlus<string>(() => this.regexAccept(String.raw`(?:[\*\+\=\-<>\!\&\\|])`, "", $$dpth + 1, $$cr))) !== null
+                    && ($scope$char = this.matchInfix_$0($$dpth + 1, $$cr)) !== null
                 ) {
                     $$res = new Infix($scope$char);
                 }
                 return $$res;
             });
+    }
+    public matchInfix_$0($$dpth: number, $$cr?: ErrorTracker): Nullable<Infix_$0> {
+        return this.choice<Infix_$0>([
+            () => this.matchInfix_$0_1($$dpth + 1, $$cr),
+            () => this.matchInfix_$0_2($$dpth + 1, $$cr),
+        ]);
+    }
+    public matchInfix_$0_1($$dpth: number, $$cr?: ErrorTracker): Nullable<Infix_$0_1> {
+        return this.loopPlus<Infix_$0_$0>(() => this.matchInfix_$0_$0($$dpth + 1, $$cr));
+    }
+    public matchInfix_$0_2($$dpth: number, $$cr?: ErrorTracker): Nullable<Infix_$0_2> {
+        return this.loop<string>(() => this.regexAccept(String.raw`(?:\:)`, "", $$dpth + 1, $$cr), 1, 1);
+    }
+    public matchInfix_$0_$0($$dpth: number, $$cr?: ErrorTracker): Nullable<Infix_$0_$0> {
+        return this.choice<Infix_$0_$0>([
+            () => this.matchInfix_$0_$0_1($$dpth + 1, $$cr),
+            () => this.matchInfix_$0_$0_2($$dpth + 1, $$cr),
+            () => this.matchInfix_$0_$0_3($$dpth + 1, $$cr),
+            () => this.matchInfix_$0_$0_4($$dpth + 1, $$cr),
+            () => this.matchInfix_$0_$0_5($$dpth + 1, $$cr),
+            () => this.matchInfix_$0_$0_6($$dpth + 1, $$cr),
+            () => this.matchInfix_$0_$0_7($$dpth + 1, $$cr),
+            () => this.matchInfix_$0_$0_8($$dpth + 1, $$cr),
+            () => this.matchInfix_$0_$0_9($$dpth + 1, $$cr),
+            () => this.matchInfix_$0_$0_10($$dpth + 1, $$cr),
+        ]);
+    }
+    public matchInfix_$0_$0_1($$dpth: number, $$cr?: ErrorTracker): Nullable<Infix_$0_$0_1> {
+        return this.regexAccept(String.raw`(?:\*)`, "", $$dpth + 1, $$cr);
+    }
+    public matchInfix_$0_$0_2($$dpth: number, $$cr?: ErrorTracker): Nullable<Infix_$0_$0_2> {
+        return this.regexAccept(String.raw`(?:\+)`, "", $$dpth + 1, $$cr);
+    }
+    public matchInfix_$0_$0_3($$dpth: number, $$cr?: ErrorTracker): Nullable<Infix_$0_$0_3> {
+        return this.regexAccept(String.raw`(?:\=)`, "", $$dpth + 1, $$cr);
+    }
+    public matchInfix_$0_$0_4($$dpth: number, $$cr?: ErrorTracker): Nullable<Infix_$0_$0_4> {
+        return this.regexAccept(String.raw`(?:\-)`, "", $$dpth + 1, $$cr);
+    }
+    public matchInfix_$0_$0_5($$dpth: number, $$cr?: ErrorTracker): Nullable<Infix_$0_$0_5> {
+        return this.regexAccept(String.raw`(?:<)`, "", $$dpth + 1, $$cr);
+    }
+    public matchInfix_$0_$0_6($$dpth: number, $$cr?: ErrorTracker): Nullable<Infix_$0_$0_6> {
+        return this.regexAccept(String.raw`(?:>)`, "", $$dpth + 1, $$cr);
+    }
+    public matchInfix_$0_$0_7($$dpth: number, $$cr?: ErrorTracker): Nullable<Infix_$0_$0_7> {
+        return this.regexAccept(String.raw`(?:\!)`, "", $$dpth + 1, $$cr);
+    }
+    public matchInfix_$0_$0_8($$dpth: number, $$cr?: ErrorTracker): Nullable<Infix_$0_$0_8> {
+        return this.regexAccept(String.raw`(?:\&)`, "", $$dpth + 1, $$cr);
+    }
+    public matchInfix_$0_$0_9($$dpth: number, $$cr?: ErrorTracker): Nullable<Infix_$0_$0_9> {
+        return this.regexAccept(String.raw`(?:\\)`, "", $$dpth + 1, $$cr);
+    }
+    public matchInfix_$0_$0_10($$dpth: number, $$cr?: ErrorTracker): Nullable<Infix_$0_$0_10> {
+        return this.regexAccept(String.raw`(?:|)`, "", $$dpth + 1, $$cr);
     }
     public matchws($$dpth: number, $$cr?: ErrorTracker): Nullable<ws> {
         return this.loop<ws_$0>(() => this.matchws_$0($$dpth + 1, $$cr), 0, -1);

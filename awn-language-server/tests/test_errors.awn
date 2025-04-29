@@ -21,4 +21,4 @@ FUNCTIONS: func: foo -> [(bar +-> example)]
            read: filetype
 
 proc qwerty(asdfgh, zxcvbnm) :=
-        end
+        end()

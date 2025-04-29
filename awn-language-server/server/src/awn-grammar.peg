@@ -1,10 +1,10 @@
 AWNRoot := ws block=Block* ws $
 
 //in a block, each entry must be separated by a linebreak, optional spacing at the start
-//because each entry must be delimited with a linebreak, an extra line is required at the end of the doc currently
+//because each entry must be delimited with a linebreak, an extra line is required at the end of the doc currently (i get around this by adding a newline to the end of the doc before parsing)
 
 Block :=
-	  pos=@ 'INCLUDES:' include=Include+
+	  pos=@ 'INCLUDES:' include=Include+ 
 	| pos=@ 'include' include=Include
 	| pos=@ 'TYPES:' type=Type+
 	| pos=@ 'VARIABLES:' var=ConVar+
@@ -74,11 +74,11 @@ TE1 := os '\->' os typeExpr=TE typeExprMore=TE1?
 //==================
 
 SPE :=
-	  '\[' os posDES=@ dataExp=DE posDEE=@ os '\]' lb sp proc=SPE procMore=SPE1?
+	  '\[' os posDES=@ dataExp=DE posDEE=@ os '\]' os lb sp proc=SPE procMore=SPE1?
 	.procType = string {
 		return "guard"
 	}
-	| '\[\[' os posA=@ name=Name posB=@ os '\:\=' os posC=@ dataExpAssignment=DE posD=@ os '\]\]' lb sp proc=SPE procMore=SPE1?
+	| '\[\[' os posA=@ name=Name posB=@ os '\:\=' os posC=@ dataExpAssignment=DE posD=@ os '\]\]' os lb sp proc=SPE procMore=SPE1?
 	.procType = string {
 		return "assignment"
 	}
@@ -221,12 +221,6 @@ DE1 :=
 //  BASIC
 //=============
 
-// In the original grammar, some checking (through RATS functions) is done to differentiate
-// between different kinds of Infix, and different kinds of Name. Currently, I have all infixes
-// as 'Infix', and for Names have 'Name' and 'TypeName', which are currenlty identical. The
-// grammar uses them for different things, so I'll keep them separate to make things easier later
-// when I am hopefully able to split them up.
-
 TypeName := name=Name
 	.value = string {return name.value}
 
@@ -245,14 +239,15 @@ NameString := prefix={pre=NameChar* dot='\.' post=NameString}
 NameChar := char='[a-zA-Z0-9_]'
 	.value = string{return char}
 
-// their infix also allows colon ':', but this is incompatible because infix function definitions are ended with a colon 
+// their infix also allows colon ':', but this is incompatible because infix function definitions are ended with a colon.
+// I've allowed exactly 1 colon on its own to be an infix function, because they have such a function in types.awn.
 
-Infix := char='[\*\+\=\-<>\!\&\\|]'+
+Infix := char={{ '\*' | '\+' | '\=' | '\-' | '<' | '>' | '\!' | '\&' | '\\' | '|' }+ | '\:'[1] }
 	.value = string{return char.join("")}
 
 ws := {sp | lb}* 						//any whitespace
 
-os := {' ' | '\t' | '\v'}*				//optional spacing (within one line)
+os := {' ' | '\t' | '\v'}*				//0 or more spaces/tabs (used for optional spacing within a line)
 
 sp := {' ' | '\t' | '\v'}+				//1 or more spaces/tabs
 

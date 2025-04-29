@@ -1,11 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createWarningMessage = exports.createErrorMessage = exports.Check = exports.getHoverInformation = exports.InitialiseCheck = exports.Initialise = void 0;
+exports.createWarningMessage = exports.createErrorMessage = exports.Check = exports.getAutoComplete = exports.getHoverInformation = exports.InitialiseCheck = exports.Initialise = void 0;
 const ast = require("./ast");
 const vscode_languageserver_1 = require("vscode-languageserver");
+const parser_1 = require("./parser");
 const fs = require("fs");
 const server_1 = require("./server");
-const parser_1 = require("./parser");
 const convertAST_1 = require("./convertAST");
 //I'd rather use the same AST nodes, but everything requires a parent. Use a dummy parent when the parent isn't actually necessary.
 const dpar = new ast.AWNRoot();
@@ -63,8 +63,8 @@ iff.outType = boolType.typeExpr;
 const newpkt = new ast.Function_Prefix(dpar, "newpkt", dpos, dpos);
 newpkt.sigType = new ast.TE_Product(newpkt, [dataType.typeExpr, ipType.typeExpr]);
 newpkt.outType = msgType.typeExpr;
-//TE_Any ensures that any type is allowed in these functions, a separate check is performed later which makes sure
-//that if using these functions, the arguments are of correct type with regards to each other
+//Using TE_Any ensures that any type is allowed in these functions.
+//A separate check is performed later which makes sure that if using these functions, the arguments are of correct type with regards to each other
 const eq = new ast.Function_Infix(dpar, "=", dpos, dpos);
 eq.sigType = new ast.TE_Product(eq, [new ast.TE_Any(eq.sigType), new ast.TE_Any(eq.sigType)]);
 eq.outType = boolType.typeExpr;
@@ -83,7 +83,6 @@ function Initialise() {
 }
 exports.Initialise = Initialise;
 function InitialiseCheck() {
-    //reset to only default objects
     types = types.slice(0, 5);
     variables = variables.slice(0, 1);
     constants = constants.slice(0, 2);
@@ -98,6 +97,7 @@ function InitialiseCheck() {
     invalidProcesses = [];
     invalidAliasesSingle = [];
     invalidAliasesList = [];
+    importedFiles = [];
     errors = [];
     warnings = [];
 }
@@ -105,54 +105,78 @@ exports.InitialiseCheck = InitialiseCheck;
 function getHoverInformation(word) {
     const t = getType(word, false, dpos);
     if (t != null) {
-        return `\`\`\`typescript\n${word}: ${TypeAsString(t)}`;
+        return `\`\`\`typescript\nTYPE ${word}: ${TypeAsString(t)}`;
     }
     const v = getVariable(word, false, dpos);
     if (v != null) {
-        return `\`\`\`typescript\n${word}: ${TypeAsString(v.typeExpr)}`;
+        return `\`\`\`typescript\nVARIABLE ${word}: ${TypeAsString(v.typeExpr)}`;
     }
     const c = getConstant(word, false, dpos);
     if (c != null) {
-        return `\`\`\`typescript\n${word}: ${TypeAsString(c.typeExpr)}`;
+        return `\`\`\`typescript\nCONSTANT ${word}: ${TypeAsString(c.typeExpr)}`;
     }
     const f = getFunction(word, false, dpos);
     if (f != null) {
-        return `\`\`\`typescript\n${word}: ${TypeAsString(f.sigType)} -> ${TypeAsString(f.outType)}`;
+        return `\`\`\`typescript\nFUNCTION ${word}: ${TypeAsString(f.sigType)} -> ${TypeAsString(f.outType)}`;
     }
     const p = getProcess(word, false, dpos);
     if (p != null) {
         var arglist = '';
+        let i = 0;
         for (const arg of p.args) {
-            arglist += arg.name + ', ';
+            arglist += arg.name;
+            if (i != p.args.length - 1) {
+                arglist += ', ';
+            }
         }
-        return `\`\`\`typescript\n${word}(${arglist})`;
+        console.log(arglist);
+        return `\`\`\`typescript\nPROC ${word}(${arglist})`;
     }
-    //todo aliases
+    const al = getAliasList(word, false, dpos);
+    if (al != null) {
+        var arglist = '';
+        let i = 0;
+        for (const arg of al.argNames) {
+            arglist += arg;
+            if (i != al.argNames.length - 1) {
+                arglist += ', ';
+            }
+            i++;
+        }
+        return `\`\`\`typescript\nALIAS ${word}: ${arglist})`;
+    }
+    const as = getAliasSingle(word, false, dpos);
+    if (as != null) {
+        return `\`\`\`typescript\nALIAS ${word}: (todo print DE)`;
+    }
     return null;
 }
 exports.getHoverInformation = getHoverInformation;
-function Check(root, printOutput, filename) {
-    importedFiles.push(filename);
+function getAutoComplete() {
+    return usedNames().concat([
+        "forall", "exists", "lambda", "include", "proc", "INCLUDES", "TYPES", "VARIABLES", "CONSTANTS", "FUNCTIONS", "PROCESSES", "ALIASES", "unicast", "broadcast", "groupcast", "send", "deliver", "receive"
+    ]);
+}
+exports.getAutoComplete = getAutoComplete;
+function Check(root, isRootFile, filename) {
+    if (isRootFile) {
+        importedFiles.push(filename);
+    }
     for (const Block of root.blocks) {
         switch (Block.kind) {
             case ast.ASTKinds.Block_Include: {
                 const block = Block;
                 for (const include of block.includes) {
+                    if (importedFiles.includes(include.name)) {
+                        createWarningMessage(`"${include.name}" already imported, ignoring this line.`, include.posS.line, include.posS.offset);
+                        continue;
+                    }
+                    importedFiles.push(include.name);
                     if (!fs.existsSync("./" + include.name)) {
                         createErrorMessage(`Could not find "${include.name}".`, include.posS.line, include.posS.offset);
                         continue;
                     }
-                    var file = fs.readFileSync("./" + include.name, "utf-8");
-                    file = (0, server_1.removeComments)(file);
-                    const parseResult = (0, parser_1.parse)(file);
-                    if (parseResult.ast == null) {
-                        createErrorMessage(`"${include.name}" could not be syntactically parsed.`, include.posS.line, include.posS.offset);
-                        continue;
-                    }
-                    const newast = (0, convertAST_1.convertNewToOldAST)(parseResult.ast);
-                    Check(newast, false, include.name); //don't use diagnostics from this, i reckon we don't need to print them out
-                    errors = [];
-                    warnings = [];
+                    parseImport(include);
                 }
                 break;
             }
@@ -223,13 +247,14 @@ function Check(root, printOutput, filename) {
             case ast.ASTKinds.Block_Function: {
                 const block = Block;
                 for (var func of block.funcs) {
-                    //TODO allow functions of the same name with different types
-                    if (functions.map(x => x.name).concat(invalidFunctions).includes(func.name)) {
-                        createErrorMessage(`Name "${func.name}" already defined as another function.`, func.posS.line, func.posS.offset);
-                        continue;
-                    }
                     const expTE = expandTypeExpression(func.type);
                     if (expTE != null) {
+                        //see if this function + signature already exists, just use getFunction for that
+                        const f = getFunction(func.name, false, dpos, expTE);
+                        if (f != null) {
+                            createErrorMessage(`Function "${func.name}" with type "${TypeAsString(expTE)}" already defined.`, func.posS.line, func.posS.offset);
+                            continue;
+                        }
                         if ([ast.ASTKinds.TE_FuncFull, ast.ASTKinds.TE_FuncPart].includes(expTE.kind)) {
                             const sigType = expTE.sigType;
                             func.outType = expTE.outType;
@@ -336,12 +361,27 @@ function Check(root, printOutput, filename) {
             }
         }
     }
-    if (printOutput) {
+    if (isRootFile) {
         console.log("Semantic Information:", types, variables, constants, functions, processes, aliasesSingle, aliasesList, invalidTypes, invalidVariables, invalidConstants, invalidFunctions, invalidProcesses, invalidAliasesSingle, invalidAliasesList);
     }
     return warnings.concat(errors);
 }
 exports.Check = Check;
+//parses an imported file, all its information goes into types[], variables[], etc.
+function parseImport(include) {
+    var file = fs.readFileSync("./" + include.name, "utf-8");
+    //if it exists, need to do the whole process on the import of parsing and checking as well
+    file = (0, server_1.removeComments)(file, false);
+    const parseResult = (0, parser_1.parse)(file);
+    if (parseResult.ast == null) {
+        createErrorMessage(`"${include.name}" could not be parsed.`, include.posS.line, include.posS.offset);
+        return;
+    }
+    const newast = (0, convertAST_1.convertNewToOldAST)(parseResult.ast);
+    Check(newast, false, include.name);
+    errors = [];
+    warnings = []; //don't use diagnostics from this, we don't need to print them out
+}
 //Given a type name, returns its type definition.
 //If the type has been declared but is invalid, returns 1.
 //If the type doesn't exist, returns 0.
@@ -393,10 +433,22 @@ function getVariable(variableName, produceError, pos) {
     }
     return null;
 }
-function getFunction(functionName, produceError, pos) {
+//if signature is not null, finds the function matching both signature and name (for function overloading)
+//if signature is null, finds the first function with name
+function getFunction(functionName, produceError, pos, signature) {
     for (const func of functions) {
         if (func.name == functionName) {
-            return func;
+            if (signature != null) {
+                if (AreIdenticalTypes(func.sigType, signature)) {
+                    return func;
+                }
+                else {
+                    continue;
+                }
+            }
+            else {
+                return func;
+            }
         }
     }
     for (const func of invalidFunctions) {
@@ -404,7 +456,7 @@ function getFunction(functionName, produceError, pos) {
             return null;
         }
     }
-    if (produceError) {
+    if (produceError && signature == null) {
         createErrorMessage(`Nonexistent function "${functionName}" referenced.`, pos.line, pos.offset);
     }
     return null;
@@ -959,19 +1011,9 @@ function CheckDataExpression(de) {
         case ast.ASTKinds.DE_Function: {
             const DE = de;
             // Name(DE)
-            success = true;
-            //make sure name refers to a function
-            const f = getFunction(DE.name, true, DE.sigStart);
-            if (f != null) {
-                DE.function = f;
-            }
-            else {
-                createErrorMessage(`Function "${DE.name}" not found`, DE.sigStart.line, DE.sigStart.offset);
-                success = false;
-            }
-            //if the arguments aren't a DE_tuple, make it a DE_tuple with one element
+            //first, find the arguments' type. if the arguments aren't a DE_tuple, make it a DE_tuple with one element
             if (CheckDataExpression(DE.dataExp) == false) {
-                success = false;
+                return false;
             }
             else {
                 if (DE.dataExp.kind == ast.ASTKinds.DE_Tuple) {
@@ -986,12 +1028,13 @@ function CheckDataExpression(de) {
                     DE.arguments.type = argtype;
                 }
             }
-            if (!success) {
-                return false;
+            //find the function that has the same sigtype as the arguments' type
+            const f = getFunction(DE.name, true, DE.sigStart, DE.arguments.type);
+            if (f != null) {
+                DE.function = f;
             }
-            //check that arguments match signature
-            if (!AreIdenticalTypes(DE.function.sigType, DE.arguments.type)) {
-                createErrorMessage(`Function ${DE.name}'s signature has type "${TypeAsString(DE.function.sigType)}" while its arguments have type "${TypeAsString(DE.arguments.type)}".`, DE.sigStart.line, DE.sigStart.offset);
+            else {
+                createErrorMessage(`Could not find a function "${DE.name}" that has signature \n"${TypeAsString(DE.arguments.type)}".`, DE.sigStart.line, DE.sigStart.offset);
                 return false;
             }
             DE.type = DE.function.outType;
@@ -1005,24 +1048,14 @@ function CheckDataExpression(de) {
             if (!(l && r)) {
                 return false;
             }
-            //retrieve function
-            const f = getFunction(DE.function.name, true, DE.sigStart);
+            //retrieve function with type l x r
+            const expectedtype = new ast.TE_Product(dpar, [DE.left.type, DE.right.type]);
+            const f = getFunction(DE.function.name, true, DE.sigStart, expectedtype);
             if (f != null) {
                 DE.function = f;
             }
             else {
-                createErrorMessage(`Function "${DE.function.name}" not found`, DE.sigStart.line, DE.sigStart.offset);
-                return false;
-            }
-            //TODO improvement because i should probably separate function_infix from function_prefix arrays so this can't happen
-            if (DE.function.kind != ast.ASTKinds.Function_Infix) {
-                createErrorMessage(`Retrieved function not infix (TODO improvement honestly)`, DE.sigStart.line, DE.sigStart.offset);
-                return false;
-            }
-            //ensure function signature matches
-            DE.function = DE.function;
-            if (!AreIdenticalTypes(DE.function.sigType.children[0], DE.left.type) || !AreIdenticalTypes(DE.function.sigType.children[1], DE.right.type)) {
-                createErrorMessage(`Function "${DE.function.name}" requires type ${TypeAsString(DE.function.sigType)}, got ${TypeAsString(DE.left.type)} x ${TypeAsString(DE.right.type)}`, DE.sigStart.line, DE.sigStart.offset);
+                createErrorMessage(`Could not find a function named "${DE.function.name}" that has signature \n"${TypeAsString(DE.left.type)} x ${TypeAsString(DE.right.type)}".`, DE.sigStart.line, DE.sigStart.offset);
                 return false;
             }
             //for special predefined ones (=, !=, isElem), make sure arguments match each other in the right way
@@ -1206,7 +1239,6 @@ function TypeAsString(type) {
         default: return "";
     }
 }
-//TODO consider innocent overloading
 function usedNames() {
     return types.map(x => x.typeName).concat(invalidTypes)
         .concat(variables.map(x => x.name)).concat(invalidVariables)
