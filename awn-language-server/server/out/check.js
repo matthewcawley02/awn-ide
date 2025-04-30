@@ -120,6 +120,7 @@ function getHoverInformation(word) {
         return `\`\`\`typescript\nFUNCTION ${word}: ${TypeAsString(f.sigType)} -> ${TypeAsString(f.outType)}`;
     }
     const p = getProcess(word, false, dpos);
+    console.log(word);
     if (p != null) {
         var arglist = '';
         let i = 0;
@@ -173,6 +174,7 @@ function Check(root, isRootFile, filename) {
                     }
                     importedFiles.push(include.name);
                     if (!fs.existsSync("./" + include.name)) {
+                        console.log("cur proc directory: ", process.cwd(), "include name: ", include.name);
                         createErrorMessage(`Could not find "${include.name}".`, include.posS.line, include.posS.offset);
                         continue;
                     }

@@ -165,7 +165,6 @@ async function validateTextDocument(textDocument) {
     console.log("Semantic Tokens", semanticTokens);
     return diagnostics;
 }
-//TODO finish
 function removeComments(doc, syntaxHighlight) {
     var output = "";
     var row = 1;

@@ -227,7 +227,6 @@ async function validateTextDocument(textDocument: TextDocument): Promise<Diagnos
 	return diagnostics
 }
 
-//TODO finish
 export function removeComments(doc: string, syntaxHighlight: boolean): string{
 	var output = ""
 	var row = 1; var col = 0
