@@ -53,7 +53,12 @@ If there is a syntax or semantic error, an error message is sent to the terminal
 
 ## Running the Language Server
 
+- Install [VSCode.](https://code.visualstudio.com/download)
 - Open this folder in VSCode.
+- Install node.js and npm, which come together. You can check if you have them already by running `node -v` and `npm -v`.
+	- On Windows, install [here.](https://nodejs.org/en)
+	- On Mac, if you have Homebrew, run `brew install node`
+	- On Linux, run `sudo apt install nodejs npm`
 - Run `npm install` in this folder. This installs all necessary npm modules in both the client and server folder.
 - Press ▷ to run the launch config (F5), creating a new instance of VSCode that runs this extension.
 - In this new instance of VSCode, open a .awn file inside `\tests`, for example.

@@ -115,7 +115,7 @@ NameString := {NameChar* '\.' NameString} | NameChar+
 
 NameChar := ='[a-zA-Z0-9_]'
 
-Infix := '[\*\+-<\=>\!\&|\\]+' //Currently "InfixOps". Also removed ":" for now (because of the "Infix :") rule, but probably possible to find a workaround for this
+Infix := '[\*\+-<\=>\!\&|\\\:]+'
 
 ws := {sp | lb}* 						//any whitespace
 
