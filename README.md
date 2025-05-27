@@ -4,7 +4,7 @@ This project is an IDE for the language AWN. It is a VSCode extension that utili
 
 # What is a Language Server?
 
-This project is a "language server", a program which creates an IDE environment based on a language (in this case, AWN), using Microsoft's Language Server Protocol (LSP), an abstract protocol that describes using a programming language in an IDE. For example, the protocol specifies syntax highlighting, autocompletion, and so on. The idea is that, because LSP is abstract, it can be implemented into any IDE, regardless of the language used in the backend of that IDE.
+This project is a "language server", a program which creates an IDE environment based on a language (in this case, AWN), using Microsoft's [Language Server Protocol (LSP)](https://microsoft.github.io/language-server-protocol/), an abstract protocol that describes using a programming language in an IDE. For example, the protocol specifies syntax highlighting, autocompletion, and so on. The idea is that, because LSP is abstract, it can be implemented into any IDE, regardless of the language used in the backend of that IDE.
 
 Obviously, no language server already exists for AWN, so this project is a language server for AWN. 
 VSCode understands LSP - it allows LSP language servers to be extensions, which is what is done here.
@@ -77,7 +77,7 @@ I changed a few things about the AWN grammar (either because they were impossibl
 
 3. I have removed the prefix function application construction ```DE DE```; functions are now always written as ```DE(DE)```. The only time this was used in the files I was given was for negation ```!```.
 
-I've edited the ```.awn``` files I was given (in ```server/tests/Examples```) to conform to these new rules.
+I've edited the ```.awn``` files I was given (in ```tests/Examples```) to conform to these new rules.
 
 ## Known Problems and Next Steps
 
