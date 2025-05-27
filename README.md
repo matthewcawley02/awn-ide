@@ -1,8 +1,8 @@
-# What is this project?
+## What is this project?
 
 This project is an IDE for the language AWN. It is a VSCode extension that utilises Microsoft's Language Server Protocol.
 
-# What is a Language Server?
+## What is a Language Server?
 
 This project is a "language server", a program which creates an IDE environment based on a language (in this case, AWN), using Microsoft's [Language Server Protocol (LSP)](https://microsoft.github.io/language-server-protocol/), an abstract protocol that describes using a programming language in an IDE. For example, the protocol specifies syntax highlighting, autocompletion, and so on. The idea is that, because LSP is abstract, it can be implemented into any IDE, regardless of the language used in the backend of that IDE.
 
@@ -15,7 +15,7 @@ The language server consists of two parts (which are each their own node.js pack
 
 The language server as a whole is also a node.js package.
 
-# How syntax highlighting and semantic checking works, at a very high level
+## How syntax highlighting and semantic checking works, at a very high level
 
 This section explains the steps for how the "server" part of the language server works. The whole process is one pipeline.
 
