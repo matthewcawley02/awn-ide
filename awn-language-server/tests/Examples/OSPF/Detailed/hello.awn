@@ -1,0 +1,25 @@
+include types.awn
+include ospf.awn
+
+proc HELLO(ips,sip,ip,nbrs,lsdb,hello_t) :=
+  [ !(nbrExist(nbrs,sip)) ]
+  [[ nbrs := newNBR(nbrs,sip) ]]
+    HELLO(ips,sip,ip,nbrs,lsdb,hello_t)
+  + [ nbrExist(nbrs,sip) ]
+    [[ nbrs := setINACTT(nbrs,sip,now + rtdead_intvl) ]]
+    [[ ns := getNS(nbrs,sip) ]]
+    (
+      [ isElem(ip,ips) & adj(ip,sip) & ns = Init ]
+        [[ nbrs := setNS(nbrs,sip,ExStart) ]]
+        [[ nbrs := incDDSQN(nbrs,sip) ]]
+        [[ nbrs := setDDT(nbrs,sip,now + rxmt_intvl) ]]
+        send(sndmsg(genDBD(nbrs,lsdb,sip,ip),{sip})).OSPF(ip,nbrs,lsdb,hello_t)
+      + [ isElem(ip,ips) & adj(ip,sip) & ns >= ExStart ]
+        OSPF(ip,nbrs,lsdb,hello_t)
+      + [ isElem(ip,ips) & !(adj(ip,sip)) ]
+        [[ nbrs := setNS(nbrs,sip,2Way) ]]
+        OSPF(ip,nbrs,lsdb,hello_t)
+      + [ !(isElem(ip,ips)) ]
+        [[ nbrs := initNBR(nbrs,sip,Init) ]]
+        OSPF(ip,nbrs,lsdb,hello_t)
+    )

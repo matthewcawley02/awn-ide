@@ -21,4 +21,6 @@ FUNCTIONS: func: foo -> [(bar +-> example)]
            read: filetype
 
 proc qwerty(asdfgh, zxcvbnm) :=
+        [{(name1, de1)| de2}]
+        [{name1 | de1}]
         end()

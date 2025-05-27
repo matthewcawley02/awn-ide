@@ -1,0 +1,7 @@
+AWNRoot := block=Block* $
+
+//in a block, each entry must be separated by a linebreak, optional spacing at the start
+//because each entry must be delimited with a linebreak, an extra line is required at the end of the doc (i get around this by adding a newline to the end of the doc before parsing)
+
+Block :=
+	  pos=@ 'INCLUDES:'

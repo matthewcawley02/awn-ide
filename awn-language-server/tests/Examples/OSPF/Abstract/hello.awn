@@ -1,0 +1,15 @@
+include types.awn
+include ospf.awn
+
+proc HELLO(ips,sip,ip,nbrs,lsdb,hello_t) :=
+  [ !(nbrExist(nbrs,sip)) ]
+    [[ nbrs := newNBR(nbrs,sip) ]]
+    [[ nbrs := setINACTT(nbrs,sip,now + rtdead_intvl) ]]
+    [[ lsa := newLSA(ip,now,nbrs) ]]
+    [[ lsdb := install(lsdb,{lsa}) ]]
+    send(sndmsg(upd({lsa},ip),{pi_1(n)|isElem(n,nbrs)})).
+    send(sndmsg(dbd({hdr(lsa)|isElem(lsa,lsdb)},ip),{sip})).
+    OSPF(ip,nbrs,lsdb,hello_t)
+  + [ nbrExist(nbrs,sip) ]
+    [[ nbrs := setINACTT(nbrs,sip,now+rtdead_intvl) ]]
+    OSPF(ip,nbrs,lsdb,hello_t)

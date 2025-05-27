@@ -1,26 +1,25 @@
 include types.awn
-include forward_tc.awn
-include update_info.awn
-include process_hello.awn
 include process_tc.awn
+include process_hello.awn
+include update_info.awn
 
 proc OLSR(sigma, Gamma) :=
-  receive(msg).
+  receive(msgs).
       [[ mqueue := concat(mqueue, msgs) ]]
       OLSR(sigma, Gamma)
   +
   [ !(Updated) ]
       UPDATE_INFO(sigma, Gamma)
   +
-  [ Updated & send_time != now & mqueue = (msg : msgs) ]
+  [ Updated & send_time != now & mqueue = (msg : msgs) ] 
       [[ mqueue := msgs ]]
---     (
-        [ isHELLO(pkt) ]
+      (
+        [ isHELLO(msg) ]
              PROCESS_HELLO(sigma, Gamma, msg)
         +
-        [ isTC(pkt) ]
+        [ isTC(msg) ]
              PROCESS_TC(sigma, Gamma, msg)
---    )
+      )
   +
   [ Updated & send_time != now & hello_time - hp_maxjitter <= now & now <= hello_time ]
       [[ pkt := append(pkt, newHELLO(ip, h_hold_time, ls, now)) ]]
@@ -37,7 +36,6 @@ proc OLSR(sigma, Gamma) :=
   +
   [ Updated & send_time = now ]
       [[ send_time := infinity ]]
-      broadcast(msg).
+      broadcast(pkt).
       [[ pkt := emptyList ]]
       OLSR(sigma, Gamma)
-

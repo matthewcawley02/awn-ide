@@ -1,0 +1,22 @@
+include types.awn
+include multiplexer.awn
+
+proc CANCEL_C(cid,prio,txs,H) :=
+  [prio(cid) = bot_msg]
+    MULTIPLEXER(prio,txs,H)
+  + [!(prio(cid) = bot_msg)]
+    [[prio[cid] := bot_msg]]
+    (
+      [tx_cid(tid,txs) = cid]
+        (
+          [tx_abort(tid,txs) = true]
+            MULTIPLEXER(prio,txs,H)
+          + [tx_abort(tid,txs) = false]
+            [[txs[tid] := (tx_cid(tid,txs),true)]]
+            unicast(C(H);msgd(tid,cancel)).
+            MULTIPLEXER(prio,txs,H)
+        )
+      + [forall tid.(isElem(tid,TX) -> tx_cid(tid,txs) != cid)]
+        unicast(frag(cid);ack(false)).
+        MULTIPLEXER(prio,txs,H)
+    )

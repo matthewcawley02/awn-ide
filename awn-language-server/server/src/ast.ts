@@ -1,6 +1,7 @@
 import { PosInfo } from './parser';
 
 export enum ASTKinds {
+	Dummy = "AWN_Dummy",
     AWNRoot = "AWNRoot",
     Block_Include = "Block_Include",
     Block_Type = "Block_Type",
@@ -12,6 +13,7 @@ export enum ASTKinds {
     Include = "Include",
     Type = "Type",
 	Variable = "Variable",
+	VariableExp = "VariableExp",
 	Constant = "Constant",
     ConVar = "ConVar",
     Function_Prefix = "Function_Prefix",
@@ -54,216 +56,255 @@ export enum ASTKinds {
 	DE_Tuple = "DE_Tuple"
 }
 
+//All AST objects extend Node.
+//Nodes have child nodes as non-nullable (or empty list).
+//This is so when constructing the AST, we can define all other properties 
+//of the node first before defining the child.
+//This is important because we can't have defining the child
+//executing before the rest of the node is built, as the child
+//relies on its parent's properties being defined for rotation.
+//
+//Note that I could pass the child node in the constructor and have it be built
+//inside here, but I want to have the control flow of that not
+//be in this file. This approach doesn't really do anything bad, just forces me 
+//to have "!" on child objects.
+export class Node {
+    precedence: number 	//Lower numbers have more precedence (i.e. they bind stronger). 
+					   	//This is because nodes with higher numbers "escape out", becoming 
+						//higher on the AST, which mean they actually have less precedence/binding power.
+	kind: ASTKinds
+	parent: Node
+
+	pos: Record<string, PosInfo>
+
+    constructor(precedence: number, kind: ASTKinds, parent?: Node, poses?: Record<string, PosInfo>) {
+		this.precedence = precedence
+		this.kind = kind
+		if(kind == ASTKinds.Dummy){
+			this.parent = this //avoid infinite loop on dummy instantiation
+		}else{
+			this.parent = parent ?? getdpar();
+		}
+		this.pos = poses ?? {} //don't think i ever pass this as null anyway, but i want it after the parent argument for consistency w/ the nodes :)
+    }
+}
+
+//avoid nullchecks by using a DummyNode as the parent of 
+//nodes where the parent is never relevant, also as the parent of AWNRoot
+export class DummyNode extends Node {
+	constructor() {
+		super(10, ASTKinds.Dummy, null as any);
+		this.parent = this; //immediately overwrite "null as any"
+	}
+}
+
+//dpar and dpos are dummy parent and position respectively
+let dpar!: Node
+function getdpar(): Node{
+	if(dpar == null){
+		dpar = new DummyNode()
+	}
+	return dpar
+}
+const dpos = {overallPos: 10000, line: 1000, offset: 0};
+
+//Given a set of string-pos pairs which may include undefined poses,
+//turns the undefined ones into dummypos.
+function buildPoses(poses: Record<string, PosInfo | undefined>): Record<string, PosInfo> {
+	var out: Record<string, PosInfo> = {}
+	for(const [name, p] of Object.entries(poses)){
+		out[name] = p ?? dpos
+	}
+	return out
+}
+
+//Used when moving nodes up the tree to know whether a node is allowed to move upwards, as brackets act as barriers.
 export function isBracketType(x: ASTKinds): boolean {
 	return x === ASTKinds.TE_Brack || x === ASTKinds.TE_Array || x === ASTKinds.TE_Pow || x === ASTKinds.DE_Brack || x === ASTKinds.SPE_Brack || x === ASTKinds.DE_Function
 }
 
-export class Node {
-    parent: Node
-    precedence: number
-	kind: ASTKinds
+//======= AST STARTS HERE =======
+//Each node has its (simplified) grammar definition as a comment above it,
+//with positions represented by @ symbols for reference.
+//For the full unsimplified version, see awn-grammar.peg.
+//The definitions won't precisely correspond to the actual grammar
+//because the grammar needed to be edited to remove left-recursion.
 
-    constructor(precedence: number, kind: ASTKinds, parent: Node) {
-        this.parent = parent
-        this.precedence = precedence //Lower numbers actually have more precedence (i.e. they bind stronger) - this is because i thought of it the wrong way around when i set it up and haven't changed it. think about it - if something "escapes out" because it has a higher number here, that means it actually has less precedence/binding power
-		this.kind = kind
-    }
-}
-
-//Nodes have children properties as non-nullable (or empty list). This is so 
-//when constructing the AST, we can define all other properties 
-//of the node first, then define the child immediately after.
-//(Otherwise [defining the child] will execute before the rest
-//of the node is built, and we can't have that or rotating
-//won't work as the parents won't exist.)
 export class AWNRoot extends Node {
     blocks: Block[] = [];
 
 	constructor() {
-		//Going with the approach of having the root have itself as parent to avoid null checks.
-		//The one time this node is instantiated, immediately afterwards, parent is set properly.
-        super(10, ASTKinds.AWNRoot, {} as Node);
+        super(10, ASTKinds.AWNRoot, new DummyNode());
     }
 }
 
-//How field sections within a node are organised:
-//1. Those set during convertAST.ts (some may be "!" still because of how that function works, see above AWNRoot)
-//2. Those set during check.ts
-//3. Position information
-
 export type Block = Block_Include | Block_Type | Block_Constant | Block_Variable | Block_Function | Block_Process | Block_Alias
+
+//	 keywordPos=@ 'INCLUDES:' Include+
 export class Block_Include extends Node {
     includes: Include[] = []
 
-	keywordPos: PosInfo //before the keyword
-
-	constructor(parent: Node, keywordPos: PosInfo) {
-        super(10, ASTKinds.Block_Include, parent)
-		this.keywordPos = keywordPos
-    }
+	constructor(parent?: Node, keywordPos?: PosInfo) {
+		const poses = buildPoses({keywordPos})
+        super(10, ASTKinds.Block_Include, parent, poses)
+	}
 }
 
+//	 keywordPos=@ 'TYPES:' Type+
 export class Block_Type extends Node {
-    types: Type[] = [];
+    types: Type[] = []
 
-	keywordPos: PosInfo //before the keyword
-
-	constructor(parent: Node, keywordPos: PosInfo) {
-        super(10, ASTKinds.Block_Type, parent);
-		this.keywordPos = keywordPos
+	constructor(parent?: Node, keywordPos?: PosInfo) {
+        const poses = buildPoses({keywordPos})
+        super(10, ASTKinds.Block_Type, parent, poses)
     }
 }
 
+//	 keywordPos=@ 'VARIABLES:' Variable+
 export class Block_Variable extends Node {
-    vars: Variable[] = [];
+    vars: Variable[] = []
 
-	keywordPos: PosInfo //before the keyword
-
-	constructor(parent: Node, keywordPos: PosInfo) {
-        super(10, ASTKinds.Block_Variable, parent);
-		this.keywordPos = keywordPos
+	constructor(parent?: Node, keywordPos?: PosInfo) {
+        const poses = buildPoses({keywordPos})
+        super(10, ASTKinds.Block_Variable, parent, poses)
     }
 }
 
+//	 keywordPos=@ 'CONSTANTS:' Constant+
 export class Block_Constant extends Node {
-    consts: Constant[] = [];
+    consts: Constant[] = []
 
-	keywordPos: PosInfo //before the keyword
-
-	constructor(parent: Node, keywordPos: PosInfo) {
-        super(10, ASTKinds.Block_Constant, parent);
-		this.keywordPos = keywordPos
+	constructor(parent?: Node, keywordPos?: PosInfo) {
+        const poses = buildPoses({keywordPos})
+        super(10, ASTKinds.Block_Constant, parent, poses)
     }
 }
 
+//	 keywordPos=@ 'FUNCTIONS:' Function+
 export class Block_Function extends Node {
-    funcs: Function[] = [];
+    funcs: Function[] = []
 
-	keywordPos: PosInfo //before the keyword
-
-	constructor(parent: Node, keywordPos: PosInfo) {
-        super(10, ASTKinds.Block_Function, parent);
-		this.keywordPos = keywordPos
+	constructor(parent?: Node, keywordPos?: PosInfo) {
+        const poses = buildPoses({keywordPos})
+        super(10, ASTKinds.Block_Function, parent, poses)
     }
 }
 
+//	 keywordPos=@ 'PROCESSES:' Process+
+//	|keywordPos=@ 'proc:' Process
 export class Block_Process extends Node {
-    procs: Process[] = [];
+    procs: Process[] = []
 
-	definedAsProc: Boolean //necessary for syntax highlighting, whether it was defined under "proc" or "PROCESSES:"
-	keywordPos: PosInfo //before the keyword
+	definedAsProc: Boolean //necessary for syntax highlighting, it's whether it was defined under "proc" or "PROCESSES:"
 
-	constructor(parent: Node, keywordPos: PosInfo, definedAsProc: boolean) {
-        super(10, ASTKinds.Block_Process, parent);
-		this.keywordPos = keywordPos
+	constructor(definedAsProc: boolean, parent?: Node, keywordPos?: PosInfo) {
+		const poses = buildPoses({keywordPos})
+        super(10, ASTKinds.Block_Process, parent, poses)
 		this.definedAsProc = definedAsProc
     }
 }
 
+//	 keywordPos=@ 'ALIASES:' Alias+
 export class Block_Alias extends Node {
-	aliases: Alias[] = [];
+	aliases: Alias[] = []
 
-	keywordPos: PosInfo //before the keyword
-
-	constructor(parent: Node, keywordPos: PosInfo) {
-        super(10, ASTKinds.Block_Alias, parent);
-		this.keywordPos = keywordPos
+	constructor(parent?: Node, keywordPos?: PosInfo) {
+		const poses = buildPoses({keywordPos})
+        super(10, ASTKinds.Block_Alias, parent, poses)
     }
 }
 
+//	 posS=@ name posE=@
 export class Include extends Node {
-    name: string;
+    name: string
 
-	posS: PosInfo //before the name
-	posE: PosInfo //after the name
-
-	constructor(parent: Node, name: string, posS: PosInfo, posE: PosInfo) {
-        super(0, ASTKinds.Include, parent);
-		this.name = name;
-		this.posS = posS; this.posE = posE
+	constructor(name: string, parent?: Node, posS?: PosInfo, posE?: PosInfo) {
+        const poses = buildPoses({posS, posE})
+        super(10, ASTKinds.Include, parent, poses)
+		this.name = name
     }
 }
 
+//For type defs declared in a TYPES block
+//	posS=@ typeName posE=@ '=' typeExpr
 export class Type extends Node {
-    typeName: string;	
-    typeExpr!: TE; //type decs without a TE are given the TE_Name type, so this can't be null. idk what the actual desired behaviour is
+    typeName: string
+    typeExpr!: TE //associated TE; type decs without a TE are given TE_RootType of their name.
 
-	posS: PosInfo //before the name
-	posE: PosInfo //after the name
-
-	constructor(parent: Node, typeName: string, posS: PosInfo, posE: PosInfo) {
-        super(10, ASTKinds.Type, parent);
-		this.typeName = typeName;
-		this.posS = posS; this.posE = posE
+	constructor(typeName: string, parent?: Node, posS?: PosInfo, posE?: PosInfo) {
+		const poses = buildPoses({posS, posE})
+        super(10, ASTKinds.Type, parent, poses)
+		this.typeName = typeName
     }
 }
 
 export type TE = TE_Brack | TE_Pow | TE_Array | TE_Name | TE_Function | TE_Product | TE_RootType | TE_Any
 
+// 	'(' typeExpr ')'
 export class TE_Brack extends Node {
-	typeExpr!: TE;
+	typeExpr!: TE
 
-	constructor(parent: Node) {
-        super(4, ASTKinds.TE_Brack, parent);
+	constructor(parent?: Node) {
+        super(4, ASTKinds.TE_Brack, parent)
     }
 }
 
+//	 powPos=@ 'Pow' '(' typeExpr ')'
 export class TE_Pow extends Node {
-	typeExpr!: TE;
+	typeExpr!: TE
 
-	pos: PosInfo; //before "Pow"
-
-	constructor(parent: Node, pos: PosInfo, typeExpr?: TE) {
-        super(4, ASTKinds.TE_Pow, parent);
+	constructor(typeExpr?: TE, parent?: Node, powPos?: PosInfo) {
+		const poses = buildPoses({powPos})
+        super(4, ASTKinds.TE_Pow, parent, poses)
 		if(typeExpr != null){
 			this.typeExpr = typeExpr
 		}
-		this.pos = pos
     }
 }
 
+//	'[' typeExpr ']'
 export class TE_Array extends Node {
-	typeExpr!: TE;
+	typeExpr!: TE
 
-	constructor(parent: Node) {
+	constructor(parent?: Node) {
         super(4, ASTKinds.TE_Array, parent);
     }
 }
 
+//	posS=@ typename posE=@
 export class TE_Name extends Node {
-	typename: string;
+	typename: string
 
-	typeExpr!: TE //What the TE_Name refers to
+	typeExpr!: TE //what the TE_Name refers to, set during check.ts
 
-	posS: PosInfo //before the name
-	posE: PosInfo //after the name
-
-	constructor(parent: Node, typename: string, posS: PosInfo, posE: PosInfo) {
-        super(0, ASTKinds.TE_Name, parent);
-		this.typename = typename;
-		this.posS = posS; this.posE = posE
+	constructor(typename: string, parent?: Node, posS?: PosInfo, posE?: PosInfo) {
+		const poses = buildPoses({posS, posE})
+        super(0, ASTKinds.TE_Name, parent, poses) 
+		this.typename = typename
     }
 }
 
 export class TE_RootType extends Node {
 	typename: string
 
-	constructor(parent: Node, typename: string) {
-        super(0, ASTKinds.TE_RootType, parent);
+	constructor(typename: string, parent?: Node) {
+        super(0, ASTKinds.TE_RootType, parent)
 		this.typename = typename
     }
 }
 
-//both full and partial functions extend this
+//used for both full & partial funcs
 export class TE_Function extends Node {
 	left!: TE; // (after rotation) signature type
 	right!: TE; // (after rotation) output type
 
-	get sigType(): TE_Product | null{
-		return convertToTEProduct(this.left)
+	get sigType(): TE_Product{
+		return convertToTEProduct(this.left);
 	}
 
-	get outType(): TE {return this.right}
+	get outType(): TE {
+		return this.right
+	}
 
 	get isBTE(): boolean {
 		const sig = this.sigType;
@@ -272,8 +313,9 @@ export class TE_Function extends Node {
 	}
 }
 
+//	left '->' right
 export class TE_FuncFull extends TE_Function {
-	constructor(parent: Node, left?: TE, right?: TE) {
+	constructor(parent?: Node, left?: TE, right?: TE) {
         super(2, ASTKinds.TE_FuncFull, parent);
 		if(left != null && right != null){
 			this.left = left; this.right = right
@@ -281,8 +323,9 @@ export class TE_FuncFull extends TE_Function {
     }
 }
 
+// 	left '+->' right
 export class TE_FuncPart extends TE_Function {
-	constructor(parent: Node, left?: TE, right?: TE) {
+	constructor(parent?: Node, left?: TE, right?: TE) {
         super(3, ASTKinds.TE_FuncPart, parent);
 		if(left != null && right != null){
 			this.left = left; this.right = right
@@ -290,6 +333,7 @@ export class TE_FuncPart extends TE_Function {
     }
 }
 
+// 	children = (x-delimited typeExprs)
 export class TE_Product extends Node {
 	//these two only used during rotation phase, can ignore thereafter
 	left!: TE;
@@ -297,7 +341,7 @@ export class TE_Product extends Node {
 
 	children!: TE[];
 	
-	constructor(parent: Node, children?: TE[]) {
+	constructor(children?: TE[], parent?: Node) {
         super(1, ASTKinds.TE_Product, parent);
 		if(children != null){
 			this.children = children
@@ -305,132 +349,150 @@ export class TE_Product extends Node {
     }
 }
 
+//TE_Any is used as the type of some functions, such as "=", which take any arguments.
+//Typematches with everything.
 export class TE_Any extends Node {
-
-	constructor(parent: Node) {
+	constructor(parent?: Node) {
         super(0, ASTKinds.TE_Any, parent);
     }
 }
 
-export class Variable extends Node {
-    name: string
-	typeExpr!: TE
-
-	typeDeclaredFirst: boolean = false //needed for syntax highlighting
-	posS: PosInfo //before the name
-	posE: PosInfo //after the name
-
-	constructor(parent: Node, name: string, posS: PosInfo, posE: PosInfo) {
-        super(10, ASTKinds.Variable, parent)
-		this.name = name
-		this.posS = posS; this.posE = posE
-    }
-}
-
+//	typeExpr posS=@ name posE=@
+// |posS=@ name posE=@ ':' typeExpr
 export class Constant extends Node {
     name: string	
 	typeExpr!: TE
 
-	typeDeclaredFirst: boolean = false //needed for syntax highlighting
-	posS: PosInfo //before the name
-	posE: PosInfo //after the name
+	typeDeclaredFirst: boolean = false //needed for syntax highlighting (which format the const was declared with)
 
-	constructor(parent: Node, name: string, posS: PosInfo, posE: PosInfo) {
-        super(10, ASTKinds.Constant, parent)
+	constructor(name: string, parent?: Node, posS?: PosInfo, posE?: PosInfo) {
+		const poses = buildPoses({posS, posE})
+        super(10, ASTKinds.Constant, parent, poses)
 		this.name = name
-		this.posS = posS; this.posE = posE
     }
 }
 
+//	typeExpr posS=@ name posE=@
+// |posS=@ name posE=@ ':' typeExpr
+export class Variable extends Node {
+    name: string
+	typeExpr!: TE
+
+	typeDeclaredFirst: boolean = false //needed for syntax highlighting (which format the var was declared with)
+
+	constructor(name: string, parent?: Node, posS?: PosInfo, posE?: PosInfo) {
+		const poses = buildPoses({posS, posE})
+        super(10, ASTKinds.Variable, parent, poses)
+		this.name = name
+    }
+}
+
+//  posS=@ name (referring to var) posE=@ {[DE]}*
+export class VariableExp extends Node {
+	name: string
+	var!: Variable
+	type?: TE
+
+	des: DE[] = []
+
+	DEPosS: PosInfo[] = []; DEPosE: PosInfo[] = []
+
+	constructor(name: string, parent?: Node, posS?: PosInfo, posE?: PosInfo) {
+		const poses = buildPoses({posS, posE})
+        super(10, ASTKinds.VariableExp, parent, poses)
+		this.name = name
+    }
+}
+
+//see Function_Prefix/Infix
 export class Function extends Node {
     name: string;
 
-	type!: TE //the type given during syntax checking phase
+	type!: TE_Function
 
 	sigType!: TE_Product
 	outType!: TE
 
-	posS: PosInfo //before the name
-	posE: PosInfo //after the name
-
-	constructor(precedence: number, kind: ASTKinds, parent: Node, name: string, posS: PosInfo, posE: PosInfo) {
-        super(precedence, kind, parent);
+	constructor(precedence: number, kind: ASTKinds, name: string, parent?: Node, posS?: PosInfo, posE?: PosInfo) {
+		const poses = buildPoses({posS, posE})
+        super(precedence, kind, parent, poses)
         this.name = name;
-        this.posS = posS; this.posE = posE
     }
 
 	get isBinary(): boolean {return this.sigType.children.length == 2}
 }
 
+//	posS=@ name posE=@ ':' typeExpr
 export class Function_Prefix extends Function {
-    constructor(parent: Node, name: string, posS: PosInfo, posE: PosInfo) {
-        super(10, ASTKinds.Function_Prefix, parent, name, posS, posE);
+    constructor(name: string, parent?: Node, posS?: PosInfo, posE?: PosInfo) {
+        super(10, ASTKinds.Function_Prefix, name, parent, posS, posE);
     }
 }
 
+//	posS=@ infixname posE=@ ':' typeExpr
 export class Function_Infix extends Function {
-    constructor(parent: Node, name: string, posS: PosInfo, posE: PosInfo) {
-        super(10, ASTKinds.Function_Infix, parent, name, posS, posE);
+    constructor(name: string, parent?: Node, posS?: PosInfo, posE?: PosInfo) {
+        super(10, ASTKinds.Function_Infix, name, parent, posS, posE);
     }
 }
 
+//	posS=@ name posE@ '(' (comma-delimited arguments, held in args/argInfo) ')' ':=' lb proc
 export class Process extends Node {
     name: string;
 	argInfo: ProcArg[] = []
 	args: Variable[] = []
     proc!: SPE;
 
-	posS: PosInfo //before the name
-	posE: PosInfo //after the name
-
-	constructor(parent: Node, name: string, posS: PosInfo, posE: PosInfo) {
-        super(10, ASTKinds.Process, parent);
+	constructor(name: string, parent?: Node, posS?: PosInfo, posE?: PosInfo) {
+		const poses = buildPoses({posS, posE})
+        super(10, ASTKinds.Process, parent, poses)
 		this.name = name;
-		this.posS = posS; this.posE = posE
     }
 }
 
+//Exists separately to variable for syntax highlighing.
+//	posS=@ name posE=@
 export class ProcArg extends Node {
 	proc: Process
 	name: string
-	posS: PosInfo; posE: PosInfo
 	argType!: ASTKinds
 
-	constructor(parent: Process, name: string, posS: PosInfo, posE: PosInfo){
-		super(10, ASTKinds.ProcArgs, parent)
+	constructor(name: string, parent: Process, posS?: PosInfo, posE?: PosInfo){
+		const poses = buildPoses({posS, posE})
+        super(10, ASTKinds.ProcArgs, parent, poses)
 		this.proc = parent
 		this.name = name
-		this.posS = posS; this.posE = posE
 	}
 }
+
 export type Alias = Alias_List | Alias_Data
+
+//	posS=@ name posE@ ':=' (comma-delimited argument list, held in argNames etc.)
 export class Alias_List extends Node {
 	name: string;
 	argNames!: string[]
 
 	args: (Variable | Alias_List)[] = []
 
-	posS: PosInfo; posE: PosInfo
 	argsPosS: PosInfo[] = []; argsPosE: PosInfo[] = []
 
-	constructor(parent: Node, name: string, posS: PosInfo, posE: PosInfo) {
-        super(10, ASTKinds.Alias_List, parent);
+	constructor(name: string, parent?: Node, posS?: PosInfo, posE?: PosInfo) {
+		const poses = buildPoses({posS, posE})
+        super(10, ASTKinds.Alias_List, parent, poses)
 		this.name = name;
-		this.posS = posS; this.posE = posE
     }
 }
 
+// posS=@ name posE=@ ':=' dataExp
 export class Alias_Data extends Node {
 	name: string;
 
 	dataExp!: DE;
 
-	posS: PosInfo; posE: PosInfo
-
-	constructor(parent: Node, name: string, posS: PosInfo, posE: PosInfo) {
-        super(10, ASTKinds.Alias_Data, parent);
+	constructor(name: string, parent?: Node, posS?: PosInfo, posE?: PosInfo) {
+		const poses = buildPoses({posS, posE})
+        super(10, ASTKinds.Alias_Data, parent, poses)
 		this.name = name;
-		this.posS = posS; this.posE = posE
     }
 }
 
@@ -438,173 +500,145 @@ export type SPEs = SPE_Assign | SPE_Brack | SPE_Broadcast | SPE_Call | SPE_Choic
 
 export class SPE extends Node {
 	curProcIn: Process;
-	boundArgs: string[] = [];
 
-	constructor(precedence: number, kind: ASTKinds, parent: Node, curProcIn: Process){
-		super(precedence, kind, parent)
-		this.curProcIn = curProcIn;
+	constructor(precedence: number, kind: ASTKinds, curProcIn: Process, parent?: Node, poses?: Record<string, PosInfo>){
+		super(precedence, kind, parent, poses)
+		this.curProcIn = curProcIn
 	}
 }
 
+//	'[' DEStart=@ dataExp DEEnd=@ ']' lb nextproc
 export class SPE_Guard extends SPE {
 	dataExp!: DE;
-	DEStart: PosInfo; DEEnd: PosInfo
 	nextproc!: SPE;
 
-	constructor(parent: Node, curProcIn: Process, DEStart: PosInfo, DEEnd: PosInfo) {
-        super(9, ASTKinds.SPE_Guard, parent, curProcIn)
-		this.DEStart = DEStart
-		this.DEEnd = DEEnd
+	constructor(curProcIn: Process, parent?: Node, DEStart?: PosInfo, DEEnd?: PosInfo) {
+		const poses = buildPoses({DEStart, DEEnd})
+        super(9, ASTKinds.SPE_Guard, curProcIn, parent, poses)
     }
 }
 
+//	'[[' nameStart=@ name varStart=@ ':=' assignExpStart=@ dataExpAssign end=@ ']]' lb nextproc
 export class SPE_Assign extends SPE {
-	name: string;
-	variable!: Variable
+	variableExp!: VariableExp
 	dataExpAssign!: DE;
 	nextproc!: SPE;
-	nameStart: PosInfo; varStart: PosInfo; assignExpStart: PosInfo; end: PosInfo
 
-	constructor(parent: Node, curProcIn: Process, name: string, nameStart: PosInfo, varStart: PosInfo, assignExpStart: PosInfo, end: PosInfo) {
-        super(9, ASTKinds.SPE_Assign, parent, curProcIn);
-		this.name = name
-		this.nameStart = nameStart
-		this.varStart = varStart
-		this.assignExpStart = assignExpStart
-		this.end = end
+	constructor(curProcIn: Process, parent?: Node, assignExpStart?: PosInfo, end?: PosInfo) {
+		const poses = buildPoses({assignExpStart, end})
+        super(9, ASTKinds.SPE_Assign, curProcIn, parent, poses);
     }
 }
 
+//	start=@ 'unicast' '(' DELstart=@ dataExpL DELend=@ ';' dataExpR DERend=@ '\)' '.' procA '>' procB
 export class SPE_Unicast extends SPE {
 	dataExpL!: DE;
     dataExpR!: DE;
-    procA!: SPE;
-	procB!: SPE;
+	nextproc!: SPE;
 
-	start: PosInfo; DELstart: PosInfo; DELend: PosInfo; DERend: PosInfo
-
-	constructor(parent: Node, curProcIn: Process, start: PosInfo, DELstart: PosInfo, DELend: PosInfo, DERend: PosInfo) {
-        super(9, ASTKinds.SPE_Unicast, parent, curProcIn);
-		this.DELstart = DELstart
-		this.DELend = DELend
-		this.DERend = DERend
-		this.start = start
+	constructor(curProcIn: Process, parent?: Node, start?: PosInfo, DELstart?: PosInfo, DELend?: PosInfo, DERend?: PosInfo) {
+		const poses = buildPoses({start, DELstart, DELend, DERend})
+        super(9, ASTKinds.SPE_Unicast, curProcIn, parent, poses);
     }
 }
 
+//	start=@ 'broadcast' '(' DEstart=@ dataExp DEend=@ '\)' '.' nextproc
 export class SPE_Broadcast extends SPE {
 	dataExp!: DE;
 	nextproc!: SPE;
 	
-	start: PosInfo; DEstart: PosInfo; DEend: PosInfo
-
-	constructor(parent: Node, curProcIn: Process, start: PosInfo, DEstart: PosInfo, DEend: PosInfo) {
-        super(9, ASTKinds.SPE_Broadcast, parent, curProcIn);
-		this.DEstart = DEstart
-		this.DEend = DEend
-		this.start = start
+	constructor(curProcIn: Process, parent?: Node, start?: PosInfo, DEstart?: PosInfo, DEend?: PosInfo) {
+		const poses = buildPoses({start, DEstart, DEend})
+        super(9, ASTKinds.SPE_Broadcast, curProcIn, parent, poses);
     }
 }
 
+//	start=@ 'groupcast' '(' DELstart=@ dataExpL DELend=@ ';' dataExpR=DE DERend=@ ')' '.' nextproc
 export class SPE_Groupcast extends SPE {
 	dataExpL!: DE;
     dataExpR!: DE;
 	nextproc!: SPE;
 	
-	start: PosInfo; DELstart: PosInfo; DELend: PosInfo; DERend: PosInfo
-
-	constructor(parent: Node, curProcIn: Process, start: PosInfo, DELstart: PosInfo, DELend: PosInfo, DERend: PosInfo) {
-        super(9, ASTKinds.SPE_Groupcast, parent, curProcIn);
-		this.DELstart = DELstart
-		this.DELend = DELend
-		this.DERend = DERend
-		this.start = start
+	constructor(curProcIn: Process, parent?: Node, start?: PosInfo, DELstart?: PosInfo, DELend?: PosInfo, DERend?: PosInfo) {
+		const poses = buildPoses({start, DELstart, DELend, DERend})
+        super(9, ASTKinds.SPE_Groupcast, curProcIn, parent, poses);
     }
 }
 
+//	start=@ 'send' '(' DEstart=@ dataExp DEend=@ ')' '.' nextproc
 export class SPE_Send extends SPE {
 	dataExp!: DE;
 	nextproc!: SPE;
 	
-	start: PosInfo; DEstart: PosInfo; DEend: PosInfo
-
-	constructor(parent: Node, curProcIn: Process, start: PosInfo, DEstart: PosInfo, DEend: PosInfo) {
-        super(9, ASTKinds.SPE_Send, parent, curProcIn);
-		this.DEstart = DEstart
-		this.DEend = DEend
-		this.start = start
+	constructor(curProcIn: Process, parent?: Node, start?: PosInfo, DEstart?: PosInfo, DEend?: PosInfo) {
+		const poses = buildPoses({start, DEstart, DEend})
+        super(9, ASTKinds.SPE_Send, curProcIn, parent, poses);
     }
 }
 
+//	start=@ 'deliver' '(' DEstart=@ dataExp DEend=@ ')' '.' nextproc
 export class SPE_Deliver extends SPE {
 	dataExp!: DE;
 	nextproc!: SPE;
 	
-	start: PosInfo; DEstart: PosInfo; DEend: PosInfo
-
-	constructor(parent: Node, curProcIn: Process, start: PosInfo, DEstart: PosInfo, DEend: PosInfo) {
-        super(9, ASTKinds.SPE_Deliver, parent, curProcIn);
-		this.DEstart = DEstart
-		this.DEend = DEend
-		this.start = start
+	constructor(curProcIn: Process, parent?: Node, start?: PosInfo, DEstart?: PosInfo, DEend?: PosInfo) {
+		const poses = buildPoses({start, DEstart, DEend})
+        super(9, ASTKinds.SPE_Deliver, curProcIn, parent, poses);
     }
 }
 
+//	start=@ 'receive' '(' namePos=@ name=Name nameEnd=@ dataExps ')' '.' nextproc
 export class SPE_Receive extends SPE {
 	name: string;
 	variable!: Variable;
 	dataExps!: DE[];
 	nextproc!: SPE;
 
-	start: PosInfo; namePos: PosInfo; nameEnd: PosInfo
-
-	constructor(parent: Node, curProcIn: Process, start: PosInfo, name: string, namePos: PosInfo, nameEnd: PosInfo) {
-        super(9, ASTKinds.SPE_Receive, parent, curProcIn);
+	constructor(name: string, curProcIn: Process, parent?: Node, start?: PosInfo, namePos?: PosInfo, nameEnd?: PosInfo) {
+		const poses = buildPoses({start, namePos, nameEnd})
+        super(9, ASTKinds.SPE_Receive, curProcIn, parent, poses);
 		this.name = name;
-		this.namePos = namePos;
-		this.nameEnd = nameEnd;
-		this.start = start
     }
 }
 
+//	posS=@ name posE=@ '(' (args) ')'
 export class SPE_Call extends SPE {
 	name: string;
 
 	proc!: Process
 	args!: DE[];
 
-	posS: PosInfo //before the name
-	posE: PosInfo //after the name
-
-	constructor(parent: Node, curProcIn: Process, name: string, posS: PosInfo, posE: PosInfo) {
-        super(9, ASTKinds.SPE_Call, parent, curProcIn);
+	constructor(name: string, curProcIn: Process, parent?: Node, posS?: PosInfo, posE?: PosInfo) {
+		const poses = buildPoses({posS, posE})
+        super(9, ASTKinds.SPE_Call, curProcIn, parent, poses);
 		this.name = name;
-		this.posS = posS; this.posE = posE
     }
 }
 
+//	left '+' right
 export class SPE_Choice extends SPE {
 	left!: SPE;
 	right!: SPE;
 
-	constructor(parent: Node, curProcIn: Process) {
-        super(10, ASTKinds.SPE_Choice, parent, curProcIn);
+	constructor(curProcIn: Process, parent?: Node) {
+        super(10, ASTKinds.SPE_Choice, curProcIn, parent);
     }
 }
 
+//	'(' proc ')'
 export class SPE_Brack extends SPE {
 	proc!: SPE;
 
-	constructor(parent: Node, curProcIn: Process) {
-        super(10, ASTKinds.SPE_Brack, parent, curProcIn);
+	constructor(curProcIn: Process, parent?: Node) {
+        super(10, ASTKinds.SPE_Brack, curProcIn, parent);
     }
 }
 
 export class DE extends Node{
 	type!: TE
 
-	constructor(precedence: number, kind: ASTKinds, parent: Node){
-		super(precedence, kind, parent)
+	constructor(precedence: number, kind: ASTKinds, parent?: Node, poses?: Record<string, PosInfo>){
+		super(precedence, kind, parent, poses)
 	}
 }
 
@@ -634,116 +668,106 @@ DE_Function_Prefix		10
 DE_Brack				10	but can't escape out of
 */
 
+//	'{' dataExp '}'
 export class DE_Singleton extends DE {
 	dataExp!: DE;
 
-	constructor(parent: Node) {
+	constructor(parent?: Node) {
         super(0, ASTKinds.DE_Singleton, parent);
     }
 }
 
+//	'{' posS=@ name posE=@ '|' DEPosS=@ dataExp DEPosE=@ '}
 export class DE_Set extends DE {
 	name: string;
 
 	dataExp!: DE;
 
-	posS: PosInfo
-	posE: PosInfo
-
-	constructor(parent: Node, name: string, posS: PosInfo, posE: PosInfo) {
-        super(0, ASTKinds.DE_Set, parent);
+	constructor(name: string, parent?: Node, posS?: PosInfo, posE?: PosInfo, DEPosS?: PosInfo, DEPosE?: PosInfo) {
+		const poses = buildPoses({posS, posE, DEPosS, DEPosE})
+        super(0, ASTKinds.DE_Set, parent, poses);
 		this.name = name;
-		this.posS = posS; this.posE = posE
     }
 }
 
+//	'{' '(' posS=@ name posE=@ ',' left ')' '|' DEPosS=@ right DEPosE=@ '}'
 export class DE_Partial extends DE {
 	name: string;
 
-	//{(Name, DE) | DE} <- to explain what left and right refer to, as idk what this construction actually is lmao
 	left!: DE; 
 	right!: DE;
 
-	posS: PosInfo
-	posE: PosInfo
-
-	constructor(parent: Node, name: string, posS: PosInfo, posE: PosInfo) {
-        super(0, ASTKinds.DE_Partial, parent);
+	constructor(name: string, parent?: Node, posS?: PosInfo, posE?: PosInfo, DEPosS?: PosInfo, DEPosE?: PosInfo) {
+		const poses = buildPoses({posS, posE, DEPosS, DEPosE})
+        super(0, ASTKinds.DE_Partial, parent, poses);
 		this.name = name;
-		this.posS = posS; this.posE = posE
     }
 }
 
+//	startPos=@ 'lambda ' namePos=@ name '. ' dataExp
 export class DE_Lambda extends DE {
 	name: string
-	startPos: PosInfo
-	namePos: PosInfo
 
 	dataExp!: DE;
 	variable!: Variable //will be null if the "name" field does not refer to a variable
 
-	constructor(parent: Node, name: string, namePos: PosInfo, startPos: PosInfo) {
-        super(6, ASTKinds.DE_Lambda, parent);
+	constructor(name: string, parent?: Node, namePos?: PosInfo, startPos?: PosInfo) {
+		const poses = buildPoses({namePos, startPos})
+        super(6, ASTKinds.DE_Lambda, parent, poses);
 		this.name = name;
-		this.namePos = namePos;
-		this.startPos = startPos;
     }
 }
 
+//	startPos=@ 'forall ' namePos=@ name '. ' dataExp
 export class DE_Forall extends DE {
 	name: string;
-	startPos: PosInfo
-	namePos: PosInfo
-
 	variable!: Variable //will be null if the "name" field does not refer to a variable
 	dataExp!: DE;
 
-	constructor(parent: Node, name: string, namePos: PosInfo, startPos: PosInfo) {
-        super(6, ASTKinds.DE_Forall, parent);
+	constructor(name: string, parent?: Node, namePos?: PosInfo, startPos?: PosInfo) {
+		const poses = buildPoses({namePos, startPos})
+        super(6, ASTKinds.DE_Forall, parent, poses);
 		this.name = name;
-		this.namePos = namePos;
-		this.startPos = startPos;
     }
 }
 
+//	startPos=@ 'exists ' namePos=@ name '. ' dataExp
 export class DE_Exists extends DE {
 	name: string;
-	startPos: PosInfo
-	namePos: PosInfo
 	
 	variable!: Variable //will be null if the "name" field does not refer to a variable
 	dataExp!: DE;
 
-	constructor(parent: Node, name: string, namePos: PosInfo, startPos: PosInfo) {
-        super(6, ASTKinds.DE_Exists, parent);
+	constructor(name: string, parent?: Node, namePos?: PosInfo, startPos?: PosInfo) {
+		const poses = buildPoses({namePos, startPos})
+        super(6, ASTKinds.DE_Exists, parent, poses);
 		this.name = name;
-		this.namePos = namePos;
-		this.startPos = startPos;
     }
 }
 
+//	'(' dataExp ')'
 export class DE_Brack extends DE {
 	dataExp!: DE;
 
-	constructor(parent: Node) {
+	constructor(parent?: Node) {
         super(10, ASTKinds.DE_Brack, parent);
     }
 }
 
+//	posS=@ name posE=@
 export class DE_Name extends DE {
 	name: string;
 	refersTo: ASTKinds = ASTKinds.AWNRoot //what kind of object the DE_Name refers to - note this is different to what type it is
 										  //needed for semantic tokens
-	posS: PosInfo
-	posE: PosInfo
 
-	constructor(parent: Node, name: string, posS: PosInfo, posE: PosInfo) {
-        super(0, ASTKinds.DE_Name, parent);
+	constructor(name: string, parent?: Node, posS?: PosInfo, posE?: PosInfo) {
+		const poses = buildPoses({posS, posE})
+        super(0, ASTKinds.DE_Name, parent, poses);
 		this.name = name;
-		this.posS = posS; this.posE = posE
     }
 }
 
+//	dataExps are comma separated DEs
 export class DE_Tuple extends DE {
 	override type!: TE_Product; //type of DE_Tuple is always TE_Product
 
@@ -752,54 +776,46 @@ export class DE_Tuple extends DE {
 
 	dataExps!: DE[]
 
-	constructor(parent: Node) {
+	constructor(parent?: Node) {
         super(7, ASTKinds.DE_Tuple, parent);
 		
     }
 }
 
-//DE_Function is Name(DE)
-//DE is eventually converted to DE_Tuple - if it is not a tuple, it becomes one with 1 element
+//DE_Function_Prefix is Name(DE)
+//	
 export class DE_Function_Prefix extends DE {
 	name: string
-	dataExp!: DE //original DE before semantic checking
+	dataExp!: DE //DE is eventually converted to arguments, a DE_Tuple - if it is not a tuple, it becomes one with 1 element
 
 	function!: Function_Prefix
 	arguments!: DE_Tuple
-
-	sigStart: PosInfo; sigEnd: PosInfo; argPos: PosInfo; endPos: PosInfo
 	
-	constructor(parent: Node, name: string, sigStart: PosInfo, sigEnd: PosInfo, argPos: PosInfo, endPos: PosInfo) {
-        super(10, ASTKinds.DE_Function, parent);
+	constructor(name: string, parent?: Node, sigStart?: PosInfo, sigEnd?: PosInfo, argPos?: PosInfo, endPos?: PosInfo) {
+		const poses = buildPoses({sigStart, sigEnd, argPos, endPos})
+        super(10, ASTKinds.DE_Function, parent, poses);
 		this.name = name
-		this.sigStart= sigStart
-		this.sigEnd = sigEnd
-		this.argPos = argPos
-		this.endPos = endPos
     }
 }
 
+//	left sigStart=@ infixfunc sigEnd=@ right
 export class DE_Function_Infix extends DE {
 	function!: Function_Infix;
 	left!: DE;
 	right!: DE;
 
-	sigStart: PosInfo; sigEnd: PosInfo
-
-	constructor(parent: Node, precedence: number, sigStart: PosInfo, sigEnd: PosInfo) {
-        super(precedence, ASTKinds.DE_Infix, parent);
-		this.sigStart = sigStart
-		this.sigEnd = sigEnd
+	constructor(precedence: number, parent?: Node, sigStart?: PosInfo, sigEnd?: PosInfo) {
+		const poses = buildPoses({sigStart, sigEnd})
+        super(precedence, ASTKinds.DE_Infix, parent, poses);
     }
 }
 
-function convertToTEProduct(typeExp: TE): TE_Product | null {
+function convertToTEProduct(typeExp: TE): TE_Product {
 	switch(typeExp.kind){
 		case ASTKinds.TE_Brack: return convertToTEProduct((typeExp as TE_Brack).typeExpr)
-		case ASTKinds.TE_Array: return new TE_Product(typeExp.parent, [(typeExp as TE_Array).typeExpr])
-		case ASTKinds.TE_Pow: return new TE_Product(typeExp.parent, [(typeExp as TE_Pow).typeExpr])
-		case ASTKinds.TE_Name: return new TE_Product(typeExp.parent, [typeExp])
+		case ASTKinds.TE_Array: return new TE_Product([(typeExp as TE_Array).typeExpr], typeExp.parent)
+		case ASTKinds.TE_Pow: return new TE_Product([(typeExp as TE_Pow).typeExpr], typeExp.parent)
 		case ASTKinds.TE_Product: return (typeExp as TE_Product)
-		default: return null
+		default: return new TE_Product([typeExp], typeExp.parent)
 	}
 }

@@ -1,0 +1,25 @@
+include types.awn
+include olsr.awn
+include forward_tc.awn
+
+proc PROCESS_TC(sigma, Gamma, msg) :=
+  [ oip(msg) = ip ]
+       OLSR(sigma, Gamma)
+  +
+  [ oip(msg) != ip & forall lt. (isElem(lt,ls) -> (L_oip(lt) != sip(msg) | L_status(lt, now) != SYMMETRIC)) ]
+       FORWARD_TC(sigma, Gamma, msg)
+  +
+  [ oip(msg) != ip ]
+     [ exists p. (isElem(p,ps) & P_oip(p) = oip(msg) & P_sqn(p) = sqn(msg)) ]
+          FORWARD_TC(sigma, Gamma, msg)
+     +
+     [ !(exists p. (isElem(p,ps) & P_oip(p) = oip(msg) & P_sqn(p) = sqn(msg))) ]
+          [[ ps := addProcessedTuple(ps, oip(msg), sqn(msg)) ]]
+               [ exists ar. (isElem(ar,arrs) & AR_oip(ar) = oip(msg) & AR_sqn(ar) > ansn(msg)) ]
+                    FORWARD_TC(sigma, Gamma, msg)
+               +
+               [ !(exists ar. (isElem(ar,arrs) & AR_oip(ar) = oip(msg) & AR_sqn(ar) > ansn(msg))) ]
+                    [[ arrs := updateAdvertisingRouters(arrs, oip(msg), ansn(msg), vtime(msg), now) ]]
+                    [[ rts :=  updateRouterTopology(ip, rts, oip(msg), vtime(msg), dests(msg), now) ]]
+                    FORWARD_TC(sigma, Gamma, msg)
+                    

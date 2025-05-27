@@ -1,0 +1,15 @@
+include types.awn
+include new_msg.awn
+include cancel.awn
+include ack_m.awn
+
+proc FRAG(mt,data,no,abort,H) :=
+  receive(msg) .
+  (
+    [msg = newpkt(pkt(nmt,ndata),bus)]
+      NEW_MSG(nmt,ndata,no,abort,H)
+    + [msg = cancel]
+      CANCEL(mt,data,no,abort,H)
+    + [msg = ack(suc)]
+      ACK_M(suc,mt,data,no,abort,H)
+  )

@@ -1,0 +1,9 @@
+include types.awn
+
+proc QMSG(msgs) :=
+  receive(msg).QMSG(append(msg,msgs))
+  + [ msgs != emptyList ]
+  (
+    send(head(msgs)).QMSG(tail(msgs))
+    + receive(msg).QMSG(append(msg,msgs))
+  )

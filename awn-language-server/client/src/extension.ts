@@ -4,6 +4,7 @@
  * ------------------------------------------------------------------------------------------ */
 
 import * as path from 'path';
+import * as vscode from 'vscode'
 import { workspace, ExtensionContext } from 'vscode';
 
 import {
@@ -50,6 +51,14 @@ export function activate(context: ExtensionContext) {
 
 	// Start the client. This will also launch the server
 	client.start();
+
+	vscode.window.onDidChangeActiveTextEditor((editor) => {
+		if (editor) {
+		  client.sendNotification("awn/activeDocumentChanged", {
+			uri: editor.document.uri.toString()
+		  });
+		}
+	  });
 }
 
 export function deactivate(): Thenable<void> | undefined {

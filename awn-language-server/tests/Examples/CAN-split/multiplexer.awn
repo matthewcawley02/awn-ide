@@ -1,0 +1,15 @@
+include types.awn
+include new_can.awn
+include cancel_c.awn
+include ack_c.awn
+
+proc MULTIPLEXER(prio,txs,H) :=
+  receive(msg).
+  (
+    [msg = can(cid,data)]
+      NEW_CAN(msg,prio,txs,H)
+    + [msg = cancel(cid)]
+      CANCEL_C(cid,prio,txs,H)
+    + [msg = msgd(tid,ack(suc))]
+      ACK_C(suc,tid,prio,txs,H)
+  )

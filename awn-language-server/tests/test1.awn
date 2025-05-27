@@ -1,0 +1,11 @@
+include types.awn
+
+proc PENIS():
+  [[ mqueue := msgs ]]
+--     (
+        [ isHELLO(pkt) ]
+             PROCESS_HELLO(sigma, Gamma, msg)
+        +
+        [ isTC(pkt) ]
+             PROCESS_TC(sigma, Gamma, msg)
+--    )

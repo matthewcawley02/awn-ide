@@ -1,15 +1,10 @@
 import * as ast from "./ast";
 import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver';
-import { PosInfo, ParseResult, parse } from './parser';
-import * as fs from "fs"
-import { removeComments } from './server';
-import { convertNewToOldAST } from './convertAST';
-
-//I'd rather use the same AST nodes, but everything requires a parent. Use a dummy parent when the parent isn't actually necessary.
-const dpar = new ast.AWNRoot();
-const dpos = {overallPos: 10000, line: 1000, offset: 0};
+import { ASTKinds, PosInfo } from './parser';
+import { prepareFile } from './server';
 
 var importedFiles: String[] = []
+var inRootFile: boolean = true
 
 var types: ast.Type[] = []
 var variables: ast.Variable[] = []
@@ -24,7 +19,8 @@ var invalidTypes: string[] = []
 var invalidVariables: string[] = []
 var invalidConstants: string[] = []
 var invalidFunctions: string[] = []
-var invalidProcesses: string[] = []
+var invalidProcesses: ast.Process[] = [] //kept as process so we can still use the signature for hover information (the process may be invalid further down).
+										 //note that the fields in here are not guaranteed to be non-null
 var invalidAliasesSingle: string[] = []
 var invalidAliasesList: string[] = []
 
@@ -32,30 +28,30 @@ var errors: Diagnostic[] = []
 var warnings: Diagnostic[] = []
 
 //default objects
-const boolType = new ast.Type(dpar, "Bool", dpos, dpos); boolType.typeExpr = new ast.TE_RootType(boolType, "Bool")
-const dataType = new ast.Type(dpar, "DATA", dpos, dpos); dataType.typeExpr = new ast.TE_RootType(boolType, "DATA")
-const msgType = new ast.Type(dpar, "MESSAGE", dpos, dpos); msgType.typeExpr = new ast.TE_RootType(boolType, "MESSAGE")
-const ipType = new ast.Type(dpar, "IP", dpos, dpos); ipType.typeExpr = new ast.TE_RootType(boolType, "IP")
-const timeType = new ast.Type(dpar, "TIME", dpos, dpos); timeType.typeExpr = new ast.TE_RootType(boolType, "TIME")
+const boolType = new ast.Type("Bool"); boolType.typeExpr = new ast.TE_RootType("Bool")
+const dataType = new ast.Type("DATA"); dataType.typeExpr = new ast.TE_RootType("DATA")
+const msgType = new ast.Type("MSG"); msgType.typeExpr = new ast.TE_RootType("MSG")
+const ipType = new ast.Type("IP"); ipType.typeExpr = new ast.TE_RootType("IP")
+const timeType = new ast.Type("TIME"); timeType.typeExpr = new ast.TE_RootType("TIME")
 
-const nowVar = new ast.Variable(dpar, "now", dpos, dpos); nowVar.typeExpr = timeType.typeExpr
+const nowVar = new ast.Variable("now"); nowVar.typeExpr = timeType.typeExpr
 
-const trueCon = new ast.Constant(dpar, "true", dpos, dpos); trueCon.typeExpr = boolType.typeExpr
-const falseCon = new ast.Constant(dpar, "false", dpos, dpos); trueCon.typeExpr = boolType.typeExpr
+const trueCon = new ast.Constant("true"); trueCon.typeExpr = boolType.typeExpr
+const falseCon = new ast.Constant("false"); falseCon.typeExpr = boolType.typeExpr
 
-const not = new ast.Function_Prefix(dpar, "!", dpos, dpos); not.sigType = new ast.TE_Product(not, [boolType.typeExpr]); not.outType = boolType.typeExpr
+const not = new ast.Function_Prefix("!"); not.sigType = new ast.TE_Product([boolType.typeExpr]); not.outType = boolType.typeExpr
 
-const and = new ast.Function_Infix(dpar, "&", dpos, dpos); and.sigType = new ast.TE_Product(and, [boolType.typeExpr, boolType.typeExpr]); and.outType = boolType.typeExpr
-const or = new ast.Function_Infix(dpar, "|", dpos, dpos); or.sigType = new ast.TE_Product(or, [boolType.typeExpr, boolType.typeExpr]); or.outType = boolType.typeExpr
-const imp = new ast.Function_Infix(dpar, "->", dpos, dpos); imp.sigType = new ast.TE_Product(imp, [boolType.typeExpr, boolType.typeExpr]); imp.outType = boolType.typeExpr
-const iff = new ast.Function_Infix(dpar, "<->", dpos, dpos); iff.sigType = new ast.TE_Product(iff, [boolType.typeExpr, boolType.typeExpr]); iff.outType = boolType.typeExpr
-const newpkt = new ast.Function_Prefix(dpar, "newpkt", dpos, dpos); newpkt.sigType = new ast.TE_Product(newpkt, [dataType.typeExpr, ipType.typeExpr]); newpkt.outType = msgType.typeExpr
+const and = new ast.Function_Infix("&"); and.sigType = new ast.TE_Product([boolType.typeExpr, boolType.typeExpr]); and.outType = boolType.typeExpr
+const or = new ast.Function_Infix("|"); or.sigType = new ast.TE_Product([boolType.typeExpr, boolType.typeExpr]); or.outType = boolType.typeExpr
+const imp = new ast.Function_Infix("->"); imp.sigType = new ast.TE_Product([boolType.typeExpr, boolType.typeExpr]); imp.outType = boolType.typeExpr
+const iff = new ast.Function_Infix("<->"); iff.sigType = new ast.TE_Product([boolType.typeExpr, boolType.typeExpr]); iff.outType = boolType.typeExpr
+const newpkt = new ast.Function_Prefix("newpkt"); newpkt.sigType = new ast.TE_Product([dataType.typeExpr, ipType.typeExpr]); newpkt.outType = msgType.typeExpr
 
 //Using TE_Any ensures that any type is allowed in these functions.
 //A separate check is performed later which makes sure that if using these functions, the arguments are of correct type with regards to each other
-const eq = new ast.Function_Infix(dpar, "=", dpos, dpos); eq.sigType = new ast.TE_Product(eq, [new ast.TE_Any(eq.sigType), new ast.TE_Any(eq.sigType)]); eq.outType = boolType.typeExpr
-const neq = new ast.Function_Infix(dpar, "!=", dpos, dpos); neq.sigType = new ast.TE_Product(neq, [new ast.TE_Any(neq.sigType), new ast.TE_Any(neq.sigType)]); neq.outType = boolType.typeExpr
-const iselem = new ast.Function_Prefix(dpar, "isElem", dpos, dpos); iselem.sigType = new ast.TE_Product(iselem, [new ast.TE_Any(iselem.sigType), new ast.TE_Pow(iselem.sigType, dpos, new ast.TE_Any(iselem.sigType))]); iselem.outType = boolType.typeExpr
+const eq = new ast.Function_Infix("="); eq.sigType = new ast.TE_Product([new ast.TE_Any(), new ast.TE_Any()]); eq.outType = boolType.typeExpr
+const neq = new ast.Function_Infix("!="); neq.sigType = new ast.TE_Product([new ast.TE_Any(), new ast.TE_Any()]); neq.outType = boolType.typeExpr
+const iselem = new ast.Function_Prefix("isElem"); iselem.sigType = new ast.TE_Product([new ast.TE_Any(), new ast.TE_Pow(new ast.TE_Any())]); iselem.outType = boolType.typeExpr
 
 export function Initialise(): void{ //sets up default objects, done only once, upon language server setup
 	types.push(...[boolType, dataType, msgType, ipType, timeType])
@@ -65,44 +61,54 @@ export function Initialise(): void{ //sets up default objects, done only once, u
 	return
 }
 
-export function InitialiseCheck(): void{ //reset to only default objects, used before each check of the open document
+export function InitialiseSingleCheck(): void{ //reset to only default objects, used before each check of the open document
 	types = types.slice(0, 5); variables = variables.slice(0, 1); constants = constants.slice(0, 2); functions = functions.slice(0, 9); processes = []; aliasesSingle = []; aliasesList = []; invalidTypes = []; invalidVariables = []; invalidConstants = []; invalidFunctions = []; invalidProcesses = []; invalidAliasesSingle = []; invalidAliasesList = []
 	importedFiles = []
 	errors = []; warnings = []
 }
 
 export function getHoverInformation(word: string): string | null {
-	const t = getType(word, false, dpos)
+	const t = getType(word)
 	if(t != null){
 		return `\`\`\`typescript\nTYPE ${word}: ${TypeAsString(t)}`
 	}
-	const v = getVariable(word, false, dpos)
+	const v = getVariable(word)
 	if(v != null){
 		return `\`\`\`typescript\nVARIABLE ${word}: ${TypeAsString(v.typeExpr)}`
 	}
-	const c = getConstant(word, false, dpos)
+	const c = getConstant(word)
 	if(c != null){
 		return `\`\`\`typescript\nCONSTANT ${word}: ${TypeAsString(c.typeExpr)}`
 	}
-	const f = getFunction(word, false, dpos)
+	var funcWord = word //word but without the final ":" except if it's only ":"
+  	if (word.endsWith(":") && word !== ":") funcWord = word.slice(0, -1);
+	const f = getFunction(funcWord)
 	if(f != null){
-		return `\`\`\`typescript\nFUNCTION ${word}: ${TypeAsString(f.sigType)} -> ${TypeAsString(f.outType)}`
+		var output = "\`\`\`typescript"
+		for(const func of f){
+			output = output.concat(`\nFUNCTION '${funcWord}': ${TypeAsString(func.sigType)} -> ${TypeAsString(func.outType)}`)
+		}
+		output = output.concat(`\n\`\`\``)
+		return output
 	}
-	const p = getProcess(word, false, dpos)
-	console.log(word)
+	const p = getProcess(word)
 	if(p != null){
 		var arglist = ''
-		let i = 0
-		for(const arg of p.args){
-			arglist += arg.name
-			if(i != p.args.length-1){
-				arglist += ', '
+		if(p.args != null){ //check p.args!=null in case p came from invalidProcesses
+			let i = 0
+			for(const arg of p.args){
+				arglist += arg.name
+				i++
+				if(i < p.args.length){
+					arglist += ', '
+				}
 			}
 		}
-		console.log(arglist)
 		return `\`\`\`typescript\nPROC ${word}(${arglist})`
 	}
-	const al = getAliasList(word, false, dpos)
+	var aliasWord = word
+	if (word.endsWith(":=")) aliasWord = word.slice(0, -2);
+	const al = getAliasList(aliasWord)
 	if(al != null){
 		var arglist = ''
 		let i = 0
@@ -113,11 +119,11 @@ export function getHoverInformation(word: string): string | null {
 			}
 			i++
 		}
-		return `\`\`\`typescript\nALIAS ${word}: ${arglist})`
+		return `\`\`\`typescript\nALIAS ${aliasWord}: ${arglist})`
 	}
-	const as = getAliasSingle(word, false, dpos)
+	const as = getAliasSingle(aliasWord)
 	if(as != null){
-		return `\`\`\`typescript\nALIAS ${word}: (todo print DE)`
+		return `\`\`\`typescript\nALIAS ${aliasWord}: ${DeAsString(as.dataExp)}`
 	}
 	return null
 }
@@ -128,27 +134,23 @@ export function getAutoComplete(): string[] {
 	])
 }
 
-export function Check(root: ast.AWNRoot, isRootFile: boolean, filename: string): Diagnostic[]{
-	if(isRootFile){
-		importedFiles.push(filename)
+export function Check(root: ast.AWNRoot, isRootFile: boolean, filepath: string): Diagnostic[]{
+	inRootFile = isRootFile
+	if(inRootFile){
+		importedFiles.push(filepath)
 	}
 	for(const Block of root.blocks){
 		switch(Block.kind){
 			
 			case ast.ASTKinds.Block_Include: { const block = Block as ast.Block_Include
+				const directory = filepath.substring(0, filepath.lastIndexOf('/'));
 				for(const include of block.includes){
-					if(importedFiles.includes(include.name)){
-						createWarningMessage(`"${include.name}" already imported, ignoring this line.`, include.posS.line, include.posS.offset)
+					if(importedFiles.includes(directory + '/' + include.name)){
+						createWarningMessage(`"${include.name}" already imported, ignoring this line.`, include.pos["posS"], include.pos["posE"])
 						continue
 					}
-					importedFiles.push(include.name)
-
-					if (!fs.existsSync("./" + include.name)) {
-						console.log("cur proc directory: ", process.cwd(), "include name: ", include.name)
-						createErrorMessage(`Could not find "${include.name}".`, include.posS.line, include.posS.offset)
-						continue
-					}
-					parseImport(include)				
+					importedFiles.push(directory + '/' + include.name)
+					Import(include, directory)
 				}
 				break
 			}
@@ -157,19 +159,22 @@ export function Check(root: ast.AWNRoot, isRootFile: boolean, filename: string):
 				for(const typedec of block.types){
 					//empty type declarations (those given without an accompanying TE) are given rootType
 					if(typedec.typeExpr == null){
-						if(["Bool", "DATA", "MESSAGE", "IP", "TIME"].includes(typedec.typeName)){
-							createWarningMessage(`"${typedec.typeName}" is a predefined type. This declaration is unnecessary.`, typedec.posS.line, typedec.posS.offset)
+						if(["Bool", "DATA", "MSG", "IP", "TIME"].includes(typedec.typeName)){
+							createWarningMessage(`"${typedec.typeName}" is a predefined type. This declaration is unnecessary.`, typedec.pos["posS"])
+							continue
 						}
-						else{
-							const newType = new ast.Type(dpar, typedec.typeName, dpos, dpos); newType.typeExpr = new ast.TE_RootType(boolType, typedec.typeName)
-							types.push(newType)
+						if(usedNames().includes(typedec.typeName)){
+							createErrorMessage(`Name "${typedec.typeName}" already defined previously.`, typedec.pos["posS"])
+							continue
 						}
+						const newType = new ast.Type(typedec.typeName); newType.typeExpr = new ast.TE_RootType(typedec.typeName, boolType)
+						types.push(newType)
 						continue
 					}
 					
 					//type declaration with accompanying TE
 					if(usedNames().includes(typedec.typeName)){
-						createErrorMessage(`Name "${typedec.typeName}" already defined previously.`, typedec.posS.line, typedec.posS.offset)
+						createErrorMessage(`Name "${typedec.typeName}" already defined previously.`, typedec.pos["posS"])
 						continue
 					}
 					const newTE = expandTypeExpression(typedec.typeExpr, typedec.typeName)
@@ -183,8 +188,12 @@ export function Check(root: ast.AWNRoot, isRootFile: boolean, filename: string):
 
 			case ast.ASTKinds.Block_Variable: { const block = Block as ast.Block_Variable
 				for(var vari of block.vars){
+					if(vari.name == "now"){
+						createWarningMessage(`"now" is a predefined variable. This declaration is unnecessary.`, vari.pos["posS"])
+						continue
+					}
 					if(usedNames().includes(vari.name)){
-						createErrorMessage( `Name "${vari.name}" already defined previously.`, vari.posS.line, vari.posS.offset)
+						createErrorMessage( `Name "${vari.name}" already defined previously.`, vari.pos["posS"])
 						continue
 					}
 					const newTE = expandTypeExpression(vari.typeExpr)
@@ -200,8 +209,12 @@ export function Check(root: ast.AWNRoot, isRootFile: boolean, filename: string):
 
 			case ast.ASTKinds.Block_Constant: { const block = Block as ast.Block_Constant
 				for(var con of block.consts){
+					if(['true', 'false'].includes(con.name)){
+						createWarningMessage( `Name "${con.name}" is a predefined constant. This declaration is unnecessary.`, con.pos["posS"])
+						continue
+					}
 					if(usedNames().includes(con.name)){
-						createErrorMessage( `Name "${con.name}" already defined previously.`, con.posS.line, con.posS.offset)
+						createErrorMessage( `Name "${con.name}" already defined previously.`, con.pos["posS"])
 						continue
 					}
 					const newTE = expandTypeExpression(con.typeExpr)
@@ -219,10 +232,10 @@ export function Check(root: ast.AWNRoot, isRootFile: boolean, filename: string):
 				for(var func of block.funcs){
 					const expTE = expandTypeExpression(func.type)
 					if(expTE != null){
-						//see if this function + signature already exists, just use getFunction for that
-						const f = getFunction(func.name, false, dpos, expTE)
+						//see if this function + signature combination already exists
+						const f = getFunction(func.name, expTE)
 						if(f != null){
-							createErrorMessage( `Function "${func.name}" with type "${TypeAsString(expTE)}" already defined.`, func.posS.line, func.posS.offset)
+							createErrorMessage( `Function "${func.name}" with type "${TypeAsString(expTE)}" already defined.`, func.pos["posS"])
 							continue
 						}
 						if([ast.ASTKinds.TE_FuncFull, ast.ASTKinds.TE_FuncPart].includes(expTE.kind)){
@@ -231,7 +244,7 @@ export function Check(root: ast.AWNRoot, isRootFile: boolean, filename: string):
 							if(sigType != null){
 								func.sigType = sigType
 								if(func.kind == ast.ASTKinds.Function_Infix && !func.isBinary){
-									createErrorMessage(`Infix functions require a binary signature. Instead got ${TypeAsString(func.sigType)}`, func.posS.line, func.posS.offset)
+									createErrorMessage(`Infix functions require a binary signature. Instead got ${TypeAsString(func.sigType)}`, func.pos["posS"])
 									invalidFunctions.push(func.name); continue
 								}
 								else{
@@ -239,12 +252,12 @@ export function Check(root: ast.AWNRoot, isRootFile: boolean, filename: string):
 								}
 							}
 							else{
-								createErrorMessage(`Cannot have a function as the signature of a function.`, func.posS.line, func.posS.offset)
+								createErrorMessage(`Cannot have a function as the signature of a function.`, func.pos["posS"])
 								invalidFunctions.push(func.name); continue
 							}							
 						}
 						else{
-							createErrorMessage(`Type of function declaration is not a function. Got type ${TypeAsString(expTE)}`, func.posS.line, func.posS.offset)
+							createErrorMessage(`Type of function declaration is not a function. Got type ${TypeAsString(expTE)}`, func.pos["posS"])
 							invalidFunctions.push(func.name); continue
 						}
 					}else{
@@ -277,17 +290,18 @@ export function Check(root: ast.AWNRoot, isRootFile: boolean, filename: string):
 
 			case ast.ASTKinds.Block_Process: { const block = Block as ast.Block_Process
 				for (const proc of block.procs){
+					var validProc = true
 					if(usedNames().includes(proc.name)){
-						createErrorMessage(`Name "${proc.name}" already defined previously.`, proc.posS.line, proc.posS.offset)
-						continue
+						createErrorMessage(`Name "${proc.name}" already defined previously.`, proc.pos["posS"])
+						validProc = false
 					}
 					//expand out argument list and check for duplicates
 					for(const procarg of proc.argInfo){
 						if(variables.map(x=>x.name).concat(invalidVariables).includes(procarg.name)){
-							const vari = getVariable(procarg.name, false, dpos)
+							const vari = getVariable(procarg.name)
 							if(vari == null){continue} //note this is impossible
 							if(proc.args.map(v=>v.name).includes(vari.name)){
-								createErrorMessage(`Duplicated variable "${vari.name}".`, procarg.posS.line, procarg.posS.offset)
+								createErrorMessage(`Duplicated variable "${vari.name}".`, procarg.pos["posS"])
 							}
 							else{
 								proc.args.push(vari)
@@ -296,12 +310,12 @@ export function Check(root: ast.AWNRoot, isRootFile: boolean, filename: string):
 						} 
 
 						else if(aliasesList.map(x=>x.name).concat(invalidAliasesList).includes(procarg.name)){
-							const alias = getAliasList(procarg.name, false, dpos)
+							const alias = getAliasList(procarg.name)
 							if(alias == null){continue} //note this is impossible
 							const vars = expandAlistList(alias)
 							for(const vari of vars){
 								if(proc.args.map(v=>v.name).includes(vari.name)){
-									createErrorMessage(`Duplicated variable "${vari.name}" inside list alias ${procarg.name}.`, procarg.posS.line, procarg.posS.offset)
+									createErrorMessage(`Duplicated variable "${vari.name}" inside list alias ${procarg.name}.`, procarg.pos["posS"])
 								}
 								else{
 									proc.args.push(vari)
@@ -310,41 +324,46 @@ export function Check(root: ast.AWNRoot, isRootFile: boolean, filename: string):
 							procarg.argType = ast.ASTKinds.Alias_List							
 						}
 					}
-					if(CheckSPE(proc.proc)){
+					if(CheckSPE(proc.proc, proc.args.map(x => x.name)) && validProc){
 						processes.push(proc)
 					}else{
-						invalidProcesses.push(proc.name)
+						invalidProcesses.push(proc)
 					}
 				}
 				break
 			}
 		}
 	}
-	if(isRootFile){
+	if(inRootFile){
 		console.log("Semantic Information:", types, variables, constants, functions, processes, aliasesSingle, aliasesList, invalidTypes, invalidVariables, invalidConstants, invalidFunctions, invalidProcesses, invalidAliasesSingle, invalidAliasesList)
 	}
 	return warnings.concat(errors)
 }
 
-//parses an imported file, all its information goes into types[], variables[], etc.
-function parseImport(include: ast.Include){
-	var file = fs.readFileSync("./" + include.name, "utf-8")
-	//if it exists, need to do the whole process on the import of parsing and checking as well
-	file = removeComments(file, false)
-	const parseResult: ParseResult = parse(file)
-
-	if(parseResult.ast == null){
-		createErrorMessage(`"${include.name}" could not be parsed.`, include.posS.line, include.posS.offset)
+//Imports and calls Check() on an include, adding its info to types[], variables[], etc.
+//Errors/warnings in the included file are not displayed for the user.
+//Note that the ast.Include only contains the filename, not the directory, hence it's an argument here.
+function Import(include: ast.Include, directory: string){
+	const result = prepareFile(directory + "/" + include.name)
+	if(result == 0){
+		createErrorMessage(`"${include.name}" could not be found.`, include.pos["posS"], include.pos["posE"])
 		return
 	}
-	const newast: ast.AWNRoot = convertNewToOldAST(parseResult.ast)
-	Check(newast, false, include.name); errors = []; warnings = [] //don't use diagnostics from this, we don't need to print them out
+	else if(result == 1){
+		createErrorMessage(`"${include.name}" could not be parsed.`, include.pos["posS"], include.pos["posE"])
+		return
+	}
+	const newast = result as ast.AWNRoot
+
+	const wasRootFile = inRootFile
+	Check(newast, false, directory + "/" + include.name)
+	inRootFile = wasRootFile
 }
 
 //Given a type name, returns its type definition.
-//If the type has been declared but is invalid, returns 1.
-//If the type doesn't exist, returns 0.
-function getType(typeName: string, produceError: boolean, pos: PosInfo): ast.TE | null{
+//If the type is in invalidTypes, returns null.
+//If the type doesn't exist, returns null and optionally print an error message at pos.
+function getType(typeName: string, posForError?: PosInfo): ast.TE | null{
 	for(const type of types){
 		if(type.typeName == typeName){
 			return type.typeExpr
@@ -355,13 +374,16 @@ function getType(typeName: string, produceError: boolean, pos: PosInfo): ast.TE 
 			return null
 		}
 	}
-	if(produceError){
-		createErrorMessage( `Nonexistent type "${typeName}" referenced.`, pos.line, pos.offset)
+	if(posForError != null){
+		createErrorMessage( `Could not find type "${typeName}".`, posForError)
 	}
 	return null
 }
 
-function getConstant(constantName: string, produceError: boolean, pos: PosInfo): ast.Constant | null{
+//Given a constant name, returns its Constant object.
+//If the constant is in invalidConstants, returns null.
+//If the constant doesn't exist, returns null and optionally print an error message at pos.
+function getConstant(constantName: string, posForError?: PosInfo): ast.Constant | null{
 	for(const con of constants){
 		if(con.name == constantName){
 			return con
@@ -372,13 +394,16 @@ function getConstant(constantName: string, produceError: boolean, pos: PosInfo):
 			return null
 		}
 	}
-	if(produceError){
-		createErrorMessage( `Nonexistent constant "${constantName}" referenced.`, pos.line, pos.offset)
+	if(posForError != null){
+		createErrorMessage( `Could not find constant "${constantName}".`, posForError)
 	}
 	return null
 }
 
-function getVariable(variableName: string, produceError: boolean, pos: PosInfo): ast.Variable | null{
+//Given a variable name, returns its Variable object
+//If the variable is in invalidVariables, returns null.
+//If the variable doesn't exist, returns null and optionally print an error message at pos.
+function getVariable(variableName: string, posForError?: PosInfo): ast.Variable | null{
 	for(const vari of variables){
 		if(vari.name == variableName){
 			return vari
@@ -389,56 +414,66 @@ function getVariable(variableName: string, produceError: boolean, pos: PosInfo):
 			return null
 		}
 	}
-	if(produceError){
-		createErrorMessage( `Nonexistent variable "${variableName}" referenced.`, pos.line, pos.offset)
+	if(posForError != null){
+		createErrorMessage( `Could not find variable "${variableName}".`, posForError)
 	}
 	return null
 }
 
-//if signature is not null, finds the function matching both signature and name (for function overloading)
-//if signature is null, finds the first function with name
-function getFunction(functionName: string, produceError: boolean, pos: PosInfo, signature?: ast.TE): ast.Function | null{
+//Find function with name, and optionally signature. If signature is not specified, returns all functions with that name.
+//If a matching function is in invalidFunctions[] and not in functions[], returns null.
+//If the function doesn't exist, returns null and optionally print an error message at pos.
+function getFunction(functionName: string, signature?: ast.TE, posForError?: PosInfo): ast.Function[] | null{
+	var funcs: ast.Function[] = []
 	for(const func of functions){
 		if(func.name == functionName){
 			if(signature != null){
 				if(AreIdenticalTypes(func.sigType, signature)){
-					return func
+					return [func]
 				}else{
 					continue
 				}
 			}
-			else{return func}
+			else{funcs.push(func)}
 		}
 	}
+	if(funcs.length != 0){return funcs}
 	for(const func of invalidFunctions){
 		if(func == functionName){
 			return null
 		}
 	}
-	if(produceError && signature == null){
-		createErrorMessage(`Nonexistent function "${functionName}" referenced.`, pos.line, pos.offset)
+	if(posForError != null && signature == null){
+		createErrorMessage(`Could not find function "${functionName}".`, posForError)
 	}
 	return null
 }
 
-function getProcess(procName: string, produceError: boolean, pos: PosInfo): ast.Process | null{
+//Given a process name, returns its Process object.
+//If the process is in invalidProcesses instead, returns that.
+//If the process doesn't exist, returns null and optionally print an error message at pos.
+function getProcess(procName: string, posForError?: PosInfo): ast.Process | null{
 	for(const proc of processes){
 		if(proc.name == procName){
 			return proc
 		}
 	}
 	for(const proc of invalidProcesses){
-		if(proc == procName){
-			return null
+		if(proc.name == null){continue}
+		if(proc.name == procName){
+			return proc
 		}
 	}
-	if(produceError){
-		createErrorMessage(`Nonexistent process "${procName}" referenced.`, pos.line, pos.offset)
+	if(posForError != null){
+		createErrorMessage(`Could not find process "${procName}".`, posForError)
 	}
 	return null
 }
 
-function getAliasSingle(aliasName: string, produceError: boolean, pos: PosInfo): ast.Alias_Data | null{
+//Given a data alias name, returns its Alias_Data object.
+//If the data alias is in invalidAliasesSingle, returns null.
+//If the data alias doesn't exist, returns null and optionally prints an error message at pos.
+function getAliasSingle(aliasName: string, posForError?: PosInfo): ast.Alias_Data | null{
 	for(const alias of aliasesSingle){
 		if(alias.name == aliasName){
 			return alias
@@ -449,13 +484,16 @@ function getAliasSingle(aliasName: string, produceError: boolean, pos: PosInfo):
 			return null
 		}
 	}
-	if(produceError){
-		createErrorMessage( `Nonexistent data alias "${aliasName}" referenced.`, pos.line, pos.offset)
+	if(posForError != null){
+		createErrorMessage( `Could not find data alias "${aliasName}".`, posForError)
 	}
 	return null
 }
 
-function getAliasList(aliasName: string, produceError: boolean, pos: PosInfo): ast.Alias_List | null{
+//Given a list alias name, returns its Alias_List object.
+//If the list alias is in invalidAliasesList, returns null.
+//If the list alias doesn't exist, returns null and optionally prints an error message at pos.
+function getAliasList(aliasName: string, posForError?: PosInfo): ast.Alias_List | null{
 	for(const alias of aliasesList){
 		if(alias.name == aliasName){
 			return alias
@@ -466,13 +504,14 @@ function getAliasList(aliasName: string, produceError: boolean, pos: PosInfo): a
 			return null
 		}
 	}
-	if(produceError){
-		createErrorMessage( `Nonexistent list alias "${aliasName}" referenced.`, pos.line, pos.offset)
+	if(posForError != null){
+		createErrorMessage( `Could not find list alias "${aliasName}".`, posForError)
 	}
 	return null
 }
 
-//given a list alias, returns the full list of variables it expands out to
+//Given a list alias, returns the full list of variables it expands out to (including recursively).
+//Note that this function can recurse infinitely if the list alias is self-referential.
 function expandAlistList(aliaslist: ast.Alias_List): ast.Variable[]{
 	var result = [];
 	for(const vari of aliaslist.args){
@@ -486,9 +525,8 @@ function expandAlistList(aliaslist: ast.Alias_List): ast.Variable[]{
 	return result
 }
 
-//Expands out a TE by replacing typenames with equivalents.
-//If processing Type nodes (those found in a type block), include typeName so we can
-//check for circular definitions.
+//Expands out a TE by replacing typenames with equivalents down to TE_RootType.
+//Optionally include typeName to check for circular definitions.
 //If any circular or undefined typenames are found, returns null.
 function expandTypeExpression(typeExp: ast.TE, typeName?: string): ast.TE | null{
 	if(expandTypeExpressionHelper(typeExp, typeName)){
@@ -512,27 +550,21 @@ function expandTypeExpressionHelper(typeExp: ast.TE, typeName?: string): boolean
 			if(TypeExp.typename == typeName){
 				//circular definition
 				invalidTypes.push(typeName)
-				createErrorMessage( `"${typeName}" contains a circular type definition.`, TypeExp.posS.line, TypeExp.posS.offset)
+				createErrorMessage( `"${typeName}" contains a circular type definition.`, TypeExp.pos["posS"])
 				return false
 			}
 		}
 
-		const result = getType(TypeExp.typename, true, TypeExp.posS) //retrieve the equivalent
+		const result = getType(TypeExp.typename, TypeExp.pos["posS"]) //retrieve the equivalent
 		if(result == null){
-			//nonexistent type referenced
+			//nonexistent or invalid type referenced
 			if(typeName != null){invalidTypes.push(typeName)}
 			return false
 		}
 		else{
-			//if the replacement was not root, also expand out the replacement
-			if(result.kind != ast.ASTKinds.TE_RootType){
-				TypeExp.typeExpr = result
-				return expandTypeExpressionHelper(result, typeName)
-			}
-			else{
-				TypeExp.typeExpr = result
-				return true
-			}
+			//also expand out the replacement
+			TypeExp.typeExpr = result
+			return expandTypeExpressionHelper(result, typeName)
 		}
 	}
 
@@ -553,118 +585,120 @@ function expandTypeExpressionHelper(typeExp: ast.TE, typeName?: string): boolean
 }
 
 //Checks an SPE - more accurately, a sequence of SPEs - as this includes any other SPEs attached to it.
-function CheckSPE(proc: ast.SPE): boolean{
+//boundArgs is passed by reference so it gets built on over the course of a Process
+function CheckSPE(proc: ast.SPE, boundArgs: string[]): boolean{
+	boundArgs.push("now")//now is technically a variable but it's always bound/non-null
 	switch(proc.kind){
 
 		case ast.ASTKinds.SPE_Guard: { const Proc = (proc as ast.SPE_Guard)
-			if(!CheckDEFull(Proc.dataExp)){CheckSPE(Proc.nextproc); return false}
+			if(!CheckDEFull(Proc.dataExp, boundArgs)){CheckSPE(Proc.nextproc, boundArgs); return false}
 			const DEType = Proc.dataExp.type
 			//guard DE must be bool
-			if(!(AreIdenticalTypes(DEType, boolType.typeExpr))){
-				createErrorMessage(`Guard requires type "Bool" but got "${TypeAsString(DEType)}" instead.`, Proc.DEStart.line, Proc.DEStart.offset, Proc.DEEnd.line, Proc.DEEnd.offset)
-				CheckSPE(Proc.nextproc); return false
+			if(!AreIdenticalTypes(DEType, boolType.typeExpr)){
+				createErrorMessage(`Guard requires type "Bool" but got "${TypeAsString(DEType)}" instead.`, Proc.pos["DEStart"], Proc.pos["DEEnd"])
+				CheckSPE(Proc.nextproc, boundArgs); return false
 			}
-			return CheckSPE(Proc.nextproc)
+			return CheckSPE(Proc.nextproc, boundArgs)
 		}
 
 		case ast.ASTKinds.SPE_Assign: { const Proc = (proc as ast.SPE_Assign)
-			const v = getVariable(Proc.name, true, Proc.nameStart)
-			if(v == null){CheckSPE(Proc.nextproc); return false}
-			else{
-				Proc.variable = (v as ast.Variable)
+			var l = CheckVarExpression(Proc.variableExp); var r = CheckDEFull(Proc.dataExpAssign, boundArgs)
+			var success = l && r
+			if(!success){CheckSPE(Proc.nextproc, boundArgs); return false }
+			if(Proc.variableExp.type != null){ //if success is true, this won't happen, but feel it's better to keep this check in
+				if(!AreIdenticalTypes(Proc.variableExp.type, Proc.dataExpAssign.type)){
+					createErrorMessage(`Variable expression and data expression must have the same type. VE has type "${TypeAsString(Proc.variableExp.type)}", DE has type "${TypeAsString(Proc.dataExpAssign.type)}"`, Proc.pos["assignExpStart"], Proc.pos["end"])
+					CheckSPE(Proc.nextproc, boundArgs); return false
+				}
 			}
-			if(!CheckDEFull(Proc.dataExpAssign)){ CheckSPE(Proc.nextproc); return false}
-			if(!AreIdenticalTypes(Proc.variable.typeExpr, Proc.dataExpAssign.type)){
-				createErrorMessage(`Data expression and variable must have the same type. DE has type "${TypeAsString(Proc.dataExpAssign.type)}", var has type "${TypeAsString(Proc.variable.typeExpr)}"`, Proc.nameStart.line, Proc.nameStart.offset, Proc.end.line, Proc.end.offset)
-				CheckSPE(Proc.nextproc); return false
-			}
-			return CheckSPE(Proc.nextproc)
+			return CheckSPE(Proc.nextproc, boundArgs)
 		}
 
 		case ast.ASTKinds.SPE_Unicast: { const Proc = (proc as ast.SPE_Unicast)
-			if(!CheckDEFull(Proc.dataExpL)){CheckSPE(Proc.procA); CheckSPE(Proc.procB); return false}
-			if(!CheckDEFull(Proc.dataExpR)){CheckSPE(Proc.procA); CheckSPE(Proc.procB); return false}
+			if(!CheckDEFull(Proc.dataExpL, boundArgs)){CheckSPE(Proc.nextproc, boundArgs); return false}
+			if(!CheckDEFull(Proc.dataExpR, boundArgs)){CheckSPE(Proc.nextproc, boundArgs); return false}
 			const DELType = Proc.dataExpL.type; const DERType = Proc.dataExpR.type
 
 			if(!AreIdenticalTypes(DELType, ipType.typeExpr)){
-				createErrorMessage(`Expected type "IP" but got "${TypeAsString(DELType)}" instead.`, Proc.DELstart.line, Proc.DELstart.offset, Proc.DELend.line, Proc.DELend.offset)
-				CheckSPE(Proc.procA); CheckSPE(Proc.procB); return false
+				createErrorMessage(`Unicast expected type "IP" but got "${TypeAsString(DELType)}" instead.`, Proc.pos["DELstart"], Proc.pos["DELend"])
+				CheckSPE(Proc.nextproc, boundArgs); return false
 			}
 			if(!AreIdenticalTypes(DERType, msgType.typeExpr)){
-				createErrorMessage(`Expected type "MSG" but got "${TypeAsString(DERType)}" instead.`, Proc.DELend.line, Proc.DELend.offset+2, Proc.DERend.line, Proc.DERend.offset)
-				CheckSPE(Proc.procA); CheckSPE(Proc.procB); return false
+				createErrorMessage(`Unicast expected type "MSG" but got "${TypeAsString(DERType)}" instead.`, Proc.pos["DELend"], Proc.pos["DERend"])
+				CheckSPE(Proc.nextproc, boundArgs); return false
 			}
-			return CheckSPE(Proc.procA) && CheckSPE(Proc.procB)
+			return CheckSPE(Proc.nextproc, boundArgs);
 		}
 
 		case ast.ASTKinds.SPE_Groupcast: { const Proc = (proc as ast.SPE_Groupcast)
-			if(!CheckDEFull(Proc.dataExpL)){CheckSPE(Proc.nextproc); return false}
-			if(!CheckDEFull(Proc.dataExpR)){CheckSPE(Proc.nextproc); return false}
+			if(!CheckDEFull(Proc.dataExpL, boundArgs)){CheckSPE(Proc.nextproc, boundArgs); return false}
+			if(!CheckDEFull(Proc.dataExpR, boundArgs)){CheckSPE(Proc.nextproc, boundArgs); return false}
 			const DELType = Proc.dataExpL.type; const DERType = Proc.dataExpR.type
-			const powIPType = new ast.TE_Pow(dpar, dpos, ipType.typeExpr)
+			const powIPType = new ast.TE_Pow(ipType.typeExpr)
 
 			if(!AreIdenticalTypes(DELType, powIPType)){
-				createErrorMessage(`Expected type "Pow(IP)" but got "${TypeAsString(DELType)}" instead.`, Proc.DELstart.line, Proc.DELstart.offset, Proc.DELend.line, Proc.DELend.offset)
-				CheckSPE(Proc.nextproc); return false
+				createErrorMessage(`Groupcast expected type "Pow(IP)" but got "${TypeAsString(DELType)}" instead.`, Proc.pos["DELstart"], Proc.pos["DELend"])
+				CheckSPE(Proc.nextproc, boundArgs); return false
 			}
 			if(!AreIdenticalTypes(DERType, msgType.typeExpr)){	
-				createErrorMessage(`Expected type "MSG" but got "${TypeAsString(DERType)}" instead.`, Proc.DELend.line, Proc.DELend.offset+2, Proc.DERend.line, Proc.DERend.offset)
-				CheckSPE(Proc.nextproc); return false
+				createErrorMessage(`Groupcast expected type "MSG" but got "${TypeAsString(DERType)}" instead.`, Proc.pos["DELend"], Proc.pos["DERend"])
+				CheckSPE(Proc.nextproc, boundArgs); return false
 			}
-			return CheckSPE(Proc.nextproc)
+			return CheckSPE(Proc.nextproc, boundArgs)
 		}
 
 		case ast.ASTKinds.SPE_Broadcast: { const Proc = (proc as ast.SPE_Broadcast)
-			if(!CheckDEFull(Proc.dataExp)){CheckSPE(Proc.nextproc); return false}
+			if(!CheckDEFull(Proc.dataExp, boundArgs)){CheckSPE(Proc.nextproc, boundArgs); return false}
 			const DEType = Proc.dataExp.type
 
 			if(!AreIdenticalTypes(DEType, msgType.typeExpr)){
-				createErrorMessage(`Expected type "MSG" but got "${TypeAsString(DEType)}" instead.`, Proc.DEstart.line, Proc.DEstart.offset, Proc.DEend.line, Proc.DEend.offset)
-				CheckSPE(Proc.nextproc); return false
+				createErrorMessage(`Broadcast expected type "MSG" but got "${TypeAsString(DEType)}" instead.`, Proc.pos["DEstart"], Proc.pos["DEend"])
+				CheckSPE(Proc.nextproc, boundArgs); return false
 			}
-			return CheckSPE(Proc.nextproc)
+			return CheckSPE(Proc.nextproc, boundArgs)
 		}
 
 		case ast.ASTKinds.SPE_Send: { const Proc = (proc as ast.SPE_Send)
-			if(!CheckDEFull(Proc.dataExp)){CheckSPE(Proc.nextproc); return false}
+			if(!CheckDEFull(Proc.dataExp, boundArgs)){CheckSPE(Proc.nextproc, boundArgs); return false}
 			const DEType = Proc.dataExp.type
 
 			if(!AreIdenticalTypes(DEType, msgType.typeExpr)){
-				createErrorMessage(`Expected type "MSG" but got "${TypeAsString(DEType)}" instead.`, Proc.DEstart.line, Proc.DEstart.offset, Proc.DEend.line, Proc.DEend.offset)
-				CheckSPE(Proc.nextproc); return false
+				createErrorMessage(`Send expected type "MSG" but got "${TypeAsString(DEType)}" instead.`, Proc.pos["DEstart"], Proc.pos["DEend"])
+				CheckSPE(Proc.nextproc, boundArgs); return false
 			}
-			return CheckSPE(Proc.nextproc)
+			return CheckSPE(Proc.nextproc, boundArgs)
 		}
 
 		case ast.ASTKinds.SPE_Deliver: { const Proc = (proc as ast.SPE_Deliver)
-			if(!CheckDEFull(Proc.dataExp)){CheckSPE(Proc.nextproc); return false}
+			if(!CheckDEFull(Proc.dataExp, boundArgs)){CheckSPE(Proc.nextproc, boundArgs); return false}
 			const DEType = Proc.dataExp.type
 
 			if(!AreIdenticalTypes(DEType, dataType.typeExpr)){
-				createErrorMessage(`Expected type "DATA" but got "${TypeAsString(DEType)}" instead.`, Proc.DEstart.line, Proc.DEstart.offset, Proc.DEend.line, Proc.DEend.offset)
-				CheckSPE(Proc.nextproc); return false
+				createErrorMessage(`Deliver expected type "DATA" but got "${TypeAsString(DEType)}" instead.`, Proc.pos["DEstart"], Proc.pos["DEend"])
+				CheckSPE(Proc.nextproc, boundArgs); return false
 			}
-			return CheckSPE(Proc.nextproc)
+			return CheckSPE(Proc.nextproc, boundArgs)
 		}
 
 		case ast.ASTKinds.SPE_Receive: { const Proc = (proc as ast.SPE_Receive)
-			const v = getVariable(Proc.name, true, Proc.namePos)
-			if(v == null){CheckSPE(Proc.nextproc); return false}
+			const v = getVariable(Proc.name, Proc.pos["namePos"])
+			if(v == null){CheckSPE(Proc.nextproc, boundArgs); return false}
 			else{
+				boundArgs.push(v.name)
 				Proc.variable = (v as ast.Variable)
 			}
 			const varitype = Proc.variable.typeExpr
 
 			if(!AreIdenticalTypes(varitype, msgType.typeExpr)){
-				createErrorMessage(`Expected type "MSG" but got "${TypeAsString(varitype)}" instead.`, Proc.namePos.line, Proc.namePos.offset, Proc.nameEnd.line, Proc.nameEnd.offset)
-				CheckSPE(Proc.nextproc); return false
+				createErrorMessage(`Receive expected type "MSG" but got "${TypeAsString(varitype)}" instead.`, Proc.pos["namePos"], Proc.pos["nameEnd"])
+				CheckSPE(Proc.nextproc, boundArgs); return false
 			}
-			return CheckSPE(Proc.nextproc)
+			return CheckSPE(Proc.nextproc, boundArgs)
 		}
 
 		case ast.ASTKinds.SPE_Choice: { const Proc = (proc as ast.SPE_Choice)
-			var l = CheckSPE(Proc.left)
-			var r = CheckSPE(Proc.right)
+			var l = CheckSPE(Proc.left, boundArgs)
+			var r = CheckSPE(Proc.right, boundArgs)
 			return l && r
 		}
 
@@ -673,7 +707,7 @@ function CheckSPE(proc: ast.SPE): boolean{
 			if(Proc.name == Proc.curProcIn.name){
 				Proc.proc = Proc.curProcIn
 			}else{
-				var p = getProcess(Proc.name, true, Proc.posS)
+				var p = getProcess(Proc.name, Proc.pos["posS"])
 				if(p != null){
 					Proc.proc = p
 				}else{
@@ -682,25 +716,67 @@ function CheckSPE(proc: ast.SPE): boolean{
 			}
 			
 			for(var arg of Proc.args){
-				if (!CheckDEFull(arg)){success = false}
+				if (!CheckDEFull(arg, boundArgs)){success = false}
 			}
 
 			return success
+		}
+
+		case ast.ASTKinds.SPE_Brack: { const Proc = proc as ast.SPE_Brack
+			return CheckSPE(Proc.proc, boundArgs)
 		}
 
 		default: return false
 	}
 }
 
-//Expands out then checks a DE
-function CheckDEFull(de: ast.DE): boolean {
+function CheckVarExpression(varexp: ast.VariableExp): boolean{
+	var success = true; var leftType = null
+	const v = getVariable(varexp.name, varexp.pos["posS"])
+	if(v != null){
+		leftType = v.typeExpr
+	}else{success = false}
+
+	if(varexp.des.length == 0){
+		if(leftType != null){
+			varexp.type = leftType
+		}
+		return success
+	}
+
+	for (let i = 0; i < varexp.des.length; i++) {
+		const rightValid = CheckDEFull(varexp.des[i])
+		if(leftType != null){
+			if(![ast.ASTKinds.TE_FuncFull, ast.ASTKinds.TE_FuncPart].includes(leftType.kind)){
+				createErrorMessage(`This expression should be of a functional type, instead got ${TypeAsString(leftType)}.`, varexp.pos["posS"], i == 0? varexp.pos["posE"] : varexp.DEPosE[i-1])
+				success = false; leftType = null; break
+			};const LeftType = leftType as ast.TE_Function
+			if(rightValid){
+				if(!AreIdenticalTypes(LeftType.sigType, varexp.des[i].type)){
+					createErrorMessage(`Expected function signature to have type ${TypeAsString(varexp.des[i].type)}, but instead got ${TypeAsString(LeftType.sigType)}.`, varexp.DEPosS[i], varexp.DEPosE[i])
+					success = false; leftType = null; break
+				}
+				leftType = LeftType.outType
+			}
+		}
+	}
+	if(leftType != null){
+		varexp.type = leftType
+	}
+	return success
+}
+
+//Expands out then checks a DE.
+//If boundArgs are given, perform boundness calculations: add free arguments within guard 
+//SPEs to boundArgs as per AWN rules, and checks whether DE_Names referring to variables are bound.
+function CheckDEFull(de: ast.DE, boundArgs?: string[]): boolean {
 	var d = expandDataExpression(de)
 	if(d == null){
 		return false
 	}else{
 		de = d
 	}
-	if(CheckDataExpression(de) == false){return false}
+	if(CheckDataExpression(de, boundArgs) == false){return false}
 	return true
 }
 
@@ -729,12 +805,12 @@ function expandDataExpressionHelper(dataExp: ast.DE, aliasName?: string): boolea
 			if((dataExp as ast.DE_Name).name == aliasName){
 				//circular definition
 				invalidAliasesSingle.push(aliasName)
-				createErrorMessage( `"${dataExp}" contains a circular alias definition.`, (dataExp as ast.DE_Name).posS.line, (dataExp as ast.DE_Name).posS.offset)
+				createErrorMessage( `"${dataExp}" contains a circular alias definition.`, (dataExp as ast.DE_Name).pos["posS"], (dataExp as ast.DE_Name).pos["posS"])
 				return false
 			}
 		}
 
-		const result = getAliasSingle((dataExp as ast.DE_Name).name, false, dpos) //retrieve the equivalent
+		const result = getAliasSingle((dataExp as ast.DE_Name).name) //retrieve the equivalent
 		if(result == null){
 			//do nothing, the name could refer to something else.
 			return true
@@ -768,53 +844,65 @@ function expandDataExpressionHelper(dataExp: ast.DE, aliasName?: string): boolea
 //Evaluates and checks the data expression from the bottom up.
 //Also sets the type of the data expression.
 //Assumes that all data aliases have already been expanded out.
-function CheckDataExpression(de: ast.DE): boolean{
+//If boundArgs are given, perform boundness calculations: add free arguments within guard 
+//SPEs to boundArgs as per AWN rules, and checks whether DE_Names referring to variables are bound.
+function CheckDataExpression(de: ast.DE, boundArgs?: string[]): boolean{
 	switch(de.kind){
 		
 		case ast.ASTKinds.DE_Singleton: { const DE = (de as ast.DE_Singleton)
 			// {DE}
-			if(CheckDataExpression(DE.dataExp) == false){return false}
-			DE.type = new ast.TE_Pow(dpar, dpos, DE.dataExp.type)
+			if(CheckDataExpression(DE.dataExp, boundArgs) == false){return false}
+			DE.type = new ast.TE_Pow(DE.dataExp.type)
 			return true
 		}
 
 		case ast.ASTKinds.DE_Set: { const DE = (de as ast.DE_Set)
 			// {Name | DE}
-			if(CheckDataExpression(DE.dataExp) == false){return false}
-			const v = getVariable(DE.name, true, DE.posS)
-			if(v == null){return false}
+			const v = getVariable(DE.name, DE.pos["posS"])
+			//Name is bound for the following DE only, so just concat name to boundArgs in this function call instead of pushing
+			//Likewise for Partial, Exists, Lambda, Forall
+			if(CheckDataExpression(DE.dataExp, v == null ? boundArgs : boundArgs?.concat(v.name)) == false){return false}
+			
 			if(!AreIdenticalTypes(DE.dataExp.type, boolType.typeExpr)){
-				createErrorMessage( `Expected type "Bool" but got "${TypeAsString(DE.dataExp.type)}".`, DE.posS.line, DE.posS.offset)
+				createErrorMessage( `Expected type "Bool" but got "${TypeAsString(DE.dataExp.type)}".`, DE.pos["posS"])
 				return false
 			}
-			DE.type = new ast.TE_Pow(DE, v.posS, v.typeExpr)
+
+			if(v == null){return false}
+			DE.type = new ast.TE_Pow(v.typeExpr, DE, v.pos["posS"])
 			return true
 		}
 
 		case ast.ASTKinds.DE_Partial: { const DE = (de as ast.DE_Partial)
 			// {(Name, DE), DE}
-			if(CheckDataExpression(DE.left) == false || CheckDataExpression(DE.right) == false){return false}
-			const v = getVariable(DE.name, true, DE.posS)
-			if(v == null){return false}
+			const v = getVariable(DE.name, DE.pos["posS"])
+
+			var l = CheckDataExpression(DE.left, v == null ? boundArgs : boundArgs?.concat(v.name))
+			var r = CheckDataExpression(DE.right, v == null ? boundArgs : boundArgs?.concat(v.name))
+			if(!(l||r)){return false}
+
 			if(!AreIdenticalTypes(DE.right.type, boolType.typeExpr)){
-				createErrorMessage( `Expected type "Bool" but got "${TypeAsString(DE.right.type)}".`, DE.posS.line, DE.posS.offset)
+				createErrorMessage( `Expected type "Bool" but got "${TypeAsString(DE.right.type)}".`, DE.pos["posS"])
 				return false
 			}
+
+			if(v == null){return false}
 			DE.type = new ast.TE_FuncPart(DE, v.typeExpr, DE.left.type)
-			return false
+			return true
 		}
 
 		case ast.ASTKinds.DE_Lambda: {const DE = (de as ast.DE_Lambda)
 			// lambda Name . DE
 			var success = true
-			if(CheckDataExpression(DE.dataExp) == false){success = false}
-
-			const v = getVariable(DE.name, true, DE.namePos)
+			const v = getVariable(DE.name, DE.pos["namePos"])
 			if(v == null){
 				success = false
 			}else{
 				DE.variable = v
 			}
+
+			if(CheckDataExpression(DE.dataExp, boundArgs?.concat(DE.variable?.name)) == false){success = false}
+
 			if(!success){return false}
 
 			DE.type = new ast.TE_FuncFull(DE, DE.variable.typeExpr, DE.dataExp.type)
@@ -824,22 +912,24 @@ function CheckDataExpression(de: ast.DE): boolean{
 		case ast.ASTKinds.DE_Forall: {const DE = (de as ast.DE_Forall)
 			// forall Name . DE
 			var success = true
-			if(CheckDataExpression(DE.dataExp) == false){success = false}
 
-			const v = getVariable(DE.name, true, DE.namePos)
+			const v = getVariable(DE.name, DE.pos["namePos"])
 			if(v == null){
 				success = false
 			}else{
 				DE.variable = v
 			}
+
+			if(CheckDataExpression(DE.dataExp, boundArgs?.concat(DE.variable?.name)) == false){success = false}
+
 			if(!success){return false}
 
 			if(!AreIdenticalTypes(DE.dataExp.type, boolType.typeExpr)){
-				createErrorMessage( `Expected type "Bool" but got "${TypeAsString(DE.dataExp.type)}".`, DE.namePos.line, DE.namePos.offset)
+				createErrorMessage( `Expected type "Bool" but got "${TypeAsString(DE.dataExp.type)}".`, DE.pos["namePos"])
 				return false
 			}
 
-			DE.type = new ast.TE_Name(DE, "Bool", (DE.dataExp.type as ast.TE_Name).posS, (DE.dataExp.type as ast.TE_Name).posE)
+			DE.type = new ast.TE_Name("Bool", DE, (DE.dataExp.type as ast.TE_Name).pos["posS"], (DE.dataExp.type as ast.TE_Name).pos["posE"])
 			var t = (DE.type as ast.TE_Name); t.typeExpr = boolType.typeExpr
 			return true
 		}
@@ -847,65 +937,93 @@ function CheckDataExpression(de: ast.DE): boolean{
 		case ast.ASTKinds.DE_Exists: {const DE = (de as ast.DE_Exists)
 			// exists Name . DE
 			success = true
-			if(CheckDataExpression(DE.dataExp) == false){success = false}
 
-			const v = getVariable(DE.name, true, DE.namePos)
+			const v = getVariable(DE.name, DE.pos["namePos"])
 			if(v == null){
 				success = false
 			}else{
 				DE.variable = v
 			}
+
+			if(CheckDataExpression(DE.dataExp, boundArgs?.concat(DE.variable?.name)) == false){success = false}
+			
 			if(!success){return false}
 
 			if(!AreIdenticalTypes(DE.dataExp.type, boolType.typeExpr)){
-				createErrorMessage( `Expected type "Bool" but got "${TypeAsString(DE.dataExp.type)}".`, DE.namePos.line, DE.namePos.offset)
+				createErrorMessage( `Expected type "Bool" but got "${TypeAsString(DE.dataExp.type)}".`, DE.pos["namePos"])
 				return false
 			}
 
-			DE.type = new ast.TE_Name(DE, "Bool", (DE.dataExp.type as ast.TE_Name).posS, (DE.dataExp.type as ast.TE_Name).posE)
+			DE.type = new ast.TE_Name("Bool", DE, (DE.dataExp.type as ast.TE_Name).pos["posS"], (DE.dataExp.type as ast.TE_Name).pos["posE"])
 			var t = (DE.type as ast.TE_Name); t.typeExpr = boolType.typeExpr
 			return true
 		}
 
 		case ast.ASTKinds.DE_Brack: {const DE = (de as ast.DE_Brack)
-			if(CheckDataExpression(DE.dataExp) == false){return false}
+			if(CheckDataExpression(DE.dataExp, boundArgs) == false){return false}
 			DE.type = DE.dataExp.type
 			return true
 		}
 
 		case ast.ASTKinds.DE_Name: {const DE = (de as ast.DE_Name)
 			//all this does is set the type and what it refers to, which is all is needed
-			const c = getConstant(DE.name, false, DE.posS)
+			var c = getConstant(DE.name)
 			if(c != null){
 				DE.type = c.typeExpr
 				DE.refersTo = ast.ASTKinds.Constant
 				return true
 			}
-			const v = getVariable(DE.name, false, DE.posS)
+			if(invalidConstants.includes(DE.name)){
+				DE.refersTo = ast.ASTKinds.Constant
+				return false
+			}
+			var v = getVariable(DE.name)
 			if(v != null){
 				DE.type = v.typeExpr
 				DE.refersTo = ast.ASTKinds.Variable
+				if(boundArgs != null){
+					if(!boundArgs.includes(v.name)){
+						createErrorMessage(`Variable "${v.name}" is not bound here.`, DE.pos["posS"])
+						return true //return true because the variable's type is still valid, so we can still work with it for the sake of semantics. The error is still sent.
+					}
+				}
 				return true
 			}
-			const f = getFunction(DE.name, false, DE.posS)
+			if(invalidVariables.includes(DE.name)){
+				DE.refersTo = ast.ASTKinds.Variable
+				return false
+			}
+			var f = getFunction(DE.name)
 			if(f != null){
-				DE.type = f.type
+				DE.type = f[0].type
 				DE.refersTo = ast.ASTKinds.Function_Prefix
 				return true
 			}
-			const asi = getAliasSingle(DE.name, false, DE.posS)
+			if(invalidFunctions.includes(DE.name)){
+				DE.refersTo = ast.ASTKinds.Function_Prefix
+				return false
+			}
+			var asi = getAliasSingle(DE.name)
 			if(asi != null){
 				DE.type = asi.dataExp.type
 				DE.refersTo = ast.ASTKinds.Alias_Data
 				return true
 			}
-			const ali = getAliasList(DE.name, false, DE.posS)
+			if(invalidAliasesSingle.includes(DE.name)){
+				DE.refersTo = ast.ASTKinds.Alias_Data
+				return false
+			}
+			var ali = getAliasList(DE.name)
 			if(ali != null){
 				DE.refersTo = ast.ASTKinds.Alias_List
 				return true
 			}
+			if(invalidAliasesList.includes(DE.name)){
+				DE.refersTo = ast.ASTKinds.Alias_List
+				return false
+			}
 			
-			createErrorMessage(`Nonexistent identifier "${DE.name}" referenced.`, DE.posS.line, DE.posS.offset)
+			createErrorMessage(`Could not find identifier "${DE.name}".`, DE.pos["posS"])
 			return false
 		}
 		
@@ -913,7 +1031,7 @@ function CheckDataExpression(de: ast.DE): boolean{
 			// Name(DE)
 
 			//first, find the arguments' type. if the arguments aren't a DE_tuple, make it a DE_tuple with one element
-			if(CheckDataExpression(DE.dataExp) == false){
+			if(CheckDataExpression(DE.dataExp, boundArgs) == false){
 				return false
 			}else{
 				if(DE.dataExp.kind == ast.ASTKinds.DE_Tuple){
@@ -924,18 +1042,17 @@ function CheckDataExpression(de: ast.DE): boolean{
 					tuple.dataExps = [DE.dataExp]
 					DE.arguments = tuple
 	
-					var argtype = new ast.TE_Product(DE)
-					argtype.children = [DE.dataExp.type]
+					var argtype = new ast.TE_Product([DE.dataExp.type])
 					DE.arguments.type = argtype
 				}
 			}
 
 			//find the function that has the same sigtype as the arguments' type
-			const f = getFunction(DE.name, true, DE.sigStart, DE.arguments.type)
+			const f = getFunction(DE.name, DE.arguments.type, DE.pos["sigStart"])
 			if(f != null){
-				DE.function = f
+				DE.function = f[0]
 			}else{
-				createErrorMessage(`Could not find a function "${DE.name}" that has signature \n"${TypeAsString(DE.arguments.type)}".`, DE.sigStart.line, DE.sigStart.offset)
+				createErrorMessage(`Could not find a function named "${DE.name}" with function signature: "${TypeAsString(DE.arguments.type)}"`,DE.pos["sigStart"])
 				return false
 			}
 			
@@ -945,36 +1062,36 @@ function CheckDataExpression(de: ast.DE): boolean{
 
 		case ast.ASTKinds.DE_Infix: {const DE = (de as ast.DE_Function_Infix)
 			//DE Infix DE
-			var l = CheckDataExpression(DE.left)
-			var r = CheckDataExpression(DE.right)
+			var l = CheckDataExpression(DE.left, boundArgs)
+			var r = CheckDataExpression(DE.right, boundArgs)
 			if(!(l && r)){return false}
 
 			//retrieve function with type l x r
-			const expectedtype = new ast.TE_Product(dpar, [DE.left.type, DE.right.type])
-			const f = getFunction(DE.function.name, true, DE.sigStart, expectedtype)
+			const expectedtype = new ast.TE_Product([DE.left.type, DE.right.type])
+			const f = getFunction(DE.function.name, expectedtype, DE.pos["sigStart"])
 			if(f != null){
-				DE.function = f
+				DE.function = f[0]
 			}else{
-				createErrorMessage(`Could not find a function named "${DE.function.name}" that has signature \n"${TypeAsString(DE.left.type)} x ${TypeAsString(DE.right.type)}".`, DE.sigStart.line, DE.sigStart.offset)
+				createErrorMessage(`Could not find a function named "${DE.function.name}" with function signature: \n"${TypeAsString(expectedtype)}"`, DE.pos["sigStart"], DE.pos["sigEnd"])
 				return false
 			}
 
 			//for special predefined ones (=, !=, isElem), make sure arguments match each other in the right way
 			if(DE.function.name == "=" || DE.function.name == "!="){
 				if(!AreIdenticalTypes(DE.left.type, DE.right.type)){
-					createErrorMessage(`"${DE.function.name}" requires that left and right types are identical. Got ${TypeAsString(DE.left.type)} x ${TypeAsString(DE.right.type)}`, DE.sigStart.line, DE.sigStart.offset)
+					createErrorMessage(`"${DE.function.name}" requires that left and right types are identical. Got ${TypeAsString(expectedtype)}`, DE.pos["sigStart"], DE.pos["sigEnd"])
 					return false
 				}
 			}
 			if(DE.function.name == "isElem"){
-				const powofleft = new ast.TE_Pow(dpar, dpos, DE.left.type)
+				const powofleft = new ast.TE_Pow(DE.left.type)
 				if(!AreIdenticalTypes(powofleft, DE.right.type)){
-					createErrorMessage(`"${DE.function.name}" requires a type signature of style T x Pow(T). Got ${TypeAsString(DE.left.type)} x ${TypeAsString(DE.right.type)}`, DE.sigStart.line, DE.sigStart.offset)
+					createErrorMessage(`"isElem" requires a type signature of style T x Pow(T). Got ${TypeAsString(expectedtype)}`, DE.pos["sigStart"], DE.pos["sigEnd"])
 					return false
 				}
 			}
 
-			DE.type = f.outType
+			DE.type = f[0].outType
 			return true
 		}
 
@@ -982,14 +1099,14 @@ function CheckDataExpression(de: ast.DE): boolean{
 			var success = true
 			var childtypes: ast.TE[] = []
 			for(const child of DE.dataExps){
-				if(CheckDataExpression(child)){
+				if(CheckDataExpression(child, boundArgs)){
 					childtypes.push(child.type)
 				}else{
 					success = false
 				}
 			}
 			if(success){
-				DE.type = new ast.TE_Product(DE, childtypes)
+				DE.type = new ast.TE_Product(childtypes, DE)
 				return true
 			}
 			return false
@@ -1003,12 +1120,12 @@ function CheckListAlias(alias: ast.Alias_List): boolean{
 	var argsSoFar: string[] = []; var i = 0
 	for(const vari of alias.argNames){
 		if(argsSoFar.includes(vari)){
-			createErrorMessage(`"${vari}" is duplicated in this list alias.`, alias.argsPosS[i].line, alias.argsPosS[i].offset)
+			createErrorMessage(`"${vari}" is duplicated in this list alias.`, {line: alias.argsPosS[i].line, offset: alias.argsPosS[i].offset, overallPos: 0})
 			success = false;
 			i++; continue;
 		}
 		argsSoFar.push(vari)
-		var v = getVariable(vari, true, alias.argsPosS[i])
+		var v = getVariable(vari, alias.argsPosS[i])
 		if(v == null){success = false; i++; continue}
 		alias.args.push(v); i++
 	}
@@ -1083,8 +1200,8 @@ function AreIdenticalTypes(type1: ast.TE, type2: ast.TE): boolean{
 	return areIdentical
 }
 
-//Prints out a TE as a well-formatted string, useful for error messages.
-function TypeAsString(type: ast.TE): string{
+//Prints out a TE as a well-formatted string.
+function TypeAsString(type: ast.TE | null): string{
 	if(type == null){ return "null"}
 	switch(type.kind){
 		case ast.ASTKinds.TE_Name: { const Type = type as ast.TE_Name
@@ -1131,33 +1248,93 @@ function TypeAsString(type: ast.TE): string{
 	}
 }
 
+//Prints out a Data Expression as a nicely formatted string.
+function DeAsString(de: ast.DE): string{
+	switch(de.kind){
+		case ast.ASTKinds.DE_Brack: { const DE = de as ast.DE_Brack
+			return "(" + DeAsString(DE.dataExp) + ")"
+		}
+
+		case ast.ASTKinds.DE_Exists: {const DE = de as ast.DE_Exists
+			return "exists " + DE.name + " . " + DeAsString(DE.dataExp)
+		}
+
+		case ast.ASTKinds.DE_Forall: {const DE = de as ast.DE_Forall
+			return "forall " + DE.name + " . " + DeAsString(DE.dataExp)
+		}
+
+		case ast.ASTKinds.DE_Lambda: {const DE = de as ast.DE_Lambda
+			return "lambda " + DE.name + " . " + DeAsString(DE.dataExp)
+		}
+
+		case ast.ASTKinds.DE_Singleton: {const DE = de as ast.DE_Singleton
+			return "{" + DeAsString(DE.dataExp) + "}"
+		}
+
+		case ast.ASTKinds.DE_Set: {const DE = de as ast.DE_Set
+			return "{" + DE.name + " | " + DeAsString(DE.dataExp) + "}"
+		}
+
+		case ast.ASTKinds.DE_Partial: {const DE = de as ast.DE_Partial
+			return "{(" + DE.name + ", " + DeAsString(DE.left) + " | " + DeAsString(DE.right) + "}"
+		}
+
+		case ast.ASTKinds.DE_Function: {const DE = de as ast.DE_Function_Prefix
+			return DE.function.name + "(" + DeAsString(DE.arguments) + ")"
+		}
+
+		case ast.ASTKinds.DE_Infix: {const DE = de as ast.DE_Function_Infix
+			return DeAsString(DE.left) + " " + DE.function.name + " " + DeAsString(DE.right)
+		}
+
+		case ast.ASTKinds.DE_Tuple: {const DE = de as ast.DE_Tuple
+			var out = DeAsString(DE.dataExps[0])
+			for(let i = 1; i < DE.dataExps.length; i++){
+				out = out.concat(", ").concat(DeAsString(DE.dataExps[i]))
+			}
+			return out
+		}
+
+		case ast.ASTKinds.DE_Name: {const DE = de as ast.DE_Name
+			return DE.name
+		}
+		default: return ""
+	}
+}
+
 function usedNames(): string[]{
 	return types.map(x=>x.typeName).concat(invalidTypes)
 	.concat(variables.map(x=>x.name)).concat(invalidVariables)
 	.concat(constants.map(x=>x.name)).concat(invalidConstants)
 	.concat(functions.map(x=>x.name)).concat(invalidFunctions)
-	.concat(processes.map(x=>x.name)).concat(invalidProcesses)
+	.concat(processes.map(x=>x.name)).concat(invalidProcesses.map(x => x.name == null ? "" : x.name))
 	.concat(aliasesSingle.map(x=>x.name)).concat(invalidAliasesSingle)
 	.concat(aliasesList.map(x=>x.name)).concat(invalidAliasesList)
 }
 
-export function createErrorMessage(message: string, line: number, char: number, lineE?: number, charE?: number): void{
+//Adds an LSP error object to errors[], with message and range.
+//End position is optional, if not given then start/end become the same,
+//which is often fine as LSP maps to the borders of semantic tokens.
+export function createErrorMessage(message: string, start: PosInfo, ending?: PosInfo): void{
+	if(!inRootFile){return}
 	errors.push({
 		severity: DiagnosticSeverity.Error,
 		range: {
-			start: {line: line-1, character: char},
-			end: {line: lineE == null? line-1 : lineE-1, character: charE == null? char : charE}
+			start: {line: start.line-1, character: start.offset},
+			end: {line: ending == null? start.line-1 : ending.line-1, character: ending == null? start.offset : ending.offset}
 		},
 		message: message
 	});
 }
 
-export function createWarningMessage(message: string, line: number, char: number, lineE?: number, charE?: number): void{
+//Same as createErrorMessage, see immediately above
+export function createWarningMessage(message: string, start: PosInfo, ending?: PosInfo): void{
+	if(!inRootFile){return}
 	warnings.push({
 		severity: DiagnosticSeverity.Warning,
 		range: {
-			start: {line: line-1, character: char},
-			end: {line: lineE == null? line-1 : lineE-1, character: charE == null? char : charE}
+			start: {line: start.line-1, character: start.offset},
+			end: {line: ending == null? start.line-1 : ending.line-1, character: ending == null? start.offset : ending.offset}
 		},
 		message: message
 	});

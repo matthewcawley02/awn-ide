@@ -1,18 +1,24 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.removeComments = void 0;
+exports.prepareFile = void 0;
 const node_1 = require("vscode-languageserver/node");
 const vscode_languageserver_textdocument_1 = require("vscode-languageserver-textdocument");
 const parser_1 = require("./parser");
 const semanticTokens_1 = require("./semanticTokens");
 const convertAST_1 = require("./convertAST");
 const check_1 = require("./check");
+const fs = require("fs");
+//=============================================================
+// See here for documentation of LSP functionality:
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/
+//=============================================================
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
 const connection = (0, node_1.createConnection)(node_1.ProposedFeatures.all);
 // Create a simple text document manager.
 const documents = new node_1.TextDocuments(vscode_languageserver_textdocument_1.TextDocument);
 var diagnostics = [];
+//global variable to hold the output of semanticTokens, because LSP asks for document diagnostics and semantic tokens in different requests
 var semanticTokens = [];
 /* Handler for connection initialisation
    Client gives its capabilities through "InitializeParams"
@@ -34,7 +40,7 @@ connection.onInitialize((params) => {
             textDocumentSync: node_1.TextDocumentSyncKind.Incremental,
             hoverProvider: true,
             completionProvider: {
-                resolveProvider: true
+                resolveProvider: false //this is about additional info in the popup
             },
             diagnosticProvider: {
                 interFileDependencies: false,
@@ -47,9 +53,9 @@ connection.onInitialize((params) => {
             },
             semanticTokensProvider: {
                 legend: {
+                    //tokenTypes gives the colours I want, the comments undeneath are what I use each for.
                     tokenTypes: ['keyword', 'type', 'function', 'macro', 'variable', 'string', 'number', 'string', 'comment'],
                     //			  keyword    type    function  constant   variable    string    process    alias    comment
-                    //tokenTypes: ['keyword'],
                     tokenModifiers: []
                 },
                 full: true
@@ -90,9 +96,6 @@ function getDocumentSettings(resource) {
 documents.onDidClose(e => {
     documentSettings.delete(e.document.uri);
 });
-documents.onDidChangeContent(change => {
-    //validateTextDocument(change.document); //something else already triggers validateTextDocument. Not sure what, but uncommenting this makes it run twice
-});
 //Handler for the "document diagnostic" request from the client
 //If the document exists, attempts to validate it and returns the result
 connection.languages.diagnostics.on(async (params) => {
@@ -110,20 +113,32 @@ connection.languages.diagnostics.on(async (params) => {
         };
     }
 });
-//Request occurs every time the document changes
+//Request for semantic tokens, occurs every time the document changes.
 //Through testing, this is sent AFTER validateTextDocument returns,
-//which makes it safe to just use the global semanticTokens variable that it sets
+//which makes it safe to just use the global variable from that.
 connection.onRequest("textDocument/semanticTokens/full", (params) => {
     return {
         data: semanticTokens.flat()
     };
 });
-//called whenever there is a change in the document. parses and checks for semantic errors
-//also sets semantic tokens, as the semantic tokens request occurs entirely after this one
+//Called whenever there is a change in the document. Parses and checks for semantic errors, and calculates semantic tokens.
+//Sets the semantic tokens as a global variable, because LSP sends the semantic tokens
+//request separately, but I want to calculate semantic tokens here with everything else.
 async function validateTextDocument(textDocument) {
-    const settings = await getDocumentSettings(textDocument.uri);
-    console.log("-------------------------- DOCUMENT CHANGE -------------------------------");
-    let problems = 0;
+    return checkDocumentAndSemantTokens(textDocument);
+}
+//when focused file changes, check document/semantic tokens, and force semantic token request
+connection.onNotification("awn/activeDocumentChanged", (params) => {
+    const uri = params.uri;
+    const document = documents.get(uri);
+    if (document) {
+        checkDocumentAndSemantTokens(document);
+        connection.sendRequest("workspace/semanticTokens/refresh"); //force semantic token refresh
+    }
+});
+//Checks document, as well as setting the global variable semanticTokens[][] to that doc's semantic tokens.
+function checkDocumentAndSemantTokens(textDocument) {
+    console.log("=== CheckDoc&SemantTokens ===");
     diagnostics = [];
     semanticTokens = [];
     (0, semanticTokens_1.resetSemanticTokens)();
@@ -131,10 +146,9 @@ async function validateTextDocument(textDocument) {
     text = text.split('').filter(c => c !== "\r").join(''); //remove \r so we don't have to deal with it later. \r\n becomes \n
     text = removeComments(text, true);
     const parseResult = (0, parser_1.parse)(text.concat("\n")); //concat "\n" is a hacky way to get around the grammar's requirement of newline at the end
-    //if parsing itself fails, return syntax error diagnostics from parser.js
+    //if syntax parsing fails, return syntax error diagnostics from parser.ts
     if (parseResult.errs.length > 0) {
-        while (problems < settings.maxNumberOfProblems && problems < parseResult.errs.length) {
-            const problem = parseResult.errs[problems];
+        for (const problem of parseResult.errs) {
             const diagnostic = {
                 severity: node_1.DiagnosticSeverity.Error,
                 range: {
@@ -144,7 +158,6 @@ async function validateTextDocument(textDocument) {
                 message: problem.toString()
             };
             diagnostics.push(diagnostic);
-            problems++;
         }
         return diagnostics;
     }
@@ -153,18 +166,35 @@ async function validateTextDocument(textDocument) {
         console.log("original AST:\n", parseResult.ast);
         const newast = (0, convertAST_1.convertNewToOldAST)(parseResult.ast);
         console.log("converted AST:\n", newast);
-        (0, check_1.InitialiseCheck)();
-        const filename = textDocument.uri.split('/').pop();
-        if (filename != null) { //it will never be null, btw
-            diagnostics = (0, check_1.Check)(newast, true, filename);
+        (0, check_1.InitialiseSingleCheck)();
+        const filepath = decodeURIComponent(textDocument.uri.replace("file:///", ""));
+        if (filepath != null) { //it will never be null, btw
+            diagnostics = (0, check_1.Check)(newast, true, filepath);
         }
-        (0, semanticTokens_1.getSemantTokens)(newast);
-        semanticTokens = (0, semanticTokens_1.convertAbstoRelTokens)();
+        semanticTokens = (0, semanticTokens_1.getSemanticTokens)(newast);
     }
     console.log("Diagnostics:", diagnostics);
     console.log("Semantic Tokens", semanticTokens);
     return diagnostics;
 }
+//Prepares an .awn file, used for includes by check.ts
+function prepareFile(filepath) {
+    if (!fs.existsSync(filepath)) {
+        return 0;
+    }
+    var text = fs.readFileSync(filepath, "utf-8");
+    text = text.split('').filter(c => c !== "\r").join('');
+    text = removeComments(text, false);
+    const parseResult = (0, parser_1.parse)(text.concat("\n"));
+    if (parseResult.ast == null) {
+        return 1;
+    }
+    return (0, convertAST_1.convertNewToOldAST)(parseResult.ast);
+}
+exports.prepareFile = prepareFile;
+//Removes commented parts of an .awn file from the file.
+//If syntaxHighlight, then send semantic tokens for the
+//comments to semanticTokens.ts.
 function removeComments(doc, syntaxHighlight) {
     var output = "";
     var row = 1;
@@ -212,7 +242,6 @@ function removeComments(doc, syntaxHighlight) {
     }
     return output;
 }
-exports.removeComments = removeComments;
 function getLengthOfSingleComment(startchar, doc) {
     for (let i = startchar; i < doc.length; i++) {
         if (i + 1 == doc.length || doc[i] == "\n") {
@@ -263,12 +292,13 @@ connection.onHover((params) => {
         }
     };
 });
+//Gets the word a user is hovering over with their cursor
+//(characters it looks for are those allowed as a name by AWN)
 function getWordAtPosition(document, position) {
     const text = document.getText();
     const offset = document.offsetAt(position);
-    // (/^[\w&|<>!-=]+/)
-    const match = text.slice(offset).match(/^[\w&|<>\-!=]+/);
-    const beforeMatch = text.slice(0, offset).match(/[\w&|<>\-!=]+$/);
+    const match = text.slice(offset).match(/^[\w&|<>\-!=\+:]+/);
+    const beforeMatch = text.slice(0, offset).match(/[\w&|<>\-!=\+:]+$/);
     if (!match && !beforeMatch)
         return null;
     const startOffset = beforeMatch ? offset - beforeMatch[0].length : offset;

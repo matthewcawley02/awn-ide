@@ -1,0 +1,50 @@
+include types.awn
+include hello.awn
+include dbd.awn
+include req.awn
+include upd.awn
+include ack.awn
+
+proc OSPF(ip,nbrs,lsdb,hello_t) :=
+  receive(msg).
+  (
+    [ msg = hello(ips,sip) ]
+      HELLO(ips,sip,ip,nbrs,lsdb,hello_t)
+    + [ msg = dbd(lsa_hdrs,sqn,ibit,sip) ]
+      DBD(lsa_hdrs,sqn,ibit,sip,ip,nbrs,lsdb,hello_t)
+    + [ msg = req(lhdr,sip) ]
+      REQ(lhdr,sip,ip,nbrs,lsdb,hello_t)
+    + [ msg = upd(lsas,sip) ]
+      UPD(lsas,sip,ip,nbrs,lsdb,hello_t)
+    + [ msg = ack(lsa_hdrs,sip) ]
+      ACK(lsa_hdrs,sip,ip,nbrs,lsdb,hello_t)
+  )
+  + [ now >= hello_t ]
+    [[ hello_t := now + hello_intvl ]]
+    send(sndmsg(genHELLO(nips,ip),emptySet)).
+    OSPF(ip,nbrs,lsdb,hello_t)
+  + [ deadNBRS(nbrs,now) != emptySet ]
+    [[ nbrs := nbrs-deadNBRS(nbrs,now) ]]
+    [[ lsa := newLSA(ip,now,nbrs) ]]
+    [[ lsdb := install(lsdb,{lsa}) ]]
+    [[ nbrs := updRXMTS(nbrs,{lsa}) ]]
+    send(sndmsg(upd({lsa},ip),floodNIPS(nbrs))).
+    OSPF(ip,nbrs,lsdb,hello_t)
+  + [ nip = ddNIP(nbrs,now,ip) ]
+    [[ nbrs := setDDT(nbrs,nip,now + rxmt_intvl) ]]
+    send(sndmsg(genDBD(nbrs,lsdb,nip,ip),{nip})).
+    OSPF(ip,nbrs,lsdb,hello_t)
+  + [ nip = reqNIP(nbrs,now) ]
+    [[ nbrs := setREQT(nbrs,nip,now + rxmt_intvl) ]]
+    send(sndmsg(req(select(getREQS(nbrs,nip)),ip),{nip})).
+    OSPF(ip,nbrs,lsdb,hello_t)
+  + [ nip = rxmtNIP(nbrs,now) ]
+    [[ nbrs := setRXMTT(nbrs,nip,now + rxmt_intvl) ]]
+    send(sndmsg(genRXMT(nbrs,nip,ip),{nip})).
+    OSPF(ip,nbrs,lsdb,hello_t)
+  + [ !(lsaExist(lsdb, (ip,now - refresh_intvl))) ]
+    [[ lsa := newLSA(ip,now,nbrs) ]]
+    [[ lsdb := install(lsdb,{lsa}) ]]
+    [[ nbrs := updRXMTS(nbrs,{lsa}) ]]
+    send(sndmsg(upd({lsa},ip),floodNIPS(nbrs))).
+    OSPF(ip,nbrs,lsdb,hello_t)

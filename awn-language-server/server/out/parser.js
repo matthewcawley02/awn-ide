@@ -48,6 +48,7 @@ var ASTKinds;
     ASTKinds["SPE_10"] = "SPE_10";
     ASTKinds["SPE_$0"] = "SPE_$0";
     ASTKinds["SPE_$1"] = "SPE_$1";
+    ASTKinds["SPE_$2"] = "SPE_$2";
     ASTKinds["SPE1"] = "SPE1";
     ASTKinds["DE_1"] = "DE_1";
     ASTKinds["DE_2"] = "DE_2";
@@ -231,11 +232,12 @@ class SPE_1 {
 }
 exports.SPE_1 = SPE_1;
 class SPE_2 {
-    constructor(posA, name, posB, posC, dataExpAssignment, posD, proc, procMore) {
+    constructor(posA, name, posB, ves, posC, dataExpAssignment, posD, proc, procMore) {
         this.kind = ASTKinds.SPE_2;
         this.posA = posA;
         this.name = name;
         this.posB = posB;
+        this.ves = ves;
         this.posC = posC;
         this.dataExpAssignment = dataExpAssignment;
         this.posD = posD;
@@ -248,7 +250,7 @@ class SPE_2 {
 }
 exports.SPE_2 = SPE_2;
 class SPE_3 {
-    constructor(pos, posA, dataExpL, posB, dataExpR, posC, procL, procR, procMore) {
+    constructor(pos, posA, dataExpL, posB, dataExpR, posC, proc, procMore) {
         this.kind = ASTKinds.SPE_3;
         this.pos = pos;
         this.posA = posA;
@@ -256,8 +258,7 @@ class SPE_3 {
         this.posB = posB;
         this.dataExpR = dataExpR;
         this.posC = posC;
-        this.procL = procL;
-        this.procR = procR;
+        this.proc = proc;
         this.procMore = procMore;
         this.procType = (() => {
             return "unicast";
@@ -381,13 +382,15 @@ class SPE1 {
 }
 exports.SPE1 = SPE1;
 class DE_1 {
-    constructor(posS, name, posE, dataExpLeft, dataExpRight, dataExpMore) {
+    constructor(posS, name, posE, dataExpLeft, DEPosS, dataExpRight, DEPosE, dataExpMore) {
         this.kind = ASTKinds.DE_1;
         this.posS = posS;
         this.name = name;
         this.posE = posE;
         this.dataExpLeft = dataExpLeft;
+        this.DEPosS = DEPosS;
         this.dataExpRight = dataExpRight;
+        this.DEPosE = DEPosE;
         this.dataExpMore = dataExpMore;
         this.dataExpType = (() => {
             return "partial";
@@ -396,12 +399,14 @@ class DE_1 {
 }
 exports.DE_1 = DE_1;
 class DE_2 {
-    constructor(posS, name, posE, dataExpRight, dataExpMore) {
+    constructor(posS, name, posE, DEPosS, dataExpRight, DEPosE, dataExpMore) {
         this.kind = ASTKinds.DE_2;
         this.posS = posS;
         this.name = name;
         this.posE = posE;
+        this.DEPosS = DEPosS;
         this.dataExpRight = dataExpRight;
+        this.DEPosE = DEPosE;
         this.dataExpMore = dataExpMore;
         this.dataExpType = (() => {
             return "set";
@@ -782,6 +787,7 @@ class Parser {
             let $scope$include;
             let $$res = null;
             if (true
+                && this.matchos($$dpth + 1, $$cr) !== null
                 && ($scope$pos = this.mark()) !== null
                 && this.regexAccept(String.raw `(?:INCLUDES:)`, "", $$dpth + 1, $$cr) !== null
                 && ($scope$include = this.loopPlus(() => this.matchInclude($$dpth + 1, $$cr))) !== null) {
@@ -796,6 +802,7 @@ class Parser {
             let $scope$include;
             let $$res = null;
             if (true
+                && this.matchos($$dpth + 1, $$cr) !== null
                 && ($scope$pos = this.mark()) !== null
                 && this.regexAccept(String.raw `(?:include)`, "", $$dpth + 1, $$cr) !== null
                 && ($scope$include = this.matchInclude($$dpth + 1, $$cr)) !== null) {
@@ -810,6 +817,7 @@ class Parser {
             let $scope$type;
             let $$res = null;
             if (true
+                && this.matchos($$dpth + 1, $$cr) !== null
                 && ($scope$pos = this.mark()) !== null
                 && this.regexAccept(String.raw `(?:TYPES:)`, "", $$dpth + 1, $$cr) !== null
                 && ($scope$type = this.loopPlus(() => this.matchType($$dpth + 1, $$cr))) !== null) {
@@ -824,6 +832,7 @@ class Parser {
             let $scope$var;
             let $$res = null;
             if (true
+                && this.matchos($$dpth + 1, $$cr) !== null
                 && ($scope$pos = this.mark()) !== null
                 && this.regexAccept(String.raw `(?:VARIABLES:)`, "", $$dpth + 1, $$cr) !== null
                 && ($scope$var = this.loopPlus(() => this.matchConVar($$dpth + 1, $$cr))) !== null) {
@@ -838,6 +847,7 @@ class Parser {
             let $scope$const;
             let $$res = null;
             if (true
+                && this.matchos($$dpth + 1, $$cr) !== null
                 && ($scope$pos = this.mark()) !== null
                 && this.regexAccept(String.raw `(?:CONSTANTS:)`, "", $$dpth + 1, $$cr) !== null
                 && ($scope$const = this.loopPlus(() => this.matchConVar($$dpth + 1, $$cr))) !== null) {
@@ -852,6 +862,7 @@ class Parser {
             let $scope$func;
             let $$res = null;
             if (true
+                && this.matchos($$dpth + 1, $$cr) !== null
                 && ($scope$pos = this.mark()) !== null
                 && this.regexAccept(String.raw `(?:FUNCTIONS:)`, "", $$dpth + 1, $$cr) !== null
                 && ($scope$func = this.loopPlus(() => this.matchFunction($$dpth + 1, $$cr))) !== null) {
@@ -866,6 +877,7 @@ class Parser {
             let $scope$proc;
             let $$res = null;
             if (true
+                && this.matchos($$dpth + 1, $$cr) !== null
                 && ($scope$pos = this.mark()) !== null
                 && this.regexAccept(String.raw `(?:PROCESSES:)`, "", $$dpth + 1, $$cr) !== null
                 && ($scope$proc = this.loopPlus(() => this.matchProcess($$dpth + 1, $$cr))) !== null) {
@@ -880,6 +892,7 @@ class Parser {
             let $scope$proc;
             let $$res = null;
             if (true
+                && this.matchos($$dpth + 1, $$cr) !== null
                 && ($scope$pos = this.mark()) !== null
                 && this.regexAccept(String.raw `(?:proc)`, "", $$dpth + 1, $$cr) !== null
                 && ($scope$proc = this.matchProcess($$dpth + 1, $$cr)) !== null) {
@@ -894,6 +907,7 @@ class Parser {
             let $scope$alias;
             let $$res = null;
             if (true
+                && this.matchos($$dpth + 1, $$cr) !== null
                 && ($scope$pos = this.mark()) !== null
                 && this.regexAccept(String.raw `(?:ALIASES:)`, "", $$dpth + 1, $$cr) !== null
                 && ($scope$alias = this.loopPlus(() => this.matchAlias($$dpth + 1, $$cr))) !== null) {
@@ -1100,15 +1114,16 @@ class Parser {
                 && ($scope$pos1E = this.mark()) !== null
                 && this.matchos($$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?:\()`, "", $$dpth + 1, $$cr) !== null
+                && this.matchos($$dpth + 1, $$cr) !== null
                 && ($scope$pos2S = this.mark()) !== null
                 && (($scope$argFirst = this.matchName($$dpth + 1, $$cr)) || true)
                 && ($scope$pos2E = this.mark()) !== null
                 && ($scope$argsMore = this.loop(() => this.matchProcess_$0($$dpth + 1, $$cr), 0, -1)) !== null
+                && this.matchos($$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?:\))`, "", $$dpth + 1, $$cr) !== null
                 && this.matchos($$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?:\:\=)`, "", $$dpth + 1, $$cr) !== null
-                && this.matchlb($$dpth + 1, $$cr) !== null
-                && this.matchsp($$dpth + 1, $$cr) !== null
+                && this.matchws($$dpth + 1, $$cr) !== null
                 && ($scope$proc = this.matchSPE($$dpth + 1, $$cr)) !== null
                 && this.matchos($$dpth + 1, $$cr) !== null
                 && this.matchlb($$dpth + 1, $$cr) !== null) {
@@ -1131,6 +1146,7 @@ class Parser {
                 && ($scope$posE = this.mark()) !== null
                 && this.matchos($$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?:\:\=)`, "", $$dpth + 1, $$cr) !== null
+                && this.matchws($$dpth + 1, $$cr) !== null
                 && ($scope$proc = this.matchSPE($$dpth + 1, $$cr)) !== null
                 && this.matchos($$dpth + 1, $$cr) !== null
                 && this.matchlb($$dpth + 1, $$cr) !== null) {
@@ -1180,11 +1196,15 @@ class Parser {
                 && this.matchos($$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?:\:\=)`, "", $$dpth + 1, $$cr) !== null
                 && this.matchsp($$dpth + 1, $$cr) !== null
+                && this.regexAccept(String.raw `(?:\")`, "", $$dpth + 1, $$cr) !== null
+                && this.matchos($$dpth + 1, $$cr) !== null
                 && ($scope$pos2S = this.mark()) !== null
                 && (($scope$argFirst = this.matchName($$dpth + 1, $$cr)) || true)
                 && this.matchos($$dpth + 1, $$cr) !== null
                 && ($scope$pos2E = this.mark()) !== null
                 && ($scope$argsMore = this.loop(() => this.matchAlias_$0($$dpth + 1, $$cr), 0, -1)) !== null
+                && this.matchos($$dpth + 1, $$cr) !== null
+                && this.regexAccept(String.raw `(?:\")`, "", $$dpth + 1, $$cr) !== null
                 && this.matchos($$dpth + 1, $$cr) !== null
                 && this.matchlb($$dpth + 1, $$cr) !== null) {
                 $$res = { kind: ASTKinds.Alias_1, pos1S: $scope$pos1S, nameFirst: $scope$nameFirst, pos1E: $scope$pos1E, pos2S: $scope$pos2S, argFirst: $scope$argFirst, pos2E: $scope$pos2E, argsMore: $scope$argsMore };
@@ -1207,7 +1227,11 @@ class Parser {
                 && this.matchos($$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?:\:\=)`, "", $$dpth + 1, $$cr) !== null
                 && this.matchsp($$dpth + 1, $$cr) !== null
+                && this.regexAccept(String.raw `(?:\")`, "", $$dpth + 1, $$cr) !== null
+                && this.matchos($$dpth + 1, $$cr) !== null
                 && ($scope$dataExp = this.matchDE($$dpth + 1, $$cr)) !== null
+                && this.matchos($$dpth + 1, $$cr) !== null
+                && this.regexAccept(String.raw `(?:\")`, "", $$dpth + 1, $$cr) !== null
                 && this.matchos($$dpth + 1, $$cr) !== null
                 && this.matchlb($$dpth + 1, $$cr) !== null) {
                 $$res = { kind: ASTKinds.Alias_2, posS: $scope$posS, name: $scope$name, posE: $scope$posE, dataExp: $scope$dataExp };
@@ -1433,9 +1457,7 @@ class Parser {
                 && ($scope$posDEE = this.mark()) !== null
                 && this.matchos($$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?:\])`, "", $$dpth + 1, $$cr) !== null
-                && this.matchos($$dpth + 1, $$cr) !== null
-                && this.matchlb($$dpth + 1, $$cr) !== null
-                && this.matchsp($$dpth + 1, $$cr) !== null
+                && this.matchws($$dpth + 1, $$cr) !== null
                 && ($scope$proc = this.matchSPE($$dpth + 1, $$cr)) !== null
                 && (($scope$procMore = this.matchSPE1($$dpth + 1, $$cr)) || true)) {
                 $$res = new SPE_1($scope$posDES, $scope$dataExp, $scope$posDEE, $scope$proc, $scope$procMore);
@@ -1448,6 +1470,7 @@ class Parser {
             let $scope$posA;
             let $scope$name;
             let $scope$posB;
+            let $scope$ves;
             let $scope$posC;
             let $scope$dataExpAssignment;
             let $scope$posD;
@@ -1459,7 +1482,9 @@ class Parser {
                 && this.matchos($$dpth + 1, $$cr) !== null
                 && ($scope$posA = this.mark()) !== null
                 && ($scope$name = this.matchName($$dpth + 1, $$cr)) !== null
+                && this.matchos($$dpth + 1, $$cr) !== null
                 && ($scope$posB = this.mark()) !== null
+                && ($scope$ves = this.loop(() => this.matchSPE_$0($$dpth + 1, $$cr), 0, -1)) !== null
                 && this.matchos($$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?:\:\=)`, "", $$dpth + 1, $$cr) !== null
                 && this.matchos($$dpth + 1, $$cr) !== null
@@ -1468,12 +1493,10 @@ class Parser {
                 && ($scope$posD = this.mark()) !== null
                 && this.matchos($$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?:\]\])`, "", $$dpth + 1, $$cr) !== null
-                && this.matchos($$dpth + 1, $$cr) !== null
-                && this.matchlb($$dpth + 1, $$cr) !== null
-                && this.matchsp($$dpth + 1, $$cr) !== null
+                && this.matchws($$dpth + 1, $$cr) !== null
                 && ($scope$proc = this.matchSPE($$dpth + 1, $$cr)) !== null
                 && (($scope$procMore = this.matchSPE1($$dpth + 1, $$cr)) || true)) {
-                $$res = new SPE_2($scope$posA, $scope$name, $scope$posB, $scope$posC, $scope$dataExpAssignment, $scope$posD, $scope$proc, $scope$procMore);
+                $$res = new SPE_2($scope$posA, $scope$name, $scope$posB, $scope$ves, $scope$posC, $scope$dataExpAssignment, $scope$posD, $scope$proc, $scope$procMore);
             }
             return $$res;
         });
@@ -1486,30 +1509,29 @@ class Parser {
             let $scope$posB;
             let $scope$dataExpR;
             let $scope$posC;
-            let $scope$procL;
-            let $scope$procR;
+            let $scope$proc;
             let $scope$procMore;
             let $$res = null;
             if (true
                 && ($scope$pos = this.mark()) !== null
                 && this.regexAccept(String.raw `(?:unicast)`, "", $$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?:\()`, "", $$dpth + 1, $$cr) !== null
+                && this.matchos($$dpth + 1, $$cr) !== null
                 && ($scope$posA = this.mark()) !== null
                 && ($scope$dataExpL = this.matchDE($$dpth + 1, $$cr)) !== null
+                && this.matchos($$dpth + 1, $$cr) !== null
                 && ($scope$posB = this.mark()) !== null
-                && this.regexAccept(String.raw `(?:;)`, "", $$dpth + 1, $$cr) !== null
+                && this.regexAccept(String.raw `(?:\;)`, "", $$dpth + 1, $$cr) !== null
                 && this.matchos($$dpth + 1, $$cr) !== null
                 && ($scope$dataExpR = this.matchDE($$dpth + 1, $$cr)) !== null
                 && ($scope$posC = this.mark()) !== null
                 && this.regexAccept(String.raw `(?:\))`, "", $$dpth + 1, $$cr) !== null
+                && this.matchos($$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?:.)`, "", $$dpth + 1, $$cr) !== null
                 && this.matchws($$dpth + 1, $$cr) !== null
-                && ($scope$procL = this.matchSPE($$dpth + 1, $$cr)) !== null
-                && this.matchws($$dpth + 1, $$cr) !== null
-                && this.regexAccept(String.raw `(?:>)`, "", $$dpth + 1, $$cr) !== null
-                && ($scope$procR = this.matchSPE($$dpth + 1, $$cr)) !== null
+                && ($scope$proc = this.matchSPE($$dpth + 1, $$cr)) !== null
                 && (($scope$procMore = this.matchSPE1($$dpth + 1, $$cr)) || true)) {
-                $$res = new SPE_3($scope$pos, $scope$posA, $scope$dataExpL, $scope$posB, $scope$dataExpR, $scope$posC, $scope$procL, $scope$procR, $scope$procMore);
+                $$res = new SPE_3($scope$pos, $scope$posA, $scope$dataExpL, $scope$posB, $scope$dataExpR, $scope$posC, $scope$proc, $scope$procMore);
             }
             return $$res;
         });
@@ -1527,10 +1549,13 @@ class Parser {
                 && ($scope$pos = this.mark()) !== null
                 && this.regexAccept(String.raw `(?:broadcast)`, "", $$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?:\()`, "", $$dpth + 1, $$cr) !== null
+                && this.matchos($$dpth + 1, $$cr) !== null
                 && ($scope$posA = this.mark()) !== null
                 && ($scope$dataExp = this.matchDE($$dpth + 1, $$cr)) !== null
+                && this.matchos($$dpth + 1, $$cr) !== null
                 && ($scope$posB = this.mark()) !== null
                 && this.regexAccept(String.raw `(?:\))`, "", $$dpth + 1, $$cr) !== null
+                && this.matchos($$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?:.)`, "", $$dpth + 1, $$cr) !== null
                 && this.matchws($$dpth + 1, $$cr) !== null
                 && ($scope$proc = this.matchSPE($$dpth + 1, $$cr)) !== null
@@ -1555,14 +1580,17 @@ class Parser {
                 && ($scope$pos = this.mark()) !== null
                 && this.regexAccept(String.raw `(?:groupcast)`, "", $$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?:\()`, "", $$dpth + 1, $$cr) !== null
+                && this.matchos($$dpth + 1, $$cr) !== null
                 && ($scope$posA = this.mark()) !== null
                 && ($scope$dataExpL = this.matchDE($$dpth + 1, $$cr)) !== null
+                && this.matchos($$dpth + 1, $$cr) !== null
                 && ($scope$posB = this.mark()) !== null
-                && this.regexAccept(String.raw `(?:;)`, "", $$dpth + 1, $$cr) !== null
+                && this.regexAccept(String.raw `(?:\;)`, "", $$dpth + 1, $$cr) !== null
                 && this.matchos($$dpth + 1, $$cr) !== null
                 && ($scope$dataExpR = this.matchDE($$dpth + 1, $$cr)) !== null
                 && ($scope$posC = this.mark()) !== null
                 && this.regexAccept(String.raw `(?:\))`, "", $$dpth + 1, $$cr) !== null
+                && this.matchos($$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?:.)`, "", $$dpth + 1, $$cr) !== null
                 && this.matchws($$dpth + 1, $$cr) !== null
                 && ($scope$proc = this.matchSPE($$dpth + 1, $$cr)) !== null
@@ -1585,10 +1613,13 @@ class Parser {
                 && ($scope$pos = this.mark()) !== null
                 && this.regexAccept(String.raw `(?:send)`, "", $$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?:\()`, "", $$dpth + 1, $$cr) !== null
+                && this.matchos($$dpth + 1, $$cr) !== null
                 && ($scope$posA = this.mark()) !== null
                 && ($scope$dataExp = this.matchDE($$dpth + 1, $$cr)) !== null
+                && this.matchos($$dpth + 1, $$cr) !== null
                 && ($scope$posB = this.mark()) !== null
                 && this.regexAccept(String.raw `(?:\))`, "", $$dpth + 1, $$cr) !== null
+                && this.matchos($$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?:.)`, "", $$dpth + 1, $$cr) !== null
                 && this.matchws($$dpth + 1, $$cr) !== null
                 && ($scope$proc = this.matchSPE($$dpth + 1, $$cr)) !== null
@@ -1611,10 +1642,13 @@ class Parser {
                 && ($scope$pos = this.mark()) !== null
                 && this.regexAccept(String.raw `(?:deliver)`, "", $$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?:\()`, "", $$dpth + 1, $$cr) !== null
+                && this.matchos($$dpth + 1, $$cr) !== null
                 && ($scope$posA = this.mark()) !== null
                 && ($scope$dataExp = this.matchDE($$dpth + 1, $$cr)) !== null
+                && this.matchos($$dpth + 1, $$cr) !== null
                 && ($scope$posB = this.mark()) !== null
                 && this.regexAccept(String.raw `(?:\))`, "", $$dpth + 1, $$cr) !== null
+                && this.matchos($$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?:.)`, "", $$dpth + 1, $$cr) !== null
                 && this.matchws($$dpth + 1, $$cr) !== null
                 && ($scope$proc = this.matchSPE($$dpth + 1, $$cr)) !== null
@@ -1638,11 +1672,14 @@ class Parser {
                 && ($scope$pos = this.mark()) !== null
                 && this.regexAccept(String.raw `(?:receive)`, "", $$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?:\()`, "", $$dpth + 1, $$cr) !== null
+                && this.matchos($$dpth + 1, $$cr) !== null
                 && ($scope$posS = this.mark()) !== null
                 && ($scope$name = this.matchName($$dpth + 1, $$cr)) !== null
+                && this.matchos($$dpth + 1, $$cr) !== null
                 && ($scope$posE = this.mark()) !== null
-                && ($scope$dataExpList = this.loop(() => this.matchSPE_$0($$dpth + 1, $$cr), 0, -1)) !== null
+                && ($scope$dataExpList = this.loop(() => this.matchSPE_$1($$dpth + 1, $$cr), 0, -1)) !== null
                 && this.regexAccept(String.raw `(?:\))`, "", $$dpth + 1, $$cr) !== null
+                && this.matchos($$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?:.)`, "", $$dpth + 1, $$cr) !== null
                 && this.matchws($$dpth + 1, $$cr) !== null
                 && ($scope$proc = this.matchSPE($$dpth + 1, $$cr)) !== null
@@ -1688,9 +1725,12 @@ class Parser {
                 && this.negate(() => this.regexAccept(String.raw `(?:receive)`, "", $$dpth + 1, $$cr)) !== null
                 && ($scope$name = this.matchName($$dpth + 1, $$cr)) !== null
                 && ($scope$posE = this.mark()) !== null
+                && this.matchos($$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?:\()`, "", $$dpth + 1, $$cr) !== null
+                && this.matchos($$dpth + 1, $$cr) !== null
                 && (($scope$dataExpFirst = this.matchDE($$dpth + 1, $$cr)) || true)
-                && ($scope$dataExpW = this.loop(() => this.matchSPE_$1($$dpth + 1, $$cr), 0, -1)) !== null
+                && ($scope$dataExpW = this.loop(() => this.matchSPE_$2($$dpth + 1, $$cr), 0, -1)) !== null
+                && this.matchos($$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?:\))`, "", $$dpth + 1, $$cr) !== null
                 && (($scope$procMore = this.matchSPE1($$dpth + 1, $$cr)) || true)) {
                 $$res = new SPE_10($scope$posS, $scope$name, $scope$posE, $scope$dataExpFirst, $scope$dataExpW, $scope$procMore);
@@ -1700,13 +1740,19 @@ class Parser {
     }
     matchSPE_$0($$dpth, $$cr) {
         return this.run($$dpth, () => {
-            let $scope$dataExp;
+            let $scope$posS;
+            let $scope$de;
+            let $scope$posE;
             let $$res = null;
             if (true
                 && this.regexAccept(String.raw `(?:\[)`, "", $$dpth + 1, $$cr) !== null
-                && ($scope$dataExp = this.matchDE($$dpth + 1, $$cr)) !== null
+                && this.matchos($$dpth + 1, $$cr) !== null
+                && ($scope$posS = this.mark()) !== null
+                && ($scope$de = this.matchDE($$dpth + 1, $$cr)) !== null
+                && ($scope$posE = this.mark()) !== null
+                && this.matchos($$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?:\])`, "", $$dpth + 1, $$cr) !== null) {
-                $$res = { kind: ASTKinds.SPE_$0, dataExp: $scope$dataExp };
+                $$res = { kind: ASTKinds.SPE_$0, posS: $scope$posS, de: $scope$de, posE: $scope$posE };
             }
             return $$res;
         });
@@ -1716,10 +1762,25 @@ class Parser {
             let $scope$dataExp;
             let $$res = null;
             if (true
+                && this.regexAccept(String.raw `(?:\[)`, "", $$dpth + 1, $$cr) !== null
+                && this.matchos($$dpth + 1, $$cr) !== null
+                && ($scope$dataExp = this.matchDE($$dpth + 1, $$cr)) !== null
+                && this.matchos($$dpth + 1, $$cr) !== null
+                && this.regexAccept(String.raw `(?:\])`, "", $$dpth + 1, $$cr) !== null) {
+                $$res = { kind: ASTKinds.SPE_$1, dataExp: $scope$dataExp };
+            }
+            return $$res;
+        });
+    }
+    matchSPE_$2($$dpth, $$cr) {
+        return this.run($$dpth, () => {
+            let $scope$dataExp;
+            let $$res = null;
+            if (true
                 && this.regexAccept(String.raw `(?:,)`, "", $$dpth + 1, $$cr) !== null
                 && this.matchos($$dpth + 1, $$cr) !== null
                 && ($scope$dataExp = this.matchDE($$dpth + 1, $$cr)) !== null) {
-                $$res = { kind: ASTKinds.SPE_$1, dataExp: $scope$dataExp };
+                $$res = { kind: ASTKinds.SPE_$2, dataExp: $scope$dataExp };
             }
             return $$res;
         });
@@ -1730,11 +1791,9 @@ class Parser {
             let $scope$procMore;
             let $$res = null;
             if (true
-                && this.matchlb($$dpth + 1, $$cr) !== null
-                && this.matchsp($$dpth + 1, $$cr) !== null
+                && this.matchws($$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?:\+)`, "", $$dpth + 1, $$cr) !== null
-                && this.matchlb($$dpth + 1, $$cr) !== null
-                && this.matchsp($$dpth + 1, $$cr) !== null
+                && this.matchws($$dpth + 1, $$cr) !== null
                 && ($scope$proc = this.matchSPE($$dpth + 1, $$cr)) !== null
                 && (($scope$procMore = this.matchSPE1($$dpth + 1, $$cr)) || true)) {
                 $$res = new SPE1($scope$proc, $scope$procMore);
@@ -1761,23 +1820,35 @@ class Parser {
             let $scope$name;
             let $scope$posE;
             let $scope$dataExpLeft;
+            let $scope$DEPosS;
             let $scope$dataExpRight;
+            let $scope$DEPosE;
             let $scope$dataExpMore;
             let $$res = null;
             if (true
                 && this.regexAccept(String.raw `(?:{)`, "", $$dpth + 1, $$cr) !== null
+                && this.matchos($$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?:\()`, "", $$dpth + 1, $$cr) !== null
+                && this.matchos($$dpth + 1, $$cr) !== null
                 && ($scope$posS = this.mark()) !== null
                 && ($scope$name = this.matchName($$dpth + 1, $$cr)) !== null
+                && this.matchos($$dpth + 1, $$cr) !== null
                 && ($scope$posE = this.mark()) !== null
                 && this.regexAccept(String.raw `(?:,)`, "", $$dpth + 1, $$cr) !== null
+                && this.matchos($$dpth + 1, $$cr) !== null
                 && ($scope$dataExpLeft = this.matchDE($$dpth + 1, $$cr)) !== null
+                && this.matchos($$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?:\))`, "", $$dpth + 1, $$cr) !== null
-                && this.regexAccept(String.raw `(?: | )`, "", $$dpth + 1, $$cr) !== null
+                && this.matchos($$dpth + 1, $$cr) !== null
+                && this.regexAccept(String.raw `(?:\|)`, "", $$dpth + 1, $$cr) !== null
+                && this.matchos($$dpth + 1, $$cr) !== null
+                && ($scope$DEPosS = this.mark()) !== null
                 && ($scope$dataExpRight = this.matchDE($$dpth + 1, $$cr)) !== null
+                && ($scope$DEPosE = this.mark()) !== null
+                && this.matchos($$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?:})`, "", $$dpth + 1, $$cr) !== null
                 && (($scope$dataExpMore = this.matchDE1($$dpth + 1, $$cr)) || true)) {
-                $$res = new DE_1($scope$posS, $scope$name, $scope$posE, $scope$dataExpLeft, $scope$dataExpRight, $scope$dataExpMore);
+                $$res = new DE_1($scope$posS, $scope$name, $scope$posE, $scope$dataExpLeft, $scope$DEPosS, $scope$dataExpRight, $scope$DEPosE, $scope$dataExpMore);
             }
             return $$res;
         });
@@ -1787,19 +1858,27 @@ class Parser {
             let $scope$posS;
             let $scope$name;
             let $scope$posE;
+            let $scope$DEPosS;
             let $scope$dataExpRight;
+            let $scope$DEPosE;
             let $scope$dataExpMore;
             let $$res = null;
             if (true
                 && this.regexAccept(String.raw `(?:{)`, "", $$dpth + 1, $$cr) !== null
+                && this.matchos($$dpth + 1, $$cr) !== null
                 && ($scope$posS = this.mark()) !== null
                 && ($scope$name = this.matchName($$dpth + 1, $$cr)) !== null
+                && this.matchos($$dpth + 1, $$cr) !== null
                 && ($scope$posE = this.mark()) !== null
-                && this.regexAccept(String.raw `(?: | )`, "", $$dpth + 1, $$cr) !== null
+                && this.regexAccept(String.raw `(?:\|)`, "", $$dpth + 1, $$cr) !== null
+                && this.matchos($$dpth + 1, $$cr) !== null
+                && ($scope$DEPosS = this.mark()) !== null
                 && ($scope$dataExpRight = this.matchDE($$dpth + 1, $$cr)) !== null
+                && ($scope$DEPosE = this.mark()) !== null
+                && this.matchos($$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?:})`, "", $$dpth + 1, $$cr) !== null
                 && (($scope$dataExpMore = this.matchDE1($$dpth + 1, $$cr)) || true)) {
-                $$res = new DE_2($scope$posS, $scope$name, $scope$posE, $scope$dataExpRight, $scope$dataExpMore);
+                $$res = new DE_2($scope$posS, $scope$name, $scope$posE, $scope$DEPosS, $scope$dataExpRight, $scope$DEPosE, $scope$dataExpMore);
             }
             return $$res;
         });
@@ -1811,7 +1890,9 @@ class Parser {
             let $$res = null;
             if (true
                 && this.regexAccept(String.raw `(?:{)`, "", $$dpth + 1, $$cr) !== null
+                && this.matchos($$dpth + 1, $$cr) !== null
                 && ($scope$dataExp = this.matchDE($$dpth + 1, $$cr)) !== null
+                && this.matchos($$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?:})`, "", $$dpth + 1, $$cr) !== null
                 && (($scope$dataExpMore = this.matchDE1($$dpth + 1, $$cr)) || true)) {
                 $$res = new DE_3($scope$dataExp, $scope$dataExpMore);
@@ -1830,9 +1911,12 @@ class Parser {
             if (true
                 && ($scope$pos = this.mark()) !== null
                 && this.regexAccept(String.raw `(?:lambda )`, "", $$dpth + 1, $$cr) !== null
+                && this.matchos($$dpth + 1, $$cr) !== null
                 && ($scope$posS = this.mark()) !== null
                 && ($scope$name = this.matchName($$dpth + 1, $$cr)) !== null
-                && this.regexAccept(String.raw `(?:. )`, "", $$dpth + 1, $$cr) !== null
+                && this.matchos($$dpth + 1, $$cr) !== null
+                && this.regexAccept(String.raw `(?:.)`, "", $$dpth + 1, $$cr) !== null
+                && this.matchos($$dpth + 1, $$cr) !== null
                 && ($scope$dataExp = this.matchDE($$dpth + 1, $$cr)) !== null
                 && (($scope$dataExpMore = this.matchDE1($$dpth + 1, $$cr)) || true)) {
                 $$res = new DE_4($scope$pos, $scope$posS, $scope$name, $scope$dataExp, $scope$dataExpMore);
@@ -1851,9 +1935,12 @@ class Parser {
             if (true
                 && ($scope$pos = this.mark()) !== null
                 && this.regexAccept(String.raw `(?:forall )`, "", $$dpth + 1, $$cr) !== null
+                && this.matchos($$dpth + 1, $$cr) !== null
                 && ($scope$posS = this.mark()) !== null
                 && ($scope$name = this.matchName($$dpth + 1, $$cr)) !== null
-                && this.regexAccept(String.raw `(?:. )`, "", $$dpth + 1, $$cr) !== null
+                && this.matchos($$dpth + 1, $$cr) !== null
+                && this.regexAccept(String.raw `(?:.)`, "", $$dpth + 1, $$cr) !== null
+                && this.matchos($$dpth + 1, $$cr) !== null
                 && ($scope$dataExp = this.matchDE($$dpth + 1, $$cr)) !== null
                 && (($scope$dataExpMore = this.matchDE1($$dpth + 1, $$cr)) || true)) {
                 $$res = new DE_5($scope$pos, $scope$posS, $scope$name, $scope$dataExp, $scope$dataExpMore);
@@ -1872,9 +1959,12 @@ class Parser {
             if (true
                 && ($scope$pos = this.mark()) !== null
                 && this.regexAccept(String.raw `(?:exists )`, "", $$dpth + 1, $$cr) !== null
+                && this.matchos($$dpth + 1, $$cr) !== null
                 && ($scope$posS = this.mark()) !== null
                 && ($scope$name = this.matchName($$dpth + 1, $$cr)) !== null
-                && this.regexAccept(String.raw `(?:. )`, "", $$dpth + 1, $$cr) !== null
+                && this.matchos($$dpth + 1, $$cr) !== null
+                && this.regexAccept(String.raw `(?:.)`, "", $$dpth + 1, $$cr) !== null
+                && this.matchos($$dpth + 1, $$cr) !== null
                 && ($scope$dataExp = this.matchDE($$dpth + 1, $$cr)) !== null
                 && (($scope$dataExpMore = this.matchDE1($$dpth + 1, $$cr)) || true)) {
                 $$res = new DE_6($scope$pos, $scope$posS, $scope$name, $scope$dataExp, $scope$dataExpMore);
@@ -1896,6 +1986,7 @@ class Parser {
                 && ($scope$posN = this.mark()) !== null
                 && ($scope$name = this.matchDE_$0($$dpth + 1, $$cr)) !== null
                 && ($scope$posNEnd = this.mark()) !== null
+                && this.matchos($$dpth + 1, $$cr) !== null
                 && this.regexAccept(String.raw `(?:\()`, "", $$dpth + 1, $$cr) !== null
                 && this.matchos($$dpth + 1, $$cr) !== null
                 && ($scope$posS = this.mark()) !== null
@@ -2336,7 +2427,7 @@ class Parser {
             let $scope$char;
             let $$res = null;
             if (true
-                && ($scope$char = this.regexAccept(String.raw `(?:[a-zA-Z0-9_])`, "", $$dpth + 1, $$cr)) !== null) {
+                && ($scope$char = this.regexAccept(String.raw `(?:[a-zA-Z0-9_/-])`, "", $$dpth + 1, $$cr)) !== null) {
                 $$res = new NameChar($scope$char);
             }
             return $$res;

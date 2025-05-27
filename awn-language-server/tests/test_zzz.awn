@@ -1,0 +1,12 @@
+include types.awn
+
+--testing the set constructions
+-- {Name | DE}           <- Name is Variable, DE is Bool.   Output type is Type(Name)
+-- {(Name, DE1) | DE2}   <- Name is Variable, DE2 is Bool.  Output type is Type(Name) +-> Type(DE1)
+
+proc TEST_SET() :=
+  [ {ip | true} ]
+  [ {ip | true} ]
+  [ {(ip, queue) | tc_time}]
+  [ {(ip, queue) | true}]
+  TEST_SET()

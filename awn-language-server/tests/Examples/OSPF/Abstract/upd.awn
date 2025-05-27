@@ -1,0 +1,13 @@
+include types.awn
+include ospf.awn
+
+proc UPD(lsas,sip,ip,nbrs,lsdb,hello_t) :=
+  [[ lsas := {lsa|isElem(lsa,lsas) & !(exists lsa0. (isElem(lsa0,lsdb) & hdr(lsa) <= hdr(lsa0)))} ]]
+  (
+    [ lsas = emptySet ]
+      OSPF(ip,nbrs,lsdb,hello_t)
+    + [ lsas != emptySet ]
+      [[ lsdb := install(lsdb,lsas) ]]
+      send(sndmsg(upd(lsas,ip),{pi_1(n)|isElem(n,nbrs)})).
+      OSPF(ip,nbrs,lsdb,hello_t)
+  )

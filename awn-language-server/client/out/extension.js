@@ -6,6 +6,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.deactivate = exports.activate = void 0;
 const path = require("path");
+const vscode = require("vscode");
 const vscode_1 = require("vscode");
 const node_1 = require("vscode-languageclient/node");
 let client;
@@ -33,6 +34,13 @@ function activate(context) {
     client = new node_1.LanguageClient('languageServerExample', 'Language Server Example', serverOptions, clientOptions);
     // Start the client. This will also launch the server
     client.start();
+    vscode.window.onDidChangeActiveTextEditor((editor) => {
+        if (editor) {
+            client.sendNotification("awn/activeDocumentChanged", {
+                uri: editor.document.uri.toString()
+            });
+        }
+    });
 }
 exports.activate = activate;
 function deactivate() {

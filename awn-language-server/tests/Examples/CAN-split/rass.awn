@@ -1,0 +1,33 @@
+include types.awn
+
+proc RASS(store,H) :=
+  receive(msg).
+  [msg = can(canid(mt,no),data)]
+    [[aid := sender(mt)]]
+    (
+      [no = 1]
+      (
+        [fragments(mt) = 1]
+          deliver(pkt(mt,data)).
+          [[store[aid] := (bot_mt,0,eps)]]
+          RASS(store,H)
+        + [fragments(mt) > 1]
+          [[store[aid] := (mt,1,data)]]
+          RASS(store,H)
+      )
+    + [!(no = 1) & mt = mtype(store,aid) & no = lastfrag(store,aid)+1]
+      [[store[aid] := (mt,no,append8(contents(store,aid),data),store)]]
+      (
+        [lastfrag(store,aid) = fragments(mt)]
+          deliver(pkt(mt,contents(store,aid))).
+          [[store[aid] := (bot_mt,0,eps)]]
+          RASS(store,H)
+        + [!(lastfrag(store,aid) = fragments(mt))]
+          RASS(store,H)
+      )
+    + [!(no = 1) & (mt = mtype(store,aid) & no = lastfrag(store,aid))]
+      RASS(store,H)
+    + [!(no = 1) & (!(mt = mtype(store,aid)) | (!(no = lastfrag(store,aid)) & !(no = lastfrag(store,aid))))]
+      [[store[aid] := (bot_mt,0,eps,store,H)]]
+      RASS(store,H)
+    )

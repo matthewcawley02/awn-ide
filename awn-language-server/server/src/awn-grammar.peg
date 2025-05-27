@@ -1,18 +1,18 @@
 AWNRoot := ws block=Block* ws $
 
 //in a block, each entry must be separated by a linebreak, optional spacing at the start
-//because each entry must be delimited with a linebreak, an extra line is required at the end of the doc currently (i get around this by adding a newline to the end of the doc before parsing)
+//because each entry must be delimited with a linebreak, an extra line is required at the end of the doc (i get around this by adding a newline to the end of the doc before parsing)
 
 Block :=
-	  pos=@ 'INCLUDES:' include=Include+ 
-	| pos=@ 'include' include=Include
-	| pos=@ 'TYPES:' type=Type+
-	| pos=@ 'VARIABLES:' var=ConVar+
-	| pos=@ 'CONSTANTS:' const=ConVar+
-	| pos=@ 'FUNCTIONS:' func=Function+
-	| pos=@ 'PROCESSES:' proc=Process+
-	| pos=@ 'proc' proc=Process
-	| pos=@ 'ALIASES:' alias=Alias+
+	  os pos=@ 'INCLUDES:' include=Include+
+	| os pos=@ 'include' include=Include
+	| os pos=@ 'TYPES:' type=Type+
+	| os pos=@ 'VARIABLES:' var=ConVar+
+	| os pos=@ 'CONSTANTS:' const=ConVar+
+	| os pos=@ 'FUNCTIONS:' func=Function+
+	| os pos=@ 'PROCESSES:' proc=Process+
+	| os pos=@ 'proc' proc=Process
+	| os pos=@ 'ALIASES:' alias=Alias+
 
 Include := ws posS=@ name=Name posE=@ os lb
 
@@ -27,12 +27,12 @@ Function :=
 	| ws posS=@ name=Infix posE=@ os '\:' os typeExpr=TE os lb
 
 Process :=
-	  ws pos1S=@ nameFirst=Name pos1E=@ os '\(' pos2S=@ argFirst=Name? pos2E=@ argsMore={',' os posS=@ name=Name posE=@ }* '\)' os '\:\=' lb sp proc=SPE os lb
-	| ws posS=@ name=Name posE=@ os '\:\=' proc=SPE os lb
+	  ws pos1S=@ nameFirst=Name pos1E=@ os '\(' os pos2S=@ argFirst=Name? pos2E=@ argsMore={',' os posS=@ name=Name posE=@ }* os '\)' os '\:\=' ws proc=SPE os lb
+	| ws posS=@ name=Name posE=@ os '\:\=' ws proc=SPE os lb
 
 Alias :=
-	  ws pos1S=@ nameFirst=Name pos1E=@ os '\:\=' sp pos2S=@ argFirst=Name? os pos2E=@ argsMore={',' os posS=@ name=Name posE=@ }* os lb
-	| ws posS=@ name=Name posE=@ os '\:\=' sp dataExp=DE os lb
+	  ws pos1S=@ nameFirst=Name pos1E=@ os '\:\=' sp '\"' os pos2S=@ argFirst=Name? os pos2E=@ argsMore={',' os posS=@ name=Name posE=@ }* os '\"' os lb
+	| ws posS=@ name=Name posE=@ os '\:\=' sp '\"' os dataExp=DE os '\"' os lb
 
 //============
 // TYPE EXPRESSIONS
@@ -74,35 +74,35 @@ TE1 := os '\->' os typeExpr=TE typeExprMore=TE1?
 //==================
 
 SPE :=
-	  '\[' os posDES=@ dataExp=DE posDEE=@ os '\]' os lb sp proc=SPE procMore=SPE1?
+	  '\[' os posDES=@ dataExp=DE posDEE=@ os '\]' ws proc=SPE procMore=SPE1?
 	.procType = string {
 		return "guard"
 	}
-	| '\[\[' os posA=@ name=Name posB=@ os '\:\=' os posC=@ dataExpAssignment=DE posD=@ os '\]\]' os lb sp proc=SPE procMore=SPE1?
+	| '\[\[' os posA=@ name=Name os posB=@ ves={'\[' os posS=@ de=DE posE=@ os '\]'}* os '\:\=' os posC=@ dataExpAssignment=DE posD=@ os '\]\]' ws proc=SPE procMore=SPE1?
 	.procType = string {
 		return "assignment"
 	}
-	| pos=@ 'unicast' '\(' posA=@ dataExpL=DE posB=@ ';' os dataExpR=DE posC=@ '\)' '.' ws procL=SPE ws '>' procR=SPE procMore=SPE1?
+	| pos=@ 'unicast' '\(' os posA=@ dataExpL=DE os posB=@ '\;' os dataExpR=DE posC=@ '\)' os '.' ws proc=SPE procMore=SPE1?
 	.procType = string {
 		return "unicast"
 	} 
-	| pos=@ 'broadcast' '\(' posA=@ dataExp=DE posB=@ '\)' '.' ws proc=SPE procMore=SPE1?
+	| pos=@ 'broadcast' '\(' os posA=@ dataExp=DE os posB=@ '\)' os '.' ws proc=SPE procMore=SPE1?
 	.procType = string {
 		return "broadcast"
 	}
-	| pos=@ 'groupcast' '\(' posA=@ dataExpL=DE posB=@ ';' os dataExpR=DE posC=@ '\)' '.' ws proc=SPE procMore=SPE1?
+	| pos=@ 'groupcast' '\(' os posA=@ dataExpL=DE os posB=@ '\;' os dataExpR=DE posC=@ '\)' os '.' ws proc=SPE procMore=SPE1?
 	.procType = string {
 		return "groupcast"
 	}
-	| pos=@ 'send' '\(' posA=@ dataExp=DE posB=@ '\)' '.' ws proc=SPE procMore=SPE1?
+	| pos=@ 'send' '\(' os posA=@ dataExp=DE os posB=@ '\)' os '.' ws proc=SPE procMore=SPE1?
 	.procType = string {
 		return "send"
 	}
-	| pos=@ 'deliver' '\(' posA=@ dataExp=DE posB=@ '\)' '.' ws proc=SPE procMore=SPE1?
+	| pos=@ 'deliver' '\(' os posA=@ dataExp=DE os posB=@ '\)' os '.' ws proc=SPE procMore=SPE1?
 	.procType = string {
 		return "deliver"
 	}
-	| pos=@ 'receive' '\(' posS=@ name=Name posE=@ dataExpList={ '\[' dataExp=DE '\]' }* '\)' '.' ws proc=SPE procMore=SPE1?
+	| pos=@ 'receive' '\(' os posS=@ name=Name os posE=@ dataExpList={ '\[' os dataExp=DE os '\]' }* '\)' os '.' ws proc=SPE procMore=SPE1?
 	.procType = string {
 		return "receive"
 	}
@@ -110,12 +110,12 @@ SPE :=
 	.procType = string {
 		return "brackets"
 	}
-	| posS=@ !'unicast' !'broadcast' !'groupcast' !'send' !'deliver' !'receive' name=Name posE=@ '\(' dataExpFirst=DE? dataExpW={',' os dataExp=DE}* '\)' procMore=SPE1?
+	| posS=@ !'unicast' !'broadcast' !'groupcast' !'send' !'deliver' !'receive' name=Name posE=@ os '\(' os dataExpFirst=DE? dataExpW={',' os dataExp=DE}* os '\)' procMore=SPE1?
 	.procType = string {
 		return "call"
 	}
 
-SPE1 := lb sp '\+' lb sp proc=SPE procMore=SPE1?
+SPE1 := ws '\+' ws proc=SPE procMore=SPE1?
 .procType = string {
 		return "choice"
 	}
@@ -125,35 +125,35 @@ SPE1 := lb sp '\+' lb sp proc=SPE procMore=SPE1?
 //===============
 
 DE :=
-	'{' '\(' posS=@ name=Name posE=@ ',' dataExpLeft=DE '\)' ' | ' dataExpRight=DE '}' dataExpMore=DE1?
+	'{' os '\(' os posS=@ name=Name os posE=@ ',' os dataExpLeft=DE os '\)' os '\|' os DEPosS=@ dataExpRight=DE DEPosE=@ os '}' dataExpMore=DE1?
 	.dataExpType = string {
 		return "partial"
 	}
-	| '{' posS=@ name=Name posE=@ ' | ' dataExpRight=DE '}' dataExpMore=DE1?
+	| '{' os posS=@ name=Name os posE=@ '\|' os DEPosS=@ dataExpRight=DE DEPosE=@ os '}' dataExpMore=DE1?
 	.dataExpType = string {
 		return "set"
 	}
-	| '{' dataExp=DE '}' dataExpMore=DE1?
+	| '{' os dataExp=DE os '}' dataExpMore=DE1?
 	.dataExpType = string {
 		return "singleton"
 	}
-	| pos=@ 'lambda ' posS=@ name=Name '. ' dataExp=DE dataExpMore=DE1?
+	| pos=@ 'lambda ' os posS=@ name=Name os '.' os dataExp=DE dataExpMore=DE1?
 	.dataExpType = string {
 		return "lambda"
 	}
-	| pos=@ 'forall ' posS=@ name=Name '. ' dataExp=DE dataExpMore=DE1?
+	| pos=@ 'forall ' os posS=@ name=Name os '.' os dataExp=DE dataExpMore=DE1?
 	.dataExpType = string {
 		return "forall"
 	}
-	| pos=@ 'exists ' posS=@ name=Name '. ' dataExp=DE dataExpMore=DE1?
+	| pos=@ 'exists ' os posS=@ name=Name os '.' os dataExp=DE dataExpMore=DE1?
 	.dataExpType = string {
 		return "exists"
 	}
-	| posN=@ name={Name | Infix} posNEnd=@ '\(' os posS=@ dataExp=DE posE=@ os '\)' dataExpMore=DE1?
+	| posN=@ name={Name | Infix} posNEnd=@ os '\(' os posS=@ dataExp=DE posE=@ os '\)' dataExpMore=DE1?
 	.dataExpType = string {
 		return "function"
 	}
-	| '\(' dataExp=DE '\)' dataExpMore=DE1?
+	| '\(' os dataExp=DE os '\)' dataExpMore=DE1?
 	.dataExpType = string {
 		return "brackets"
 	}
@@ -236,7 +236,7 @@ NameString := prefix={pre=NameChar* dot='\.' post=NameString}
 		return final.map(NameChar=> NameChar.value).join('')
 	}
 
-NameChar := char='[a-zA-Z0-9_]'
+NameChar := char='[a-zA-Z0-9_/-]'
 	.value = string{return char}
 
 // their infix also allows colon ':', but this is incompatible because infix function definitions are ended with a colon.

@@ -1,0 +1,19 @@
+include types.awn
+include can_send_out.awn
+
+proc CAN_SEND_IN(buffer,H) :=
+  receive(msg).
+  (
+    [msg = msgd(tid,can(cid,data))]
+      [[buffer[tid] := can(cid,data)]]
+      CAN_SEND_OUT(buffer,H)
+    + [msg = msgd(tid,cancel)]
+      (
+	[buffer(tid) = bot_msg]
+	CAN_SEND_OUT(buffer,H)
+      + [!(buffer(tid) = bot_msg)]
+	[[buffer[tid] := bot_msg]]
+	unicast(M(H);msgd(tid,ack(false))).
+	CAN_SEND_OUT(buffer,H)
+      )
+  )

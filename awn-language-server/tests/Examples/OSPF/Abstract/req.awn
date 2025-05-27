@@ -1,0 +1,9 @@
+include types.awn
+include OSPF.awn
+
+proc REQ(lsa_hdrs,sip,ip,nbrs,lsdb,hello_t) :=
+  [ !(brExist(nbrs,sip)) ]
+    OSPF(ip,nbrs,lsdb,hello_t)
+  + [ nbrExist(nbrs,sip) ]
+    send(sndmsg(upd({lsa|isElem(lsa,lsdb) & exists lhdr. (isElem(lhdr,lsa_hdrs) & lhdr <= hdr(lsa))},ip),{sip})).
+    OSPF(ip,nbrs,lsdb,hells_t)

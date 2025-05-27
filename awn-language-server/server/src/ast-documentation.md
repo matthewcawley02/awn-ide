@@ -31,3 +31,41 @@ How to convert a tree with LR nodes to a correct tree
 5. When returning any node, we check whether it has been given a different parent by an LR node moving immediately past it. If so, it
    means this node has already has its parent set properly and we shouldn't be returning it. BUT, the ORIGINAL parent of this node
    wouldn't have its child set properly, as that would be the aforementioned new LR node. So we instead return that.
+
+convertNode(oldnode: oldASTnode, parent: newASTnode): newnode: newASTnode {
+   var newnode
+   newnode.parent = parent
+   for(non-LR children of oldnode){
+      newnode.childx = convertNode(child, newnode)
+   }
+   var returnednode = newnode
+   if(oldnode has attached LR child){
+      convertLRNode(LRchild, newnode)
+   }
+   while(returnednode.parent != parent){
+      returnednode = returnednode.parent
+   }
+   return returnednode
+}
+
+convertLRNode(oldnode: oldASTnode, parent: newASTnode): void {
+   var newnode
+   newnode.parent = parent //temporary
+   insertLRNode(newnode)
+   newnode.right = convertNode(newnode.child, newnode)
+}
+
+insertLRNode(node: newASTnode): void {
+   var newChild = node
+   var newParent = node.parent
+   while(true){
+      if(node.precedence > newParent.precedence){
+         newChild = newParent
+         newParent = newParent.parent
+      }
+      else(break)
+   }
+   newChild.parent = node
+   node.left = newChild
+   node.parent = newParent
+}

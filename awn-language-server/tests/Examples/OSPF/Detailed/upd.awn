@@ -1,0 +1,28 @@
+include types.awn
+include ospf.awn
+
+proc UPD(lsas,sip,ip,nbrs,lsdb,hello_t) :=
+  [ !(nbrExist(nbrs,sip)) ]
+    OSPF(ip,nbrs,lsdb,hello_t)
+  + [ nbrExist(nbrs,sip) ]
+    send(sndmsg(ack({hdr(lsa)|isElem(lsa,lsas)},ip))).
+    [[ lsas := {lsa|isElem(lsa,lsas) & !(exists lsa0. (isElem(lsa0,lsdb) & hdr(lsa) <= hdr(lsa0)))} ]]
+    (
+      [ lsas = emptySet ]
+        OSPF(ip,nbrs,lsdb,hello_t)
+      + [ lsas != emptySet ]
+        [[ lsdb := install(lsdb,lsas) ]]
+        [[ nbrs := cleanREQS(nbrs,sip,lsdb) ]]
+        [[ nbrs := updRXMTS(nbrs,lsas) ]]
+        send(sndmsg(upd(lsas,ip),floodNIPS(nbrs))).
+        (
+          [ getREQS(nbrs,sip) != emptySet ]
+            OSPF(ip,nbrs,lsdb,hello_t)
+          + [ getREQS(nbrs,sip) = emptySet ]
+            [[ nbrs := setNS(nbrs,sip,Full) ]]
+            [[ lsa := newLSA(ip,now,nbrs) ]]
+            [[ lsdb := install(lsdb,{lsa}) ]]
+            [[ nbrs := updRXMTS(nbrs,{lsa}) ]]
+            send(sndmsg(upd({lsa},ip),floodNIPS(nbrs))).OSPF(ip,nbrs,lsdb,hello_t)
+        )
+    )

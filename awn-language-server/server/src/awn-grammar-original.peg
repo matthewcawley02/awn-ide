@@ -13,7 +13,7 @@ Block :=
 	| 'PROCESSES:' Process+
 	| 'proc' Process
 
-Include := sp Name lb   			//could change this later to specifically be a filepath
+Include := sp Name lb
 
 Type := sp TypeName { '\=' TE }? lb
 
@@ -100,12 +100,6 @@ DE :=
 //=============
 //  BASIC
 //=============
-
-// In the original grammar, some checking (through RATS functions) is done to differentiate
-// between different kinds of Infix, and different kinds of Name. Currently, I have all infixes
-// as 'Infix', and for Names have 'Name' and 'TypeName', which are currenlty identical. The
-// grammar uses them for different things, so I'll keep them separate to make things easier later
-// when I am hopefully able to split them up.
 
 TypeName := Name
 

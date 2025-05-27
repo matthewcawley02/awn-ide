@@ -1,0 +1,8 @@
+include types.awn
+include ospf.awn
+
+proc SNMIS(sip,ip,nbrs,lsdb,hello_t) :=
+  [[ nbrs := initNBR(nbrs,sip,ExStart) ]]
+  [[ nbrs := incDDSQN(nbrs,sip) ]]
+  [[ nbrs := setDDT(nbrs,sip,now+rxmt_sintvl) ]]
+  send(sndmsg(genDBD(nbrs,lsdb,sip,ip),{sip})).OSPF(ip,nbrs,lsdb,hello_t)
